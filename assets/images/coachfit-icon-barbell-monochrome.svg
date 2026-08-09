@@ -1,0 +1,10 @@
+<svg width="512" height="512" viewBox="0 0 512 512" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <!-- Android 13+ themed icon silhouette. -->
+  <g transform="rotate(-38 256 256)" fill="#000000">
+    <rect x="137" y="237.5" width="238" height="37" rx="18.5"/>
+    <rect x="102" y="184" width="46" height="144" rx="20"/>
+    <rect x="158" y="203" width="34" height="106" rx="15"/>
+    <rect x="320" y="203" width="34" height="106" rx="15"/>
+    <rect x="364" y="184" width="46" height="144" rx="20"/>
+  </g>
+</svg>

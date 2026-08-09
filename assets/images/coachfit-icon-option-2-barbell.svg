@@ -1,0 +1,11 @@
+<svg width="1024" height="1024" viewBox="0 0 1024 1024" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <rect width="1024" height="1024" fill="#10120E"/>
+  <!-- Angled barbell: direct, energetic, and deliberately graphic. -->
+  <g transform="rotate(-38 512 512)" fill="#D8FF3E">
+    <rect x="274" y="475" width="476" height="74" rx="37"/>
+    <rect x="204" y="368" width="92" height="288" rx="40"/>
+    <rect x="316" y="406" width="68" height="212" rx="30"/>
+    <rect x="640" y="406" width="68" height="212" rx="30"/>
+    <rect x="728" y="368" width="92" height="288" rx="40"/>
+  </g>
+</svg>

@@ -1,0 +1,6 @@
+<svg width="1024" height="1024" viewBox="0 0 1024 1024" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <rect width="1024" height="1024" fill="#10120E"/>
+  <!-- A continuous climb: every bend is a rep, every rise is progress. -->
+  <path d="M242 714L437 519L548 630L777 401" stroke="#D8FF3E" stroke-width="108" stroke-linecap="round" stroke-linejoin="round"/>
+  <path d="M682 401H777V496" stroke="#D8FF3E" stroke-width="108" stroke-linecap="round" stroke-linejoin="round"/>
+</svg>

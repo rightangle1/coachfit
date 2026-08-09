@@ -1,0 +1,74 @@
+{
+  "expo": {
+    "name": "CoachFit",
+    "slug": "coachfit",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/images/coachfit-icon-option-2-barbell.png",
+    "scheme": "coachfit",
+    "userInterfaceStyle": "automatic",
+    "ios": {
+      "bundleIdentifier": "com.aterminassian.coachfit",
+      "buildNumber": "1",
+      "appleTeamId": "74RR9W783P"
+    },
+    "android": {
+      "adaptiveIcon": {
+        "backgroundColor": "#10120E",
+        "foregroundImage": "./assets/images/coachfit-icon-barbell-foreground.png",
+        "monochromeImage": "./assets/images/coachfit-icon-barbell-monochrome.png"
+      },
+      "predictiveBackGestureEnabled": false
+    },
+    "web": {
+      "output": "static",
+      "favicon": "./assets/images/coachfit-icon-option-2-barbell.png"
+    },
+    "plugins": [
+      "expo-router",
+      [
+        "expo-splash-screen",
+        {
+          "backgroundColor": "#171922"
+        }
+      ],
+      "expo-sqlite",
+      [
+        "expo-audio",
+        {
+          "recordAudioAndroid": false,
+          "enableBackgroundPlayback": false
+        }
+      ],
+      [
+        "expo-widgets",
+        {
+          "groupIdentifier": "group.com.aterminassian.coachfit",
+          "widgets": []
+        }
+      ],
+      [
+        "@kingstinct/react-native-healthkit",
+        {
+          "NSHealthShareUsageDescription": "CoachFit saves your completed workouts to Health so they show up alongside your other activity.",
+          "NSHealthUpdateUsageDescription": "CoachFit saves your completed workouts to Health so they show up alongside your other activity.",
+          "background": false
+        }
+      ],
+      "./plugins/withLiveActivityTermination.js",
+    "./plugins/withDsymFix.js",
+      "expo-asset",
+      [
+        "expo-notifications",
+        {
+          "icon": "./assets/images/coachfit-icon-option-2-barbell.png",
+          "color": "#171922"
+        }
+      ]
+    ],
+    "experiments": {
+      "typedRoutes": true,
+      "reactCompiler": true
+    }
+  }
+}

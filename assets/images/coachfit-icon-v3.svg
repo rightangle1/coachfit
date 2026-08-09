@@ -1,0 +1,9 @@
+<svg width="1024" height="1024" viewBox="0 0 1024 1024" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <!-- Full-bleed master. The operating system provides the final corner mask. -->
+  <rect width="1024" height="1024" fill="#10120E"/>
+  <!-- A deliberately simple kettlebell silhouette, drawn as one strong shape. -->
+  <path d="M355 438V372C355 268.17 425.17 194 512 194C598.83 194 669 268.17 669 372V438H584V372C584 313.33 552.12 279 512 279C471.88 279 440 313.33 440 372V438H355Z" fill="#D8FF3E"/>
+  <path d="M512 418C667.52 418 792 526.96 792 664C792 812.08 667.52 900 512 900C356.48 900 232 812.08 232 664C232 526.96 356.48 418 512 418Z" fill="#D8FF3E"/>
+  <!-- The cut is negative space: momentum and intensity, not an added color. -->
+  <path d="M563 493L422 672H503L447 805L616 594H535L563 493Z" fill="#10120E"/>
+</svg>

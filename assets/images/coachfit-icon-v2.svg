@@ -1,0 +1,9 @@
+<svg width="1024" height="1024" viewBox="0 0 1024 1024" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <!-- CoachFit app-icon concept: brand C plus a compact barbell. -->
+  <rect width="1024" height="1024" fill="#486B58"/>
+  <!-- The open C keeps the CoachFit monogram clear at home-screen sizes. -->
+  <path d="M658 280C598 225 522 196 438 196C255 196 106 345 106 528C106 711 255 860 438 860C522 860 598 831 658 776" stroke="#FFFDF9" stroke-width="94" stroke-linecap="round"/>
+  <!-- A minimal barbell sits in the opening: strength without visual clutter. -->
+  <path d="M421 528H713" stroke="#E6B482" stroke-width="46" stroke-linecap="round"/>
+  <path d="M444 444V612M505 466V590M629 466V590M690 444V612" stroke="#E6B482" stroke-width="46" stroke-linecap="round"/>
+</svg>

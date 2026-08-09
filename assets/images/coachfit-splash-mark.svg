@@ -1,0 +1,6 @@
+<svg width="512" height="512" viewBox="0 0 512 512" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <!-- CoachFit's launch mark: a calm "C" in motion, with a focused forward cue. -->
+  <rect x="44" y="44" width="424" height="424" rx="132" fill="#486B58"/>
+  <path d="M336 165.5C307.8 139.7 271.9 126 232 126C145.8 126 76 195.8 76 282C76 368.2 145.8 438 232 438C271.9 438 307.8 424.3 336 398.5" stroke="#FFFDF9" stroke-width="44" stroke-linecap="round"/>
+  <path d="M250 282H402M352 232L402 282L352 332" stroke="#E6B482" stroke-width="30" stroke-linecap="round" stroke-linejoin="round"/>
+</svg>

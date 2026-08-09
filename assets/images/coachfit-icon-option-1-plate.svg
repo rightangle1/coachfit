@@ -1,0 +1,7 @@
+<svg width="1024" height="1024" viewBox="0 0 1024 1024" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <rect width="1024" height="1024" fill="#10120E"/>
+  <!-- Weight plate: calm, strong, and unmistakably gym-forward. -->
+  <path d="M512 154L787 313V711L512 870L237 711V313L512 154Z" fill="#D8FF3E"/>
+  <circle cx="512" cy="512" r="141" fill="#10120E"/>
+  <path d="M456 271H568V349H456V271ZM456 675H568V753H456V675ZM271 456H349V568H271V456ZM675 456H753V568H675V456Z" fill="#10120E"/>
+</svg>

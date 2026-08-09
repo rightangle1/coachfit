@@ -1,0 +1,82 @@
+diff --git a/node_modules/react-native-svg/lib/commonjs/web/utils/prepare.js b/node_modules/react-native-svg/lib/commonjs/web/utils/prepare.js
+index d57e7c8..0019a1d 100644
+--- a/node_modules/react-native-svg/lib/commonjs/web/utils/prepare.js
++++ b/node_modules/react-native-svg/lib/commonjs/web/utils/prepare.js
+@@ -35,14 +35,6 @@ const prepare = (self, props = self.props) => {
+     ...rest
+   } = props;
+   const clean = {
+-    ...((0, _hasProperty.hasTouchableProperty)(props) ? {
+-      onStartShouldSetResponder: self.touchableHandleStartShouldSetResponder,
+-      onResponderTerminationRequest: self.touchableHandleResponderTerminationRequest,
+-      onResponderGrant: self.touchableHandleResponderGrant,
+-      onResponderMove: self.touchableHandleResponderMove,
+-      onResponderRelease: self.touchableHandleResponderRelease,
+-      onResponderTerminate: self.touchableHandleResponderTerminate
+-    } : null),
+     ...rest
+   };
+   if (origin != null) {
+diff --git a/node_modules/react-native-svg/lib/module/web/utils/prepare.js b/node_modules/react-native-svg/lib/module/web/utils/prepare.js
+index 113eb2b..a630051 100644
+--- a/node_modules/react-native-svg/lib/module/web/utils/prepare.js
++++ b/node_modules/react-native-svg/lib/module/web/utils/prepare.js
+@@ -29,14 +29,6 @@ export const prepare = (self, props = self.props) => {
+     ...rest
+   } = props;
+   const clean = {
+-    ...(hasTouchableProperty(props) ? {
+-      onStartShouldSetResponder: self.touchableHandleStartShouldSetResponder,
+-      onResponderTerminationRequest: self.touchableHandleResponderTerminationRequest,
+-      onResponderGrant: self.touchableHandleResponderGrant,
+-      onResponderMove: self.touchableHandleResponderMove,
+-      onResponderRelease: self.touchableHandleResponderRelease,
+-      onResponderTerminate: self.touchableHandleResponderTerminate
+-    } : null),
+     ...rest
+   };
+   if (origin != null) {
+diff --git a/node_modules/react-native-svg/src/web/utils/prepare.ts b/node_modules/react-native-svg/src/web/utils/prepare.ts
+index 4106784..ecfd04a 100644
+--- a/node_modules/react-native-svg/src/web/utils/prepare.ts
++++ b/node_modules/react-native-svg/src/web/utils/prepare.ts
+@@ -4,7 +4,6 @@ import {
+ } from 'react-native';
+ import { BaseProps } from '../types';
+ import { WebShape } from '../WebShape';
+-import { hasTouchableProperty } from './hasProperty';
+ import { parseTransformProp } from './parseTransform';
+ import { resolve } from '../../lib/resolve';
+ import { NumberProp } from '../../lib/extract/types';
+@@ -40,12 +39,6 @@ export const prepare = <T extends BaseProps>(
+   } = props;
+ 
+   const clean: {
+-    onStartShouldSetResponder?: (e: GestureResponderEvent) => boolean;
+-    onResponderMove?: (e: GestureResponderEvent) => void;
+-    onResponderGrant?: (e: GestureResponderEvent) => void;
+-    onResponderRelease?: (e: GestureResponderEvent) => void;
+-    onResponderTerminate?: (e: GestureResponderEvent) => void;
+-    onResponderTerminationRequest?: (e: GestureResponderEvent) => boolean;
+     onClick?: (e: GestureResponderEvent) => void;
+     transform?: string;
+     gradientTransform?: string;
+@@ -55,18 +48,6 @@ export const prepare = <T extends BaseProps>(
+     style?: object;
+     ref?: unknown;
+   } = {
+-    ...(hasTouchableProperty(props)
+-      ? {
+-          onStartShouldSetResponder:
+-            self.touchableHandleStartShouldSetResponder,
+-          onResponderTerminationRequest:
+-            self.touchableHandleResponderTerminationRequest,
+-          onResponderGrant: self.touchableHandleResponderGrant,
+-          onResponderMove: self.touchableHandleResponderMove,
+-          onResponderRelease: self.touchableHandleResponderRelease,
+-          onResponderTerminate: self.touchableHandleResponderTerminate,
+-        }
+-      : null),
+     ...rest,
+   };
+ 
