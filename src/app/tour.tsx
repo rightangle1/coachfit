@@ -40,6 +40,14 @@ export default function TourScreen() {
       router.replace({ pathname: '/', params: { scrollTo: 'build' } });
       return;
     }
+    if (destination === 'explore') {
+      router.replace('/explore' as never);
+      return;
+    }
+    if (destination === 'progress') {
+      router.replace('/progress' as never);
+      return;
+    }
     const params = destination === 'profile'
       ? { profile: '1' }
       : destination === 'catalog'

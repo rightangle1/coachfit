@@ -1,7 +1,7 @@
 import { useMemo } from 'react';
 import { View } from 'react-native';
 
-import { Card, Divider, Row, SheetModal, Text, useTheme } from '@/design';
+import { Card, Divider, MuscleLogo, Row, SheetModal, Text, useTheme } from '@/design';
 import { workoutSummary } from '@/app-lib/presentation';
 import { formatWeight } from '@/app-lib/units';
 import { getAthleteProfile } from '@/services/athlete';
@@ -59,26 +59,34 @@ export function WorkoutDetailSheet({
           {record.performed
             .map((exercise) => ({ ...exercise, sets: exercise.sets.filter((set) => set.completed) }))
             .filter((exercise) => exercise.sets.length > 0)
-            .map((exercise, index) => (
-              <View key={exercise.exerciseId}>
-                {index > 0 && <Divider style={{ marginVertical: spacing.md }} />}
-                <Text variant="subtitle">{exercise.name}</Text>
-                <View style={{ marginTop: spacing.sm, gap: 4 }}>
-                  {exercise.sets.map((set, setIndex) => (
-                    <Row key={setIndex} style={{ justifyContent: 'space-between' }}>
-                      <Text variant="caption" color="success">
-                        COMPLETED · SET {setIndex + 1}
-                      </Text>
-                      <Text variant="label" color="textMuted">
-                        {set.durationSec != null && set.reps == null
-                          ? `${Math.round(set.durationSec / 60)} min${set.weightKg != null ? ` · ${formatWeight(set.weightKg, unit)}` : ''}`
-                          : `${set.reps ?? '—'} reps${set.weightKg != null ? ` · ${formatWeight(set.weightKg, unit)}` : ''}`}
-                      </Text>
-                    </Row>
-                  ))}
+            .map((exercise, index) => {
+              const primaryMuscles = exercise.primaryAreas.flatMap((area) => area.group ? [area.group] : []);
+              return (
+                <View key={exercise.exerciseId}>
+                  {index > 0 && <Divider style={{ marginVertical: spacing.md }} />}
+                  <Row gap="sm" style={{ alignItems: 'center' }}>
+                    <MuscleLogo groups={primaryMuscles} size={44} />
+                    <View style={{ flex: 1 }}>
+                      <Text variant="subtitle">{exercise.name}</Text>
+                      <View style={{ marginTop: spacing.sm, gap: 4 }}>
+                        {exercise.sets.map((set, setIndex) => (
+                          <Row key={setIndex} style={{ justifyContent: 'space-between' }}>
+                            <Text variant="caption" color="success">
+                              COMPLETED · SET {setIndex + 1}
+                            </Text>
+                            <Text variant="label" color="textMuted">
+                              {set.durationSec != null && set.reps == null
+                                ? `${Math.round(set.durationSec / 60)} min${set.weightKg != null ? ` · ${formatWeight(set.weightKg, unit)}` : ''}`
+                                : `${set.reps ?? '—'} reps${set.weightKg != null ? ` · ${formatWeight(set.weightKg, unit)}` : ''}`}
+                            </Text>
+                          </Row>
+                        ))}
+                      </View>
+                    </View>
+                  </Row>
                 </View>
-              </View>
-            ))}
+              );
+            })}
         </View>
       </Card>
     </SheetModal>

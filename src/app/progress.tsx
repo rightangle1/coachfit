@@ -9,17 +9,17 @@
 
 import { useMemo, useState } from 'react';
 import { Pressable, View } from 'react-native';
+import { useRouter } from 'expo-router';
 
 import Animated, { FadeIn } from 'react-native-reanimated';
 
-import { Card, Divider, GoalHero, Icon, IconButton, Meter, PressScale, Row, Screen, Text, TrendChart, useTheme } from '@/design';
+import { Button, Card, Chip, Divider, GoalHero, Icon, IconButton, Meter, PressScale, Row, Screen, Stepper, Text, TrendChart, useTheme } from '@/design';
 import type { ColorToken } from '@/design';
 import { AchievementsSheet } from '@/features/achievements-sheet';
-import { ExerciseInfoView } from '@/features/exercise-info-view';
 import { WorkoutDetailSheet } from '@/features/workout-detail-sheet';
-import { getAthleteProfile } from '@/services/athlete';
+import { getAthleteProfile, recordBodyweight } from '@/services/athlete';
 import { getPlan, listHistory } from '@/services/sessions';
-import { formatWeight, kgToDisplayWeight } from '@/app-lib/units';
+import { displayWeightToKg, formatWeight, kgToDisplayWeight } from '@/app-lib/units';
 import { sessionDaysInRange, weeklyPerformance as computeWeeklyPerformance, workoutSummary } from '@/app-lib/presentation';
 import { primaryGoal } from '@/app-lib/personalization';
 import { ALL_MUSCLE_GROUPS } from '@/domain/types';
@@ -65,6 +65,8 @@ import {
 
 type TrendDirection = 'up' | 'flat' | 'down' | 'unknown';
 type ProgressMetric = 'strength' | 'endurance' | 'calories' | 'workouts';
+
+const PROGRESS_EDITORIAL_ART = require('../../assets/images/editorial/weekly-consistency-v1.png');
 
 const PROGRESS_METRIC_LABELS: Record<ProgressMetric, string> = {
   strength: 'Strength',
@@ -783,16 +785,19 @@ function EnduranceByTypeCard({
 }
 
 export default function ProgressScreen() {
+  const router = useRouter();
   const { colors, radii, spacing, motion } = useTheme();
   const [now] = useState(() => Date.now());
   const [expandedMuscleGroup, setExpandedMuscleGroup] = useState<MuscleGroup | null>(null);
   const [selectedMetric, setSelectedMetric] = useState<ProgressMetric>('strength');
+  const [bodyweightRange, setBodyweightRange] = useState<7 | 30 | 90>(30);
   const [showAchievements, setShowAchievements] = useState(false);
   const [openWorkoutId, setOpenWorkoutId] = useState<string | undefined>();
-  const [infoExerciseId, setInfoExerciseId] = useState<string | null>(null);
 
-  const athlete = useMemo(() => getAthleteProfile(), []);
+  const [athlete, setAthlete] = useState(() => getAthleteProfile());
   const weightUnit: WeightUnit = athlete?.weightUnit ?? 'kg';
+  const [weightDraftKg, setWeightDraftKg] = useState(() => athlete?.bodyweightKg ?? 70);
+  const openExercise = (exerciseId: string) => router.push({ pathname: '/exercise' as never, params: { id: exerciseId } });
   const history = useMemo(() => listHistory(200), []);
   const focusGoal = primaryGoal(athlete?.goals);
   const completedCount = history.length;
@@ -865,9 +870,27 @@ export default function ProgressScreen() {
     }));
     return [...seen.entries()].map(([id, name]) => ({ id, name })).slice(0, 12);
   }, [history]);
+  const bodyweightPoints = useMemo(
+    () => [...(athlete?.bodyweightLog ?? [])].sort((a, b) => a.at - b.at),
+    [athlete?.bodyweightLog],
+  );
+  const visibleBodyweightPoints = useMemo(() => {
+    const cutoff = now - bodyweightRange * 24 * 60 * 60 * 1000;
+    const inRange = bodyweightPoints.filter((point) => point.at >= cutoff);
+    return inRange.length ? inRange : bodyweightPoints.slice(-1);
+  }, [bodyweightPoints, bodyweightRange, now]);
+  const currentWeight = athlete?.bodyweightKg;
+  const priorWeight = visibleBodyweightPoints.length > 1 ? visibleBodyweightPoints[0]?.kg : undefined;
+  const weightDelta = currentWeight != null && priorWeight != null ? currentWeight - priorWeight : undefined;
+
+  function saveWeight() {
+    const saved = recordBodyweight(weightDraftKg);
+    if (saved) setAthlete(saved);
+  }
+
   return (
     <Screen contentStyle={{ paddingTop: spacing.sm }}>
-      <GoalHero goal={focusGoal} style={{ minHeight: 470 }}>
+      <GoalHero goal={focusGoal} imageOverride={PROGRESS_EDITORIAL_ART} style={{ minHeight: 470 }}>
         <View style={{ gap: spacing.md }}>
           <View>
             <Text variant="caption" color="heroMuted" weight="bold">YOUR TRAINING PROGRESS</Text>
@@ -936,9 +959,6 @@ export default function ProgressScreen() {
         </View>
       </GoalHero>
 
-      {/* Everything below the hero swaps wholesale when the metric changes.
-          Keyed so each switch remounts and crossfades in rather than cutting
-          four screens' worth of content over instantly (ADR-0130). */}
       <Animated.View
         key={selectedMetric}
         entering={motion.enabled ? FadeIn.duration(motion.duration.slow) : undefined}
@@ -1059,7 +1079,7 @@ export default function ProgressScreen() {
                     <Pressable
                       accessibilityRole="button"
                       accessibilityLabel={`View ${index.anchorExerciseName} details`}
-                      onPress={() => setInfoExerciseId(index.anchorExerciseId ?? null)}
+                      onPress={() => openExercise(index.anchorExerciseId!)}
                       style={({ pressed }) => ({ marginTop: 4, opacity: pressed ? 0.7 : 1 })}
                     >
                       <Row style={{ justifyContent: 'space-between' }}>
@@ -1114,7 +1134,7 @@ export default function ProgressScreen() {
               return (
                 <View key={s.exerciseId}>
                   <Pressable
-                    onPress={() => setInfoExerciseId(s.exerciseId)}
+                    onPress={() => openExercise(s.exerciseId)}
                     style={({ pressed }) => ({ opacity: pressed ? 0.7 : 1 })}
                   >
                     <Row style={{ justifyContent: 'space-between' }}>
@@ -1201,7 +1221,7 @@ export default function ProgressScreen() {
         {trainingLoad.points.length ? <View style={{ marginTop: spacing.md }}><TrendChart type="bar" color="accent" points={trainingLoad.points.map((p) => ({ label: shortDate(p.date), value: p.load }))} /></View> : <Text variant="body" color="textMuted" style={{ marginTop: spacing.md }}>Log effort after a workout to see your training load.</Text>}
       </Card>
 
-      <EnduranceByTypeCard history={history} onExercisePress={setInfoExerciseId} />
+      <EnduranceByTypeCard history={history} onExercisePress={openExercise} />
 
       <Card>
         <Text variant="heading">Individual cardio exercises</Text>
@@ -1219,7 +1239,7 @@ export default function ProgressScreen() {
               return (
                 <View key={s.exerciseId}>
                   <Pressable
-                    onPress={() => setInfoExerciseId(s.exerciseId)}
+                    onPress={() => openExercise(s.exerciseId)}
                     style={({ pressed }) => ({ opacity: pressed ? 0.7 : 1 })}
                   >
                     <Row style={{ justifyContent: 'space-between' }}>
@@ -1254,6 +1274,25 @@ export default function ProgressScreen() {
           })}
         </View>
       </Card>
+      <Card tone="primarySoft">
+        <Row style={{ justifyContent: 'space-between', alignItems: 'flex-start' }}>
+          <View>
+            <Text variant="caption" color="primaryTextSoft" weight="bold">BODYWEIGHT</Text>
+            <Text variant="display" color="primaryTextSoft" style={{ marginTop: 2 }}>{currentWeight != null ? formatWeight(currentWeight, weightUnit) : '—'}</Text>
+            <Text variant="caption" color="primaryTextSoft">{weightDelta == null ? 'Add a second weigh-in to see your change.' : `${weightDelta > 0 ? '+' : ''}${formatWeight(Math.abs(weightDelta), weightUnit)} in this period`}</Text>
+          </View>
+          <Icon name="checkin" size={24} color="primaryTextSoft" />
+        </Row>
+        <Row gap="sm" wrap style={{ marginTop: spacing.md }}>
+          {([{ days: 7, label: '7 days' }, { days: 30, label: '30 days' }, { days: 90, label: '3 months' }] as const).map((range) => <Chip key={range.days} label={range.label} selected={bodyweightRange === range.days} onPress={() => setBodyweightRange(range.days)} />)}
+        </Row>
+        {visibleBodyweightPoints.length > 1 ? <View style={{ marginTop: spacing.md }}><TrendChart type="line" color="primary" points={visibleBodyweightPoints.slice(-12).map((point) => ({ label: shortDate(point.at), value: kgToDisplayWeight(point.kg, weightUnit) }))} valueFormatter={(value) => `${Math.round(value * 10) / 10} ${weightUnit}`} /></View> : null}
+        <View style={{ marginTop: spacing.lg, paddingTop: spacing.md, borderTopWidth: 1, borderTopColor: colors.primary }}>
+          <Text variant="label" color="primaryTextSoft" weight="semibold">Update weight</Text>
+          <Stepper value={kgToDisplayWeight(weightDraftKg, weightUnit)} onChange={(value) => setWeightDraftKg(displayWeightToKg(value, weightUnit))} min={weightUnit === 'lb' ? 60 : 25} max={weightUnit === 'lb' ? 600 : 275} step={weightUnit === 'lb' ? 0.5 : 0.1} unit={weightUnit} style={{ marginTop: spacing.sm }} />
+          <Button title="Save weight" variant="secondary" size="sm" onPress={saveWeight} style={{ marginTop: spacing.md }} />
+        </View>
+      </Card>
       </>}
 
       {selectedMetric === 'workouts' && <>
@@ -1262,7 +1301,7 @@ export default function ProgressScreen() {
         now={now}
         weightUnit={weightUnit}
         unlockedAchievements={achievementsResult.unlocked}
-        onExercisePress={setInfoExerciseId}
+        onExercisePress={openExercise}
       />
 
       <Pressable onPress={() => setShowAchievements(true)} style={({ pressed }) => ({ opacity: pressed ? 0.75 : 1 })}>
@@ -1312,7 +1351,7 @@ export default function ProgressScreen() {
                 key={exercise.id}
                 accessibilityRole="button"
                 accessibilityLabel={`View ${exercise.name} workout history`}
-                onPress={() => setInfoExerciseId(exercise.id)}
+                onPress={() => openExercise(exercise.id)}
                 style={({ pressed }) => ({ opacity: pressed ? 0.72 : 1 })}
               >
                 <Row style={{ justifyContent: 'space-between' }}>
@@ -1388,11 +1427,6 @@ export default function ProgressScreen() {
 
       <AchievementsSheet visible={showAchievements} onClose={() => setShowAchievements(false)} />
       <WorkoutDetailSheet recordId={openWorkoutId} onClose={() => setOpenWorkoutId(undefined)} />
-      <ExerciseInfoView
-        exerciseId={infoExerciseId}
-        weightUnit={weightUnit}
-        onClose={() => setInfoExerciseId(null)}
-      />
     </Screen>
   );
 }

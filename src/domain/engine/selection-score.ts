@@ -26,7 +26,15 @@
  *    `accessory` profile chases variety.
  */
 
-import { GROUP_TO_REGION, type BodyArea, type Exercise, type MuscleGroup, type SessionRecord } from '../types';
+import {
+  GROUP_TO_REGION,
+  type BodyArea,
+  type Exercise,
+  type ExerciseDifficulty,
+  type ExperienceLevel,
+  type MuscleGroup,
+  type SessionRecord,
+} from '../types';
 import { MEV, MRV } from '../metrics';
 import { mechanicOf } from './mechanic';
 import { matchStrength } from './matching';
@@ -65,7 +73,41 @@ export const SELECTION_WEIGHTS = {
    */
   FAMILY_SATURATION: 45,
   ENJOYMENT: 12,
+  /**
+   * How well an exercise's difficulty tier fits the athlete's experience
+   * (ADR-0136). A beginner has no track record to judge "this is worth the
+   * technical risk" — a trainer defaults them to the common, foundational
+   * catalog and only reaches for a barbell/skill lift when it's the explicit
+   * emphasis. An advanced athlete gets the opposite lean: no penalty for
+   * staying in beginner-tier accessory work, but a real pull toward the
+   * intermediate/advanced catalog they've earned, so selection doesn't keep
+   * handing them the same basic movements a beginner would get. Sits below
+   * COMPOUND and well below EMPHASIS/ANCHOR — a bias that reorders ties, never
+   * a gate: a beginner whose pool is all-advanced (e.g. equipment-limited to
+   * one barbell lift) still gets it.
+   */
+  EXPERIENCE_FIT: 16,
 } as const;
+
+/**
+ * -1..1 lean toward an exercise's difficulty tier, by athlete experience
+ * (ADR-0136). An explicit table, not a formula, so the trainer's taste here
+ * stays auditable in one place: steer beginners hard toward beginner-tier
+ * (the common, foundational) catalog and away from harder tiers; let advanced
+ * athletes range across the deeper catalog without being pulled back toward
+ * the basics they've already mastered.
+ */
+const EXPERIENCE_DIFFICULTY_FIT: Record<ExperienceLevel, Record<ExerciseDifficulty, number>> = {
+  beginner: { beginner: 1, intermediate: -0.6, advanced: -1 },
+  intermediate: { beginner: 0.3, intermediate: 0.7, advanced: -0.4 },
+  advanced: { beginner: 0, intermediate: 0.4, advanced: 0.8 },
+};
+
+/** Catalog entries are guaranteed a `difficulty` (`catalog/index.ts`); an
+ * unenriched fixture without one is treated as beginner-tier, the common case. */
+export function experienceFit(experience: ExperienceLevel, ex: Exercise): number {
+  return EXPERIENCE_DIFFICULTY_FIT[experience][ex.difficulty ?? 'beginner'];
+}
 
 /** How fast "I just did this" wears off. Five days ≈ half the penalty. */
 export const RECENCY_HALF_LIFE_DAYS = 5;
@@ -80,15 +122,21 @@ const DAY_MS = 86_400_000;
  */
 export type SelectionProfile = 'anchor' | 'accessory' | 'neutral';
 
-const PROFILE_SCALE: Record<SelectionProfile, { recency: number; anchor: number; favorite: number }> = {
-  anchor: { recency: 0.15, anchor: 1, favorite: 1 },
-  accessory: { recency: 1, anchor: 0.1, favorite: 0.6 },
-  neutral: { recency: 0.6, anchor: 0, favorite: 1 },
+const PROFILE_SCALE: Record<SelectionProfile, { recency: number; anchor: number; favorite: number; experienceFit: number }> = {
+  // ADR-0136: EXPERIENCE_FIT is a catalog-depth/novelty signal like recency —
+  // an established anchor lift must not get bumped by a difficulty-tier
+  // reshuffle the moment it picks up a routine fatigue penalty. Damped almost
+  // to nothing here, same spirit as recency's 0.15.
+  anchor: { recency: 0.15, anchor: 1, favorite: 1, experienceFit: 0.2 },
+  accessory: { recency: 1, anchor: 0.1, favorite: 0.6, experienceFit: 1 },
+  neutral: { recency: 0.6, anchor: 0, favorite: 1, experienceFit: 0.6 },
 };
 
 export interface ScoreContext {
   emphasize: BodyArea[];
   favorites: Set<string>;
+  /** Drives the EXPERIENCE_FIT term (ADR-0136) — never a filter. */
+  experience: ExperienceLevel;
   weeklyVolume: Partial<Record<MuscleGroup, number>>;
   fatigueByGroup: Partial<Record<MuscleGroup, number>>;
   /** exerciseId → when it was last performed. Built once via `lastPerformedIndex`. */
@@ -233,6 +281,7 @@ export function scoreExercise(ex: Exercise, ctx: ScoreContext): number {
     w.ANCHOR * anchorBonus * scale.anchor +
     w.FAVORITE * favoriteBonus * scale.favorite +
     w.VOLUME_DEFICIT * volumeDeficit(ex, ctx.weeklyVolume) +
+    w.EXPERIENCE_FIT * experienceFit(ctx.experience, ex) * scale.experienceFit +
     w.COMPOUND * compoundBonus -
     w.FATIGUE * peakFatigue(ex, ctx.fatigueByGroup) -
     w.VOLUME_EXCESS * volumeExcess(ex, ctx.weeklyVolume) -

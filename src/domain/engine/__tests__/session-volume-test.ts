@@ -346,6 +346,7 @@ describe('family saturation — penalises repeats without ever excluding them', 
     return {
       emphasize: [],
       favorites: new Set(),
+      experience: 'intermediate',
       weeklyVolume: {},
       fatigueByGroup: {},
       lastPerformedAt: new Map(),

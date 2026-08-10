@@ -1,0 +1,83 @@
+{
+  "version": 2,
+  "license": "Original AI-generated artwork for CoachFit; bundled for offline use",
+  "ownership": {
+    "createdFor": "CoachFit",
+    "source": "OpenAI built-in ImageGen",
+    "usage": "Product editorial surfaces only; do not imply a real person endorsement."
+  },
+  "assets": [
+    {
+      "file": "today-strength-v1.png",
+      "placement": ["Today hero", "post-setup walkthrough"],
+      "alt": "An adult athlete performing a supported dumbbell row in a warm home gym.",
+      "promptSummary": "Natural adult strength training in a warm home gym with left-side negative space."
+    },
+    {
+      "file": "explore-cardio-v1.png",
+      "placement": ["Explore cardio collection"],
+      "alt": "An adult runner moving at an easy pace along a quiet waterfront path.",
+      "promptSummary": "Natural outdoor cardio scene with negative space for app copy."
+    },
+    {
+      "file": "recovery-stretch-v1.png",
+      "placement": ["Today readiness", "Recovery collection"],
+      "alt": "An adult athlete doing a gentle seated hip stretch on a mat at home.",
+      "promptSummary": "Calm evening recovery stretch in a warm home setting."
+    },
+    {
+      "file": "explore-mobility-v1.png",
+      "placement": ["Explore mobility collection"],
+      "alt": "An adult athlete doing a controlled standing upper-body stretch at home.",
+      "promptSummary": "Approachable mobility practice with generous left-side copy space."
+    },
+    {
+      "file": "explore-strength-v1.png",
+      "placement": ["Explore strength collection"],
+      "alt": "An adult athlete performing a controlled dumbbell split squat in a home training space.",
+      "promptSummary": "Natural, contemporary strength training with safe form and editorial negative space."
+    },
+    {
+      "file": "endurance-run-v1.png",
+      "placement": ["Explore endurance collection", "Progress endurance empty state"],
+      "alt": "An adult runner moving along a calm, tree-lined park path.",
+      "promptSummary": "Steady outdoor run in soft morning light."
+    },
+    {
+      "file": "explore-general-v1.png",
+      "placement": ["Explore general-fitness collection"],
+      "alt": "An adult athlete performing an incline push-up using a bench.",
+      "promptSummary": "Accessible full-body home training with clean copy space."
+    },
+    {
+      "file": "explore-yoga-v1.png",
+      "placement": ["Explore yoga collection"],
+      "alt": "An adult athlete holding a warrior-two yoga pose at home.",
+      "promptSummary": "Calm yoga practice in a bright, uncluttered room."
+    },
+    {
+      "file": "weekly-consistency-v1.png",
+      "placement": ["Progress consistency", "Achievement celebration"],
+      "alt": "Two adult athletes doing bodyweight squats together in a park.",
+      "promptSummary": "Supportive shared movement, framed as steady consistency rather than competition."
+    },
+    {
+      "file": "today-conditioning-v1.png",
+      "placement": ["Today conditioning collection"],
+      "alt": "An adult athlete performing a controlled medicine-ball slam in a training room.",
+      "promptSummary": "Focused, composed conditioning work with ocean-toned copy space."
+    },
+    {
+      "file": "explore-deadlift-v1.png",
+      "placement": ["Explore heavier strength collection", "Strength progress editorial state"],
+      "alt": "An adult athlete preparing for a controlled conventional barbell deadlift.",
+      "promptSummary": "Technically grounded moderate-to-heavy barbell strength work."
+    },
+    {
+      "file": "explore-front-squat-v1.png",
+      "placement": ["Explore heavier strength collection", "Strength progress editorial state"],
+      "alt": "An adult athlete performing a controlled front squat with a barbell.",
+      "promptSummary": "Precise, self-assured moderate-to-heavy barbell strength work."
+    }
+  ]
+}

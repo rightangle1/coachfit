@@ -43,7 +43,7 @@ import {
   type LiveWorkoutActivityContent,
 } from './live-activity-types';
 
-const APP_ICON_MODULE = require('../../assets/images/coachfit-icon-option-2-barbell.png');
+const APP_ICON_MODULE = require('../../assets/images/coachfit-icon-fluid-strength.png');
 
 let cachedAppIconUri: string | null = null;
 

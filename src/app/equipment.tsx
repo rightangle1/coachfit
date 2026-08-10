@@ -16,7 +16,7 @@ export default function EquipmentScreen() {
   const router = useRouter();
   return (
     <Screen>
-      <EquipmentForm onSaved={() => router.replace(needsAppTour(getAthleteProfile()) ? '/tour' : '/')} />
+      <EquipmentForm onSaved={() => router.replace(needsAppTour(getAthleteProfile()) ? '/tour-choice' as never : '/')} />
     </Screen>
   );
 }

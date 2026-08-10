@@ -1,6 +1,6 @@
 import { ImageBackground } from 'expo-image';
 import { type ReactNode } from 'react';
-import { Pressable, View, type ViewStyle } from 'react-native';
+import { Pressable, View, type ImageSourcePropType, type ViewStyle } from 'react-native';
 
 import { GOAL_STORIES } from '@/app-lib/personalization';
 import type { Modality } from '@/domain/types';
@@ -39,6 +39,7 @@ export function GoalHero({
   children,
   compact = false,
   style,
+  imageOverride,
 }: {
   goal: Modality;
   eyebrow?: string;
@@ -49,12 +50,14 @@ export function GoalHero({
   children?: ReactNode;
   compact?: boolean;
   style?: ViewStyle;
+  /** Route-specific editorial art; falls back to the stable goal asset. */
+  imageOverride?: ImageSourcePropType;
 }) {
   const { colors, radii, spacing, shadows } = useTheme();
   const story = GOAL_STORIES[goal];
   return (
     <ImageBackground
-      source={GOAL_HERO_IMAGES[goal]}
+      source={imageOverride ?? GOAL_HERO_IMAGES[goal]}
       contentFit="cover"
       contentPosition="center"
       transition={220}

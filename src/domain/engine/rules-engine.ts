@@ -287,6 +287,11 @@ export class RulesEngine implements ProgrammingEngine {
     }
 
     const blocks: SessionBlock[] = [];
+    // Exercise ids already placed in any block this session (ADR-0136) —
+    // threaded forward through Warmup/Conditioning/Cool down so a session
+    // never recommends the same exercise twice (e.g. the same stretch opening
+    // and closing the workout). Populated as each block below is finalized.
+    const sessionChosenIds = new Set<string>();
 
     // 1) Warmup is built further below (after Main), once today's actual
     // trained muscle groups are known — see `mainAreas`. It's still unshifted
@@ -355,13 +360,13 @@ export class RulesEngine implements ProgrammingEngine {
           ? exercise.movementPattern === 'steady_cardio'
           : exercise.movementPattern === 'interval')
         : available;
-      let main = pick(pool, 'cardio', count, emphasize, avoid, swaps, { requireDistinctPattern: workoutType !== 'cardio', history: input.history, now: input.plannedFor, favorites });
+      let main = pick(pool, 'cardio', count, emphasize, avoid, swaps, { requireDistinctPattern: workoutType !== 'cardio', history: input.history, now: input.plannedFor, favorites, experience });
       // The candidate pool (e.g. distinct cardio patterns) can run out before
       // `count` is met — prefer another distinct cardio exercise (even one
       // repeating a movement pattern) over stretching a single bout very long.
       if (main.length < count) {
         const remainingPool = pool.filter((e) => e.modality === 'cardio' && !main.some((chosen) => chosen.id === e.id));
-        const more = pick(remainingPool, 'cardio', count - main.length, emphasize, avoid, swaps, { requireDistinctPattern: false, history: input.history, now: input.plannedFor, favorites });
+        const more = pick(remainingPool, 'cardio', count - main.length, emphasize, avoid, swaps, { requireDistinctPattern: false, history: input.history, now: input.plannedFor, favorites, experience });
         main = [...main, ...more];
       }
       // Only once the pool is truly exhausted does leftover time stretch the
@@ -384,6 +389,7 @@ export class RulesEngine implements ProgrammingEngine {
         label: 'Main',
         exercises: main.map((e) => toPlanned(e, cardioSets(e, rxForMain, cardioIntent, recommendedCardioWeightKg(e, input), input.history, input.trainingIntent))),
       });
+      main.forEach((e) => sessionChosenIds.add(e.id));
     } else {
       const isBodybuilding = workoutType === 'bodybuilding';
       const isSculpting = workoutType === 'sculpting';
@@ -423,12 +429,13 @@ export class RulesEngine implements ProgrammingEngine {
           ? emphasisOnlyPool
           : available;
       let main = fullBody
-        ? pickFullBodySpread(available, count, emphasize, avoid, swaps, weeklyVolume, input.history, favorites, input.plannedFor, usedFamilies)
+        ? pickFullBodySpread(available, count, emphasize, avoid, swaps, weeklyVolume, input.history, favorites, input.plannedFor, usedFamilies, experience)
         : pick(mainPool, 'strength', count, emphasize, avoid, swaps, {
             weeklyVolume,
             history: input.history,
             now: input.plannedFor,
             favorites,
+            experience,
             seedUsedFamilies: usedFamilies,
             anchorCount: MAIN_ANCHOR_COUNT,
             profile: 'accessory',
@@ -455,6 +462,7 @@ export class RulesEngine implements ProgrammingEngine {
           history: input.history,
           now: input.plannedFor,
           favorites,
+          experience,
           seedChosenIds: chosenIds,
           seedUsedFamilies: usedFamilies,
           anchorCount: MAIN_ANCHOR_COUNT,
@@ -492,7 +500,7 @@ export class RulesEngine implements ProgrammingEngine {
             !main.some((chosen) => chosen.id === e.id) &&
             (emphasisMode !== 'priority' || !emphasize.length || emphasizesArea(emphasize, e)),
         );
-        const more = pick(remainingPool, 'strength', count - main.length, emphasize, avoid, swaps, { requireDistinctPattern: false, weeklyVolume, history: input.history, now: input.plannedFor, favorites, seedUsedFamilies: usedFamilies, profile: 'accessory' });
+        const more = pick(remainingPool, 'strength', count - main.length, emphasize, avoid, swaps, { requireDistinctPattern: false, weeklyVolume, history: input.history, now: input.plannedFor, favorites, experience, seedUsedFamilies: usedFamilies, profile: 'accessory' });
         main = [...main, ...more];
       }
       // Priority mode fills only with emphasized work, so it can legitimately end
@@ -750,6 +758,9 @@ export class RulesEngine implements ProgrammingEngine {
       mainAreas = Array.from(
         new Set(mainBlock.exercises.flatMap((ex) => ex.primaryAreas.flatMap((a) => (a.group ? [a.group] : [])))),
       );
+      // Only what SURVIVED the ceiling counts as "used" (ADR-0136) — a dropped
+      // exercise never appeared in the plan, so it stays free for another block.
+      mainBlock.exercises.forEach((ex) => sessionChosenIds.add(ex.exerciseId));
     }
 
     const mainAreaBodyAreas: BodyArea[] = mainAreas.map((group) => ({ group }));
@@ -788,7 +799,10 @@ export class RulesEngine implements ProgrammingEngine {
         avoid,
         swaps,
         favorites,
+        experience,
+        sessionChosenIds,
       );
+      warmup.forEach((e) => sessionChosenIds.add(e.id));
       if (warmup.length) {
         const actualPlan = repeatMobilityForSelection(warmupTotalSeconds, warmup.length, warmupPlan, MOBILITY_HOLD.warmup);
         blocks.unshift({
@@ -812,13 +826,14 @@ export class RulesEngine implements ProgrammingEngine {
     // 3) Conditioning — when cardio/general matter, it isn't already Main, and
     // the athlete hasn't opted out for today.
     if (includeConditioning && conditioningWouldApply) {
-      const cond = pick(available, 'cardio', 1, emphasize, avoid, swaps, { history: input.history, now: input.plannedFor, favorites });
+      const cond = pick(available, 'cardio', 1, emphasize, avoid, swaps, { history: input.history, now: input.plannedFor, favorites, experience, seedChosenIds: sessionChosenIds });
       if (cond.length) {
         blocks.push({
           modality: 'cardio',
           label: 'Conditioning',
           exercises: cond.map((e) => toPlanned(e, cardioSets(e, rx, undefined, recommendedCardioWeightKg(e, input), input.history, input.trainingIntent))),
         });
+        cond.forEach((e) => sessionChosenIds.add(e.id));
       }
     }
 
@@ -851,6 +866,8 @@ export class RulesEngine implements ProgrammingEngine {
         avoid,
         swaps,
         favorites,
+        experience,
+        sessionChosenIds,
       );
       if (cooldown.length) {
         const actualPlan = repeatMobilityForSelection(cooldownTotalSeconds, cooldown.length, cooldownPlan, MOBILITY_HOLD.cooldown);
@@ -1222,6 +1239,9 @@ interface PickOptions {
   now?: number;
   /** Explicit favorites (settings) — a bias, never an override. */
   favorites?: Set<string>;
+  /** Drives the EXPERIENCE_FIT scoring term (ADR-0136); defaults to a neutral
+   * middle ground for pools that don't track the athlete's level. */
+  experience?: ExperienceLevel;
   /** Cross-call state for callers picking against sub-pools of one selection. */
   seedChosenIds?: Set<string>;
   seedUsedPatterns?: Set<string>;
@@ -1275,6 +1295,7 @@ function pick(
     history = [],
     now,
     favorites = new Set<string>(),
+    experience = 'intermediate',
     seedChosenIds = new Set<string>(),
     seedUsedPatterns = new Set<string>(),
     seedUsedFamilies,
@@ -1301,6 +1322,7 @@ function pick(
   const context = (): ScoreContext => ({
     emphasize,
     favorites,
+    experience,
     weeklyVolume,
     fatigueByGroup: avoid.fatigueByGroup,
     lastPerformedAt,
@@ -1417,6 +1439,7 @@ function pickFullBodySpread(
   /** Shared family tally (ADR-0134) — threaded through so the spread doesn't
    * pick the same variant family once per region. */
   usedFamilies: Map<string, number> = new Map(),
+  experience: ExperienceLevel = 'intermediate',
 ): Exercise[] {
   const quotas = fullBodyRegionQuotas(count);
   const chosenIds = new Set<string>();
@@ -1435,6 +1458,7 @@ function pickFullBodySpread(
       history,
       now,
       favorites,
+      experience,
       seedChosenIds: chosenIds,
       seedUsedPatterns: usedPatterns,
       seedUsedFamilies: usedFamilies,
@@ -1456,6 +1480,7 @@ function pickFullBodySpread(
         history,
         now,
         favorites,
+        experience,
         seedChosenIds: chosenIds,
         seedUsedPatterns: usedPatterns,
         seedUsedFamilies: usedFamilies,
@@ -1509,6 +1534,11 @@ function combineFocusAreas(profileFocus: BodyArea[], sessionAreas: BodyArea[]): 
  * sites) can crowd out the day's real focus entirely. Only backfills from
  * `fullAreas` if `dominantAreas` alone can't fill the requested count (e.g.
  * the catalog runs out of distinct chest/shoulder drills).
+ *
+ * `excludeIds` (ADR-0136) removes exercises already placed in another block
+ * this session (e.g. Warmup, when this call is building Cool down) — a hard
+ * exclusion, not a bias, so the same stretch can never open and close the
+ * same workout.
  */
 function pickFocusedMobility(
   pool: Exercise[],
@@ -1519,12 +1549,15 @@ function pickFocusedMobility(
   avoid: AvoidanceModel,
   swaps: string[],
   favorites: Set<string>,
+  experience: ExperienceLevel,
+  excludeIds: Set<string> = new Set(),
 ): Exercise[] {
-  const chosenIds = new Set<string>();
+  const chosenIds = new Set<string>(excludeIds);
   const usedPatterns = new Set<string>();
   const dominant = pick(pool, 'mobility', count, combineFocusAreas(profileFocus, dominantAreas), avoid, swaps, {
     requireDistinctPattern: false,
     favorites,
+    experience,
     seedChosenIds: chosenIds,
     seedUsedPatterns: usedPatterns,
   });
@@ -1533,6 +1566,7 @@ function pickFocusedMobility(
   const more = pick(pool, 'mobility', count - dominant.length, combineFocusAreas(profileFocus, fullAreas), avoid, swaps, {
     requireDistinctPattern: false,
     favorites,
+    experience,
     seedChosenIds: chosenIds,
     seedUsedPatterns: usedPatterns,
   });

@@ -6,6 +6,7 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useFocusEffect, useLocalSearchParams, useRouter } from 'expo-router';
+import { ImageBackground } from 'expo-image';
 import { Platform, ScrollView, View } from 'react-native';
 
 import {
@@ -13,9 +14,10 @@ import {
   Button,
   Card,
   Chip,
-  ChoiceTile,
   GoalHero,
+  HeroScrim,
   Icon,
+  MuscleLogo,
   PressScale,
   Row,
   Screen,
@@ -41,6 +43,7 @@ import {
   savePlan,
 } from '@/services/sessions';
 import { useWorkoutStore } from '@/state/workout-store';
+import { buildWeeklyProgram, type WeeklySessionIntent } from '@/domain/engine/weekly-program';
 import { ageYearsOf } from '@/domain/types';
 import type {
   AthleteProfile,
@@ -55,15 +58,17 @@ import type {
   CardioIntent,
   FlowPace,
   MuscleGroup,
+  SessionRecord,
 } from '@/domain/types';
 import { CONCERN_OPTIONS, EMPHASIS_OPTIONS, FULL_BODY_EMPHASIS_OPTION, MODALITY_LABELS, MUSCLE_GROUP_LABELS, WORKOUT_TYPE_OPTIONS, areaKey } from '@/app-lib/options';
-import { recommendWorkoutType, recoverySummary, weeklyPerformance, weeklyVolumeSummary } from '@/app-lib/presentation';
+import { recommendWorkoutType, recoverySummary, weeklyPerformance, workoutSummary } from '@/app-lib/presentation';
 import { primaryGoal } from '@/app-lib/personalization';
 import { needsAppTour } from '@/app-lib/app-tour';
 
 type Severity = 'mild' | 'severe';
 type TrainingIntent = 'recovery' | 'balanced' | 'challenge';
 type PerformanceMetric = 'strength' | 'endurance' | 'calories' | 'workouts';
+type BuilderSection = 'session' | 'focus' | 'shape' | 'feeling' | 'adjustments';
 
 const PRIMARY_METRIC: Record<string, PerformanceMetric> = {
   strength: 'strength',
@@ -119,17 +124,75 @@ const FLOW_DURATIONS = [10, 20, 30] as const;
 const SESSION_DURATIONS = [10, 20, 30, 40, 50, 60] as const;
 
 const FULL_BODY_KEY = areaKey(FULL_BODY_EMPHASIS_OPTION.area);
+const TODAY_EDITORIAL_ART = require('../../assets/images/editorial/today-strength-v1.png');
+const TODAY_CARDIO_ART = require('../../assets/images/editorial/endurance-run-v1.png');
+const TODAY_RECOVERY_ART = require('../../assets/images/editorial/recovery-stretch-v1.png');
+const TODAY_CONDITIONING_ART = require('../../assets/images/editorial/today-conditioning-v1.png');
 
-function chunk<T>(items: T[], size: number): T[][] {
-  const rows: T[][] = [];
-  for (let i = 0; i < items.length; i += size) rows.push(items.slice(i, i + size));
-  return rows;
+const WORKOUT_TYPE_ART = {
+  balanced: require('../../assets/images/heroes/bodyweight-hero.png'),
+  bodybuilding: require('../../assets/images/heroes/bodybuilding-hero.png'),
+  sculpting: require('../../assets/images/heroes/bodybuilding-hero.png'),
+  stretch: require('../../assets/images/heroes/stretch-hero.png'),
+  yoga: require('../../assets/images/heroes/yoga-hero.png'),
+  bodyweight: require('../../assets/images/heroes/bodyweight-hero.png'),
+  cardio: require('../../assets/images/heroes/cardio-hero.png'),
+} as const;
+
+function workoutTypeArt(type: WorkoutType | undefined) {
+  return type ? WORKOUT_TYPE_ART[type] : WORKOUT_TYPE_ART.balanced;
 }
 
-// Hidden for now while we simplify the Today screen — the underlying
-// scheduling (scheduleWorkout/clearScheduledWorkout) stays wired up so this
-// can come back without re-plumbing anything.
-const SHOW_WEEK_AHEAD = false;
+function WorkoutTypeTile({
+  label,
+  value,
+  selected,
+  onPress,
+}: {
+  label: string;
+  value: WorkoutType | undefined;
+  selected: boolean;
+  onPress: () => void;
+}) {
+  const { colors, radii, spacing } = useTheme();
+  const icon = value === 'cardio'
+    ? 'goalCardio'
+    : value === 'stretch' || value === 'yoga'
+      ? 'goalMobility'
+      : 'goalStrength';
+
+  return (
+    <PressScale
+      onPress={onPress}
+      haptic="selection"
+      accessibilityRole="button"
+      accessibilityState={{ selected }}
+      accessibilityLabel={label}
+      style={{
+        flex: 1,
+        minHeight: 116,
+        borderRadius: radii.md,
+        overflow: 'hidden',
+        borderWidth: selected ? 2 : 1,
+        borderColor: selected ? colors.primary : colors.border,
+      }}
+    >
+      <ImageBackground source={workoutTypeArt(value)} contentFit="cover" style={{ flex: 1, padding: spacing.md, justifyContent: 'space-between' }}>
+        <HeroScrim />
+        {selected ? <View pointerEvents="none" style={{ position: 'absolute', inset: 0, backgroundColor: colors.primary, opacity: 0.46 }} /> : null}
+        <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+          <Icon name={icon} size={19} color="heroText" />
+          {selected ? (
+            <View style={{ width: 26, height: 26, borderRadius: radii.pill, backgroundColor: colors.primary, alignItems: 'center', justifyContent: 'center' }}>
+              <Text variant="label" color="primaryText" weight="bold">✓</Text>
+            </View>
+          ) : null}
+        </View>
+        <Text variant="subtitle" color="heroText" weight="semibold">{label}</Text>
+      </ImageBackground>
+    </PressScale>
+  );
+}
 
 function todayLabel(): string {
   return new Date()
@@ -208,6 +271,7 @@ export default function TodayScreen() {
   // Session generation is awaited; before ADR-0130 the button stayed fully
   // enabled and unchanged while it ran, so a slow build looked like a dead tap.
   const [building, setBuilding] = useState(false);
+  const [showBuilder, setShowBuilder] = useState(false);
   const [athlete, setAthlete] = useState<AthleteProfile | null>(null);
   const [equipment, setEquipment] = useState<EquipmentInventory | null>(null);
 
@@ -225,7 +289,8 @@ export default function TodayScreen() {
   const [includeWarmup, setIncludeWarmup] = useState(() => getExercisePreferences().defaultIncludeWarmup);
   const [includeConditioning, setIncludeConditioning] = useState(() => getExercisePreferences().defaultIncludeConditioning);
   const [includeCooldown, setIncludeCooldown] = useState(() => getExercisePreferences().defaultIncludeCooldown);
-  const [showAdjustments, setShowAdjustments] = useState(false);
+  const [showBuilderAdjustments, setShowBuilderAdjustments] = useState(false);
+  const [openBuilderSection, setOpenBuilderSection] = useState<BuilderSection | null>(null);
   const [emphasize, setEmphasize] = useState<Set<string>>(new Set());
   const [emphasizeTouched, setEmphasizeTouched] = useState(false);
   const [emphasisMode, setEmphasisMode] = useState<EmphasisMode>('balanced');
@@ -251,8 +316,13 @@ export default function TodayScreen() {
   }, [params.recovery]);
 
   useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect -- route params intentionally open this controlled sheet
-    if (params.checkin === '1') setShowAdjustments(true);
+    if (params.checkin !== '1') return;
+    const frame = requestAnimationFrame(() => {
+      setShowBuilder(true);
+      setShowBuilderAdjustments(true);
+      setOpenBuilderSection('feeling');
+    });
+    return () => cancelAnimationFrame(frame);
   }, [params.checkin]);
 
   // A focus effect, not a mount effect: Tabs keeps this screen mounted once
@@ -339,7 +409,10 @@ export default function TodayScreen() {
   const history = useMemo(() => (ready ? listHistory(20) : []), [ready]);
   const focusGoal = primaryGoal(athlete?.goals);
   const [selectedMetric, setSelectedMetric] = useState<PerformanceMetric | null>(null);
-  const [showProgressDetails, setShowProgressDetails] = useState(false);
+  // Only one hero dropdown can be open at a time — opening one closes the other.
+  const [openHeroSection, setOpenHeroSection] = useState<'progress' | 'plan' | null>(null);
+  const showProgressDetails = openHeroSection === 'progress';
+  const showWeekAhead = openHeroSection === 'plan';
 
   const fatigue = useMemo(
     () => (ready ? currentFatigue(ageYearsOf(athlete ?? {})) : { byGroup: {}, updatedAt: 0 }),
@@ -381,8 +454,77 @@ export default function TodayScreen() {
     workoutType !== 'cardio' && includeConditioning ? 'Conditioning' : null,
     includeCooldown ? 'Cool down' : null,
   ].filter((item): item is string => item != null).join(' · ') || 'Main workout only';
-  const weeklyTarget = useMemo(() => weeklyVolumeSummary(history), [history]);
-  const weekDays = useMemo(() => Array.from({ length: 7 }, (_, offset) => weekStart + offset * 86_400_000), [weekStart]);
+  // Monday-start week containing `weekStart` (today), kept on the same
+  // noon-anchored representation as `localDay()` everywhere else in this file
+  // — `isoWeekStart` anchors to midnight, and mixing the two made every
+  // comparison against `localDay(...)` off by half a day.
+  const weekDays = useMemo(() => {
+    const dayOfWeek = new Date(weekStart).getDay() || 7; // Mon=1 .. Sun=7
+    const monday = weekStart - (dayOfWeek - 1) * 86_400_000;
+    return Array.from({ length: 7 }, (_, offset) => localDay(monday + offset * 86_400_000));
+  }, [weekStart]);
+  const emphasizeAreas = useMemo<BodyArea[]>(
+    () => emphasize.has(FULL_BODY_KEY)
+      ? [FULL_BODY_EMPHASIS_OPTION.area]
+      : EMPHASIS_OPTIONS.filter((o) => emphasize.has(areaKey(o.area))).map((o) => o.area),
+    [emphasize],
+  );
+  // A lightweight preview of buildWeeklyProgram's session-intent sequence for
+  // the Weekly Plan dropdown — not a full generateSession() call, since we
+  // only need modality/priority-muscle intents, not a resolved exercise plan.
+  const weeklyProgram = useMemo(() => {
+    if (!athlete || !equipment) return null;
+    return buildWeeklyProgram({
+      athlete,
+      equipment,
+      history,
+      fatigue,
+      readiness: { sleepQuality: sleep, energy, soreness },
+      goals: athlete.goals,
+      targeting: { emphasize: emphasizeAreas, avoid: [] },
+      avoidToday: { flags: [] },
+      plannedFor: Date.now(),
+      excludedExerciseIds: getExercisePreferences().excludedExerciseIds,
+    });
+  }, [athlete, equipment, history, fatigue, sleep, energy, soreness, emphasizeAreas]);
+  // Lays the engine's session-intent sequence (weeklyProgram.sessions) over the
+  // actual calendar week: completed days come from history, scheduled days from
+  // scheduledWorkouts, and any remaining open day claims the next unclaimed
+  // intent in order — so "the week ahead" reflects real upcoming session types
+  // instead of a blank "Open" grid. Rest days are genuinely distinct from open
+  // days once the expected session count is already covered.
+  const weekPlan = useMemo(() => {
+    const todayLocal = localDay(Date.now());
+    const completedByDay = new Map<number, SessionRecord>();
+    for (const record of history) {
+      if (record.completedAt == null) continue;
+      completedByDay.set(localDay(record.completedAt), record);
+    }
+    const completedThisWeek = weekDays.filter((day) => completedByDay.has(day)).length;
+    const scheduledThisWeek = weekDays.filter((day) =>
+      !completedByDay.has(day) && scheduledWorkouts.some((item) => localDay(item.plannedFor) === day),
+    ).length;
+    const sessions = weeklyProgram?.sessions ?? [];
+    let suggestionCursor = completedThisWeek + scheduledThisWeek;
+    const rows = weekDays.map((day) => {
+      const record = completedByDay.get(day);
+      if (record) return { day, status: 'completed' as const, record };
+      const scheduled = scheduledWorkouts.find((item) => localDay(item.plannedFor) === day);
+      if (scheduled) return { day, status: 'scheduled' as const, scheduled };
+      if (day < todayLocal) return { day, status: 'missed' as const };
+      const intent = sessions[suggestionCursor];
+      if (intent) {
+        suggestionCursor += 1;
+        return { day, status: 'suggested' as const, intent };
+      }
+      return { day, status: 'rest' as const };
+    });
+    return {
+      rows,
+      completedThisWeek,
+      expectedSessions: weeklyProgram?.expectedSessions ?? 3,
+    };
+  }, [weekDays, history, scheduledWorkouts, weeklyProgram]);
   const performance = useMemo(
     () => weeklyPerformance(history, weekStart, athlete?.weightUnit ?? 'kg', athlete?.bodyweightKg),
     [athlete?.bodyweightKg, athlete?.weightUnit, history, weekStart],
@@ -459,9 +601,6 @@ export default function TodayScreen() {
   async function runBuild() {
     if (!athlete || !equipment) return;
     const now = Date.now();
-    const emphasizeAreas: BodyArea[] = emphasize.has(FULL_BODY_KEY)
-      ? [FULL_BODY_EMPHASIS_OPTION.area]
-      : EMPHASIS_OPTIONS.filter((o) => emphasize.has(areaKey(o.area))).map((o) => o.area);
     const flags: AvoidanceFlag[] = CONCERN_OPTIONS.filter((c) => concerns.has(areaKey(c.area))).map(
       (c) => ({ area: c.area, severity: concerns.get(areaKey(c.area)) as Severity }),
     );
@@ -555,7 +694,12 @@ export default function TodayScreen() {
 
   return (
     <Screen ref={scrollRef}>
-      <GoalHero goal={focusGoal} compact style={{ minHeight: 270 }}>
+      <GoalHero
+        goal={focusGoal}
+        compact
+        imageOverride={focusGoal === 'cardio' ? TODAY_CARDIO_ART : focusGoal === 'mobility' ? TODAY_RECOVERY_ART : focusGoal === 'general' ? TODAY_CONDITIONING_ART : TODAY_EDITORIAL_ART}
+        style={{ minHeight: 270 }}
+      >
         <View style={{ gap: spacing.md }}>
           <View>
             <Text variant="caption" color="heroMuted" weight="bold">{todayLabel()}</Text>
@@ -593,7 +737,7 @@ export default function TodayScreen() {
                   accessibilityLabel={`View ${METRIC_LABELS[metric]} progress`}
                   onPress={() => {
                     setSelectedMetric(metric);
-                    setShowProgressDetails(true);
+                    setOpenHeroSection('progress');
                   }}
                   style={{
                     flex: 1,
@@ -608,19 +752,34 @@ export default function TodayScreen() {
                 </PressScale>
               ))}
             </Row>
-            <PressScale
-              onPress={() => setShowProgressDetails((shown) => !shown)}
-              haptic="selection"
-              accessibilityRole="button"
-              accessibilityState={{ expanded: showProgressDetails }}
-              accessibilityLabel={showProgressDetails ? 'Hide weekly progress' : 'View weekly progress'}
-              style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.xs, alignSelf: 'flex-start', marginTop: spacing.sm }}
-            >
-              <Text variant="caption" color="heroText" weight="bold">
-                {showProgressDetails ? 'HIDE WEEKLY PROGRESS' : 'VIEW WEEKLY PROGRESS'}
-              </Text>
-              <Icon name={showProgressDetails ? 'chevronUp' : 'chevronDown'} size={15} color="heroText" />
-            </PressScale>
+            <Row gap="lg" style={{ marginTop: spacing.sm }}>
+              <PressScale
+                onPress={() => setOpenHeroSection((section) => section === 'progress' ? null : 'progress')}
+                haptic="selection"
+                accessibilityRole="button"
+                accessibilityState={{ expanded: showProgressDetails }}
+                accessibilityLabel={showProgressDetails ? 'Hide weekly progress' : 'View weekly progress'}
+                style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.xs, alignSelf: 'flex-start' }}
+              >
+                <Text variant="caption" color="heroText" weight="bold">
+                  {showProgressDetails ? 'HIDE WEEKLY PROGRESS' : 'VIEW WEEKLY PROGRESS'}
+                </Text>
+                <Icon name={showProgressDetails ? 'chevronUp' : 'chevronDown'} size={15} color="heroText" />
+              </PressScale>
+              <PressScale
+                onPress={() => setOpenHeroSection((section) => section === 'plan' ? null : 'plan')}
+                haptic="selection"
+                accessibilityRole="button"
+                accessibilityState={{ expanded: showWeekAhead }}
+                accessibilityLabel={showWeekAhead ? 'Hide weekly plan' : 'View weekly plan'}
+                style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.xs, alignSelf: 'flex-start' }}
+              >
+                <Text variant="caption" color="heroText" weight="bold">
+                  {showWeekAhead ? 'HIDE WEEKLY PLAN' : 'VIEW WEEKLY PLAN'}
+                </Text>
+                <Icon name={showWeekAhead ? 'chevronUp' : 'chevronDown'} size={15} color="heroText" />
+              </PressScale>
+            </Row>
           </View>
         </View>
       </GoalHero>
@@ -645,6 +804,62 @@ export default function TodayScreen() {
               type={highlightedMetric === 'workouts' ? 'bar' : 'line'}
               valueFormatter={(value) => highlightedMetric === 'endurance' ? `${Math.round(value)}m` : Math.round(value).toLocaleString()}
             />
+          </View>
+        </Card>
+      )}
+
+      {showWeekAhead && !inProgress && (
+        <Card>
+          <View>
+            <Text variant="heading">Weekly Plan</Text>
+            <Text variant="caption" color="textMuted" style={{ marginTop: spacing.xs }}>
+              {weekPlan.completedThisWeek} of {weekPlan.expectedSessions} sessions this week · exact workouts refresh from your readiness on the day.
+            </Text>
+          </View>
+          <View style={{ gap: spacing.sm, marginTop: spacing.md }}>
+            {weekPlan.rows.map(({ day, ...row }) => {
+              const label = day === localDay(Date.now())
+                ? 'Today'
+                : new Date(day).toLocaleDateString(undefined, { weekday: 'short' });
+              return (
+                <Row key={day} style={{ justifyContent: 'space-between', alignItems: 'center' }}>
+                  <Text variant="body">{label}</Text>
+                  {row.status === 'completed' && (() => {
+                    const summary = workoutSummary(row.record);
+                    const groups = summary.groups.slice(0, 2).map((g) => MUSCLE_GROUP_LABELS[g]).join(' · ');
+                    return (
+                      <Row gap="xs" style={{ alignItems: 'center' }}>
+                        <Icon name="checkAll" size={15} color="primary" />
+                        <Text variant="caption" color="primaryTextSoft">
+                          {workoutLabel(row.record.workoutType)}{groups ? ` · ${groups}` : ''}
+                        </Text>
+                      </Row>
+                    );
+                  })()}
+                  {row.status === 'scheduled' && (
+                    <Row gap="sm">
+                      <Text variant="caption" color="primaryTextSoft">
+                        {workoutLabel(row.scheduled.workoutType)} · {row.scheduled.trainingIntent ?? 'balanced'}
+                      </Text>
+                      <Button title="Clear" size="sm" variant="quiet" onPress={() => clearScheduledWorkout(day)} />
+                    </Row>
+                  )}
+                  {row.status === 'suggested' && (
+                    <Row gap="sm" style={{ alignItems: 'center' }}>
+                      <Text variant="caption" color="textFaint">
+                        Suggested · {MODALITY_LABELS[row.intent.modality]}
+                        {row.intent.priorityMuscles.length
+                          ? ` · ${row.intent.priorityMuscles.slice(0, 2).map((g) => MUSCLE_GROUP_LABELS[g]).join('/')}`
+                          : ''}
+                      </Text>
+                      <Button title="Plan" size="sm" variant="quiet" onPress={() => scheduleWorkout(day)} />
+                    </Row>
+                  )}
+                  {row.status === 'missed' && <Text variant="caption" color="textFaint">Missed</Text>}
+                  {row.status === 'rest' && <Text variant="caption" color="textFaint">Rest</Text>}
+                </Row>
+              );
+            })}
           </View>
         </Card>
       )}
@@ -683,41 +898,31 @@ export default function TodayScreen() {
         </Card>
       ) : null}
 
-      {SHOW_WEEK_AHEAD && !inProgress && (
-        <Card>
-          <Row style={{ justifyContent: 'space-between', alignItems: 'flex-start' }}>
-            <View>
-              <Text variant="heading">Week ahead</Text>
-              <Text variant="caption" color="textMuted" style={{ marginTop: spacing.xs }}>
-                Schedule a style now; its exact workout refreshes from your readiness on the day.
-              </Text>
-            </View>
-            <Text variant="label" color="primaryTextSoft">{weeklyTarget.percent}% on target</Text>
-          </Row>
-          <View style={{ gap: spacing.sm, marginTop: spacing.md }}>
-            {weekDays.map((day, offset) => {
-              const scheduled = scheduledWorkouts.find((item) => localDay(item.plannedFor) === day);
-              const label = offset === 0 ? 'Today' : new Date(day).toLocaleDateString(undefined, { weekday: 'short' });
-              return (
-                <Row key={day} style={{ justifyContent: 'space-between' }}>
-                  <Text variant="body">{label}</Text>
-                  {scheduled ? (
-                    <Row gap="sm">
-                      <Text variant="caption" color="primaryTextSoft">{workoutLabel(scheduled.workoutType)} · {scheduled.trainingIntent ?? 'balanced'}</Text>
-                      <Button title="Clear" size="sm" variant="quiet" onPress={() => clearScheduledWorkout(day)} />
-                    </Row>
-                  ) : (
-                    <Text variant="caption" color="textFaint">Open</Text>
-                  )}
-                </Row>
-              );
-            })}
-          </View>
-        </Card>
-      )}
-
       {!inProgress && (
         <>
+          {!showBuilder ? (
+            <Card elevated tone="primarySoft">
+              <Text variant="caption" color="primaryTextSoft" weight="bold">YOUR NEXT SESSION</Text>
+              <Text variant="title" color="primaryTextSoft" style={{ marginTop: 4 }}>Train with today&apos;s context</Text>
+              <Text variant="body" color="primaryTextSoft" style={{ marginTop: spacing.sm }}>
+                We&apos;ll use your goals, recent training, recovery, and available equipment to shape a session that fits today.
+              </Text>
+              <Button title="Build today’s workout" onPress={() => setShowBuilder(true)} fullWidth style={{ marginTop: spacing.lg }} />
+              <PressScale
+                onPress={() => {
+                  setShowBuilder(true);
+                  setShowBuilderAdjustments(true);
+                  setOpenBuilderSection('feeling');
+                }}
+                accessibilityRole="button"
+                accessibilityLabel="Adjust today's readiness before building your workout"
+                haptic="selection"
+                style={{ minHeight: 44, alignItems: 'center', justifyContent: 'center', marginTop: spacing.sm }}
+              >
+                <Text variant="label" color="primaryTextSoft" weight="semibold">Adjust today&apos;s readiness</Text>
+              </PressScale>
+            </Card>
+          ) : (
           <View
             ref={buildMarkerRef}
             onLayout={(e) => {
@@ -725,169 +930,181 @@ export default function TodayScreen() {
             }}
           >
           <Card elevated>
-            <View>
-              <Text variant="caption" color="textFaint" weight="bold">WORKOUT BUILDER</Text>
-              <Text variant="heading" italic style={{ marginTop: spacing.sm }}>Build your workout</Text>
-              <Text variant="caption" color="textMuted" style={{ marginTop: 2 }}>
-                Choose a goal, focus, and structure for today.
-              </Text>
-            </View>
-
-            <View style={{ gap: spacing.md, marginTop: spacing.lg }}>
-                <View
-                  style={{
-                    padding: spacing.md,
-                    borderRadius: radii.lg,
-                    backgroundColor: colors.primarySoft,
-                    borderWidth: 1,
-                    borderColor: colors.primary,
-                  }}
-                >
-                  <Text variant="caption" color="primaryTextSoft" weight="bold">YOUR WORKOUT SO FAR</Text>
+            <View style={{ gap: spacing.md }}>
+              <Row
+                gap="md"
+                style={{
+                  alignItems: 'center',
+                  padding: spacing.md,
+                  borderRadius: radii.lg,
+                  backgroundColor: colors.primarySoft,
+                  borderWidth: 1,
+                  borderColor: colors.primary,
+                }}
+              >
+                <View style={{ flex: 1 }}>
+                  <Text variant="caption" color="primaryTextSoft" weight="bold">RECOMMENDED WORKOUT</Text>
                   <Text variant="subtitle" color="primaryTextSoft" style={{ marginTop: 2 }}>
                     {workoutLabel(workoutType)} · {workoutType === 'stretch' || workoutType === 'yoga' ? `${flowDurationMin} min` : `${targetDurationMin} min`}
                   </Text>
                   <Text variant="caption" color="primaryTextSoft" style={{ marginTop: 2 }}>
-                    {selectedEmphasisLabels.length > 0 ? selectedEmphasisLabels.join(' · ') : 'Choose a focus'}
-                    {workoutType !== 'stretch' && workoutType !== 'yoga' ? `  ·  ${selectedComponentsLabel}` : ''}
+                    {selectedEmphasisLabels.length > 0 ? selectedEmphasisLabels.join(' · ') : 'Personalized to today'}
                   </Text>
                 </View>
+                <Button
+                  title={showBuilderAdjustments ? 'Done' : 'Adjust'}
+                  size="sm"
+                  variant="secondary"
+                  onPress={() => {
+                    if (showBuilderAdjustments) setOpenBuilderSection(null);
+                    setShowBuilderAdjustments((shown) => !shown);
+                  }}
+                />
+              </Row>
 
-                <Card tone="surfaceAlt">
-                  <Row gap="sm" style={{ alignItems: 'center' }}>
-                    <Icon name="target" size={17} color="primaryTextSoft" />
-                    <View>
-                      <Text variant="caption" color="textFaint" weight="bold">1 · GOAL</Text>
-                      <Text variant="subtitle">What kind of session?</Text>
-                    </View>
-                  </Row>
-                  <View style={{ gap: spacing.sm, marginTop: spacing.md }}>
-                    {chunk(WORKOUT_TYPE_OPTIONS, 2).map((row, rowIndex) => (
-                      <Row key={rowIndex} gap="sm">
-                        {row.map((option) => {
-                          const selected = workoutType === option.value;
-                          const icon = option.value === 'cardio'
-                            ? 'goalCardio'
-                            : option.value === 'stretch' || option.value === 'yoga'
-                              ? 'goalMobility'
-                              : 'goalStrength';
+              {showBuilderAdjustments && (
+                <View style={{ gap: spacing.sm }}>
+                  <ActionRow
+                    icon={<Icon name="target" size={17} color="primaryTextSoft" />}
+                    label="Kind of session"
+                    description={workoutLabel(workoutType)}
+                    onPress={() => setOpenBuilderSection((section) => section === 'session' ? null : 'session')}
+                    trailing={<Icon name={openBuilderSection === 'session' ? 'chevronUp' : 'chevronDown'} color="primaryTextSoft" />}
+                  />
+                  {openBuilderSection === 'session' && (
+                    <Card tone="surfaceAlt">
+                      <View style={{ gap: spacing.sm }}>
+                        {Array.from({ length: Math.ceil(WORKOUT_TYPE_OPTIONS.length / 2) }, (_, rowIndex) => {
+                          const row = WORKOUT_TYPE_OPTIONS.slice(rowIndex * 2, rowIndex * 2 + 2);
                           return (
-                            <ChoiceTile
-                              key={option.label}
-                              label={option.label}
-                              selected={selected}
-                              onPress={() => setWorkoutType(option.value)}
-                              icon={<Icon name={icon} size={18} color={selected ? 'primaryTextSoft' : 'textFaint'} />}
-                              style={{
-                                flex: 1,
-                              }}
-                            />
+                            <Row key={rowIndex} gap="sm">
+                              {row.map((option) => (
+                                <WorkoutTypeTile
+                                  key={option.label}
+                                  label={option.label}
+                                  value={option.value}
+                                  selected={workoutType === option.value}
+                                  onPress={() => setWorkoutType(option.value)}
+                                />
+                              ))}
+                              {row.length === 1 ? <View style={{ flex: 1 }} /> : null}
+                            </Row>
                           );
                         })}
-                        {row.length === 1 ? <View style={{ flex: 1 }} /> : null}
-                      </Row>
-                    ))}
-                  </View>
-                </Card>
-
-                {workoutType !== 'yoga' && workoutType !== 'cardio' ? (
-                  <Card tone="surfaceAlt">
-                    <Row gap="sm" style={{ alignItems: 'center' }}>
-                      <Icon name="target" size={17} color="primaryTextSoft" />
-                      <View>
-                        <Text variant="caption" color="textFaint" weight="bold">2 · FOCUS</Text>
-                        <Text variant="subtitle">Where do you want to focus?</Text>
                       </View>
-                    </Row>
-                    <Text variant="caption" color="textMuted" style={{ marginTop: spacing.sm }}>
-                      {recommendedEmphasis.length > 0 && !emphasizeTouched
-                        ? "Highlighted from today's recovery — tap to adjust (up to 2)."
-                        : 'Choose up to two areas to prioritize.'}
-                    </Text>
-                    <Row gap="sm" wrap style={{ marginTop: spacing.md }}>
-                      <Chip
-                        label={FULL_BODY_EMPHASIS_OPTION.label}
-                        selected={emphasize.has(FULL_BODY_KEY)}
-                        onPress={() => toggleEmphasis(FULL_BODY_KEY)}
-                      />
-                      {EMPHASIS_OPTIONS.map((option) => {
-                        const key = areaKey(option.area);
-                        return <Chip key={key} label={option.label} selected={emphasize.has(key)} onPress={() => toggleEmphasis(key)} />;
-                      })}
-                    </Row>
-                    {emphasize.size > 0 && !emphasize.has(FULL_BODY_KEY) && (
-                      <View style={{ borderTopWidth: 1, borderTopColor: colors.border, marginTop: spacing.md, paddingTop: spacing.md }}>
-                        <Text variant="caption" color="textFaint" weight="bold">HOW MUCH</Text>
-                        <Row gap="sm" wrap style={{ marginTop: spacing.sm }}>
-                          <Chip label="Mostly this" selected={emphasisMode === 'balanced'} onPress={() => setEmphasisMode('balanced')} />
-                          <Chip label="Only this" selected={emphasisMode === 'priority'} onPress={() => setEmphasisMode('priority')} />
-                        </Row>
-                        <Text variant="caption" color="textMuted" style={{ marginTop: spacing.sm }}>
-                          {emphasisMode === 'priority'
-                            ? 'The whole main block goes to these areas. Anything unsafe or overworked is still skipped.'
-                            : 'About half the main block goes to these areas, with the rest of the body still covered.'}
+                    </Card>
+                  )}
+
+                  <ActionRow
+                    icon={<Icon name="target" size={17} color="primaryTextSoft" />}
+                    label="Focus"
+                    description={selectedEmphasisLabels.length > 0 ? selectedEmphasisLabels.join(' · ') : 'Automatic'}
+                    onPress={() => setOpenBuilderSection((section) => section === 'focus' ? null : 'focus')}
+                    trailing={<Icon name={openBuilderSection === 'focus' ? 'chevronUp' : 'chevronDown'} color="primaryTextSoft" />}
+                  />
+                  {openBuilderSection === 'focus' && (
+                    <Card tone="surfaceAlt">
+                      {workoutType !== 'yoga' && workoutType !== 'cardio' ? (
+                        <>
+                          <Text variant="caption" color="textMuted">
+                            {recommendedEmphasis.length > 0 && !emphasizeTouched
+                              ? "Highlighted from today's recovery — tap to adjust (up to 2)."
+                              : 'Choose up to two areas to prioritize.'}
+                          </Text>
+                          <Row gap="sm" wrap style={{ marginTop: spacing.md }}>
+                            <Chip
+                              label={FULL_BODY_EMPHASIS_OPTION.label}
+                              icon={<Icon name="goalStrength" size={18} color={emphasize.has(FULL_BODY_KEY) ? 'primaryTextSoft' : 'textMuted'} />}
+                              selected={emphasize.has(FULL_BODY_KEY)}
+                              onPress={() => toggleEmphasis(FULL_BODY_KEY)}
+                            />
+                            {EMPHASIS_OPTIONS.map((option) => {
+                              const key = areaKey(option.area);
+                              const group = option.area.group;
+                              return (
+                                <Chip
+                                  key={key}
+                                  label={option.label}
+                                  icon={group ? <MuscleLogo groups={[group]} size={22} /> : undefined}
+                                  selected={emphasize.has(key)}
+                                  onPress={() => toggleEmphasis(key)}
+                                />
+                              );
+                            })}
+                          </Row>
+                          {emphasize.size > 0 && !emphasize.has(FULL_BODY_KEY) && (
+                            <View style={{ borderTopWidth: 1, borderTopColor: colors.border, marginTop: spacing.md, paddingTop: spacing.md }}>
+                              <Text variant="caption" color="textFaint" weight="bold">HOW MUCH</Text>
+                              <Row gap="sm" wrap style={{ marginTop: spacing.sm }}>
+                                <Chip label="Mostly this" selected={emphasisMode === 'balanced'} onPress={() => setEmphasisMode('balanced')} />
+                                <Chip label="Only this" selected={emphasisMode === 'priority'} onPress={() => setEmphasisMode('priority')} />
+                              </Row>
+                            </View>
+                          )}
+                        </>
+                      ) : (
+                        <Text variant="caption" color="textMuted">
+                          {workoutType === 'cardio' ? 'Cardio keeps the focus on endurance.' : 'This flow is designed to make space to move.'}
                         </Text>
-                      </View>
-                    )}
-                  </Card>
-                ) : (
-                  <Card tone="surfaceAlt">
-                    <Text variant="caption" color="textFaint" weight="bold">2 · FOCUS</Text>
-                    <Text variant="subtitle" style={{ marginTop: 2 }}>
-                      {workoutType === 'cardio' ? 'Build endurance your way.' : 'Make space to move.'}
-                    </Text>
-                  </Card>
-                )}
+                      )}
+                    </Card>
+                  )}
 
-                <Card tone="surfaceAlt">
-                  <Row gap="sm" style={{ alignItems: 'center' }}>
-                    <Icon name="time" size={17} color="primaryTextSoft" />
-                    <View>
-                      <Text variant="caption" color="textFaint" weight="bold">3 · STRUCTURE</Text>
-                      <Text variant="subtitle">Shape the session.</Text>
-                    </View>
-                  </Row>
-
-                  {workoutType !== 'stretch' && workoutType !== 'yoga' ? (
-                    <>
-                      <Text variant="caption" color="textFaint" weight="bold" style={{ marginTop: spacing.md }}>SESSION LENGTH</Text>
-                      <Row gap="sm" wrap style={{ marginTop: spacing.sm }}>
-                        {SESSION_DURATIONS.map((minutes) => (
-                          <Chip key={minutes} label={`${minutes} min`} selected={targetDurationMin === minutes} onPress={() => setTargetDurationMin(minutes)} />
-                        ))}
-                      </Row>
-                      <View style={{ borderTopWidth: 1, borderTopColor: colors.border, marginTop: spacing.md, paddingTop: spacing.md }}>
-                        <Text variant="caption" color="textFaint" weight="bold">INCLUDE</Text>
-                        <Row gap="sm" wrap style={{ marginTop: spacing.sm }}>
-                          <Chip label="Warmup" icon={<Icon name="warmup" size={16} color={includeWarmup ? 'primaryTextSoft' : 'textMuted'} />} selected={includeWarmup} onPress={() => setIncludeWarmup((value) => !value)} />
-                          {workoutType !== 'cardio' && <Chip label="Conditioning" icon={<Icon name="conditioning" size={16} color={includeConditioning ? 'primaryTextSoft' : 'textMuted'} />} selected={includeConditioning} onPress={() => setIncludeConditioning((value) => !value)} />}
-                          <Chip label="Cool down" icon={<Icon name="cooldown" size={16} color={includeCooldown ? 'primaryTextSoft' : 'textMuted'} />} selected={includeCooldown} onPress={() => setIncludeCooldown((value) => !value)} />
-                        </Row>
-                      </View>
-                    </>
-                  ) : (
-                    <>
-                      <Text variant="caption" color="textFaint" weight="bold" style={{ marginTop: spacing.md }}>FLOW LENGTH</Text>
-                      <Row gap="sm" wrap style={{ marginTop: spacing.sm }}>
-                        {FLOW_DURATIONS.map((minutes) => <Chip key={minutes} label={`${minutes} min`} selected={flowDurationMin === minutes} onPress={() => setFlowDurationMin(minutes)} />)}
-                      </Row>
-                      <Text variant="caption" color="textFaint" weight="bold" style={{ marginTop: spacing.md }}>PACE</Text>
-                      <Row gap="sm" style={{ marginTop: spacing.sm }}>
-                        <Chip label="Gentle" selected={flowPace === 'gentle'} onPress={() => setFlowPace('gentle')} />
-                        <Chip label="Standard" selected={flowPace === 'standard'} onPress={() => setFlowPace('standard')} />
-                      </Row>
+                  <ActionRow
+                    icon={<Icon name="time" size={17} color="primaryTextSoft" />}
+                    label="Shape"
+                    description={`${workoutType === 'stretch' || workoutType === 'yoga' ? flowDurationMin : targetDurationMin} min · ${workoutType === 'cardio' ? CARDIO_INTENTS.find((option) => option.value === cardioIntent)?.label : selectedComponentsLabel}`}
+                    onPress={() => setOpenBuilderSection((section) => section === 'shape' ? null : 'shape')}
+                    trailing={<Icon name={openBuilderSection === 'shape' ? 'chevronUp' : 'chevronDown'} color="primaryTextSoft" />}
+                  />
+                  {openBuilderSection === 'shape' && (
+                    <Card tone="surfaceAlt">
+                      {workoutType !== 'stretch' && workoutType !== 'yoga' ? (
+                        <>
+                          <Text variant="caption" color="textFaint" weight="bold">SESSION LENGTH</Text>
+                          <Row gap="sm" wrap style={{ marginTop: spacing.sm }}>
+                            {SESSION_DURATIONS.map((minutes) => <Chip key={minutes} label={`${minutes} min`} selected={targetDurationMin === minutes} onPress={() => setTargetDurationMin(minutes)} />)}
+                          </Row>
+                          <View style={{ borderTopWidth: 1, borderTopColor: colors.border, marginTop: spacing.md, paddingTop: spacing.md }}>
+                            <Text variant="caption" color="textFaint" weight="bold">INCLUDE</Text>
+                            <Row gap="sm" wrap style={{ marginTop: spacing.sm }}>
+                              <Chip label="Warmup" icon={<Icon name="warmup" size={16} color={includeWarmup ? 'primaryTextSoft' : 'textMuted'} />} selected={includeWarmup} onPress={() => setIncludeWarmup((value) => !value)} />
+                              {workoutType !== 'cardio' && <Chip label="Conditioning" icon={<Icon name="conditioning" size={16} color={includeConditioning ? 'primaryTextSoft' : 'textMuted'} />} selected={includeConditioning} onPress={() => setIncludeConditioning((value) => !value)} />}
+                              <Chip label="Cool down" icon={<Icon name="cooldown" size={16} color={includeCooldown ? 'primaryTextSoft' : 'textMuted'} />} selected={includeCooldown} onPress={() => setIncludeCooldown((value) => !value)} />
+                            </Row>
+                          </View>
+                        </>
+                      ) : (
+                        <>
+                          <Text variant="caption" color="textFaint" weight="bold">FLOW LENGTH</Text>
+                          <Row gap="sm" wrap style={{ marginTop: spacing.sm }}>
+                            {FLOW_DURATIONS.map((minutes) => <Chip key={minutes} label={`${minutes} min`} selected={flowDurationMin === minutes} onPress={() => setFlowDurationMin(minutes)} />)}
+                          </Row>
+                          <Text variant="caption" color="textFaint" weight="bold" style={{ marginTop: spacing.md }}>PACE</Text>
+                          <Row gap="sm" style={{ marginTop: spacing.sm }}>
+                            <Chip label="Gentle" selected={flowPace === 'gentle'} onPress={() => setFlowPace('gentle')} />
+                            <Chip label="Standard" selected={flowPace === 'standard'} onPress={() => setFlowPace('standard')} />
+                          </Row>
+                        </>
+                      )}
+                      {(workoutType === 'bodybuilding' || workoutType === 'sculpting') && athlete?.experience !== 'beginner' && (
+                        <View style={{ borderTopWidth: 1, borderTopColor: colors.border, marginTop: spacing.md, paddingTop: spacing.md }}>
+                          <Text variant="caption" color="textFaint" weight="bold">SET FLOW</Text>
+                          <Row gap="sm" wrap style={{ marginTop: spacing.sm }}>
+                            {BODYBUILDING_ROTATIONS.map((option) => <Chip key={option.value} label={option.label} selected={bodybuildingRotation === option.value} onPress={() => setBodybuildingRotation(option.value)} />)}
+                          </Row>
+                        </View>
+                      )}
+                      {workoutType === 'cardio' && (
+                        <View style={{ borderTopWidth: 1, borderTopColor: colors.border, marginTop: spacing.md, paddingTop: spacing.md }}>
+                          <Text variant="caption" color="textFaint" weight="bold">CARDIO FORMAT</Text>
+                          <Row gap="sm" wrap style={{ marginTop: spacing.sm }}>
+                            {CARDIO_INTENTS.map((option) => <Chip key={option.value} label={option.label} selected={cardioIntent === option.value} onPress={() => setCardioIntent(option.value)} />)}
+                          </Row>
+                        </View>
+                      )}
                       {workoutType === 'yoga' && !hasYogaMat && (
-                        <Row
-                          gap="sm"
-                          style={{
-                            alignItems: 'center',
-                            justifyContent: 'space-between',
-                            marginTop: spacing.md,
-                            padding: spacing.md,
-                            borderRadius: radii.md,
-                            backgroundColor: colors.primarySoft,
-                          }}
-                        >
+                        <Row gap="sm" style={{ alignItems: 'center', justifyContent: 'space-between', marginTop: spacing.md, padding: spacing.md, borderRadius: radii.md, backgroundColor: colors.primarySoft }}>
                           <View style={{ flex: 1 }}>
                             <Text variant="caption" color="primaryTextSoft" weight="bold">No yoga mat in your equipment</Text>
                             <Text variant="caption" color="primaryTextSoft">We&apos;ll build today&apos;s flow without one — add it if you&apos;ve got one.</Text>
@@ -895,104 +1112,81 @@ export default function TodayScreen() {
                           <Button title="Add mat" size="sm" variant="secondary" onPress={addYogaMat} />
                         </Row>
                       )}
-                    </>
+                    </Card>
                   )}
 
-                  {(workoutType === 'bodybuilding' || workoutType === 'sculpting') && athlete?.experience !== 'beginner' && (
-                    <View style={{ borderTopWidth: 1, borderTopColor: colors.border, marginTop: spacing.md, paddingTop: spacing.md }}>
-                      <Text variant="caption" color="textFaint" weight="bold">SET FLOW</Text>
-                      <Row gap="sm" wrap style={{ marginTop: spacing.sm }}>
-                        {BODYBUILDING_ROTATIONS.map((option) => <Chip key={option.value} label={option.label} selected={bodybuildingRotation === option.value} onPress={() => setBodybuildingRotation(option.value)} />)}
-                      </Row>
-                    </View>
-                  )}
-                  {workoutType === 'cardio' && (
-                    <View style={{ borderTopWidth: 1, borderTopColor: colors.border, marginTop: spacing.md, paddingTop: spacing.md }}>
-                      <Text variant="caption" color="textFaint" weight="bold">CARDIO FORMAT</Text>
-                      <Row gap="sm" wrap style={{ marginTop: spacing.sm }}>
-                        {CARDIO_INTENTS.map((option) => <Chip key={option.value} label={option.label} selected={cardioIntent === option.value} onPress={() => setCardioIntent(option.value)} />)}
-                      </Row>
-                    </View>
-                  )}
-                </Card>
-
-                <View
-                  ref={checkinMarkerRef}
-                  onLayout={(event) => {
-                    const y = event.nativeEvent.layout.y;
-                    checkinAreaY.current = y;
-                    if (pendingScrollToCheckin.current) {
-                      pendingScrollToCheckin.current = false;
-                      requestAnimationFrame(() => {
-                        scrollMarkerIntoView(checkinMarkerRef.current, scrollRef, y, false);
-                      });
-                    }
-                  }}
-                >
-                <Card tone="surfaceAlt">
-                  <Row gap="sm" style={{ alignItems: 'center' }}>
-                    <Icon name="checkin" size={17} color="primaryTextSoft" />
-                    <View>
-                      <Text variant="caption" color="textFaint" weight="bold">4 · DAILY CHECK-IN</Text>
-                      <Text variant="subtitle">How are you feeling today?</Text>
-                    </View>
-                  </Row>
-                  <ActionRow
-                    label={INTENT_OPTIONS.find((option) => option.value === trainingIntent)?.label ?? 'Daily check-in'}
-                    description={`Sleep ${READY_OPTIONS.sleep.find((option) => option.value === sleep)?.label} · Energy ${READY_OPTIONS.energy.find((option) => option.value === energy)?.label}`}
-                    onPress={() => setShowAdjustments((shown) => !shown)}
-                    trailing={<Icon name={showAdjustments ? 'chevronUp' : 'chevronDown'} color="primaryTextSoft" />}
-                    style={{
-                      marginTop: spacing.md,
+                  <View
+                    ref={checkinMarkerRef}
+                    onLayout={(event) => {
+                      const y = event.nativeEvent.layout.y;
+                      checkinAreaY.current = y;
+                      if (pendingScrollToCheckin.current) {
+                        pendingScrollToCheckin.current = false;
+                        requestAnimationFrame(() => scrollMarkerIntoView(checkinMarkerRef.current, scrollRef, y, false));
+                      }
                     }}
-                  />
-
-                  {showAdjustments && (
-                    <View style={{ gap: spacing.md, marginTop: spacing.md }}>
-                      <View>
+                  >
+                    <ActionRow
+                      icon={<Icon name="checkin" size={17} color="primaryTextSoft" />}
+                      label="Feeling"
+                      description={`Sleep ${READY_OPTIONS.sleep.find((option) => option.value === sleep)?.label} · Energy ${READY_OPTIONS.energy.find((option) => option.value === energy)?.label}`}
+                      onPress={() => setOpenBuilderSection((section) => section === 'feeling' ? null : 'feeling')}
+                      trailing={<Icon name={openBuilderSection === 'feeling' ? 'chevronUp' : 'chevronDown'} color="primaryTextSoft" />}
+                    />
+                    {openBuilderSection === 'feeling' && (
+                      <Card tone="surfaceAlt" style={{ marginTop: spacing.sm }}>
                         <Text variant="caption" color="textFaint" weight="bold">WHAT KIND OF DAY?</Text>
                         <Row gap="sm" wrap style={{ marginTop: spacing.sm }}>
-                          {INTENT_OPTIONS.map((option) => (
-                            <Chip key={option.value} label={option.label} selected={trainingIntent === option.value} onPress={() => setTrainingIntent(option.value)} />
+                          {INTENT_OPTIONS.map((option) => <Chip key={option.value} label={option.label} selected={trainingIntent === option.value} onPress={() => setTrainingIntent(option.value)} />)}
+                        </Row>
+                        <View style={{ gap: spacing.sm, marginTop: spacing.md }}>
+                          {([
+                            ['SLEEP', 'sleep', READY_OPTIONS.sleep, sleep, setSleep],
+                            ['ENERGY', 'energy', READY_OPTIONS.energy, energy, setEnergy],
+                            ['SORENESS', 'soreness', READY_OPTIONS.soreness, soreness, setSoreness],
+                          ] as const).map(([label, icon, options, value, setValue]) => (
+                            <Row key={label} style={{ justifyContent: 'space-between' }}>
+                              <Row gap="xs" style={{ flex: 1 }}>
+                                <Icon name={icon} size={16} color="textFaint" />
+                                <Text variant="caption" color="textFaint" weight="bold">{label}</Text>
+                              </Row>
+                              <Row gap="sm">
+                                {options.map((option) => <Chip key={option.label} label={option.label} selected={value === option.value} onPress={() => setValue(option.value)} />)}
+                              </Row>
+                            </Row>
                           ))}
-                        </Row>
-                      </View>
-                      <View style={{ gap: spacing.sm }}>
-                        {([
-                          ['SLEEP', 'sleep', READY_OPTIONS.sleep, sleep, setSleep],
-                          ['ENERGY', 'energy', READY_OPTIONS.energy, energy, setEnergy],
-                          ['SORENESS', 'soreness', READY_OPTIONS.soreness, soreness, setSoreness],
-                        ] as const).map(([label, icon, options, value, setValue]) => (
-                          <Row key={label} style={{ justifyContent: 'space-between' }}>
-                            <Row gap="xs" style={{ flex: 1 }}>
-                              <Icon name={icon} size={16} color="textFaint" />
-                              <Text variant="caption" color="textFaint" weight="bold">{label}</Text>
-                            </Row>
-                            <Row gap="sm">
-                              {options.map((option) => <Chip key={option.label} label={option.label} selected={value === option.value} onPress={() => setValue(option.value)} />)}
-                            </Row>
-                          </Row>
-                        ))}
-                      </View>
-                      <View>
-                        <Text variant="caption" color="textFaint">ANY AREAS TO TAKE CARE WITH?</Text>
-                        <Row gap="sm" wrap style={{ marginTop: spacing.sm }}>
-                          {CONCERN_OPTIONS.map((concern) => {
-                            const key = areaKey(concern.area);
-                            return <Chip key={key} label={concernLabel(concern.label, key)} selected={concerns.has(key)} onPress={() => cycleConcern(key)} />;
-                          })}
-                        </Row>
-                      </View>
-                    </View>
-                  )}
-                </Card>
-                </View>
+                        </View>
+                      </Card>
+                    )}
+                  </View>
 
-                <Button title={building ? 'Building…' : 'Build Workout'} onPress={build} loading={building} fullWidth />
-              </View>
+                  <ActionRow
+                    icon={<Icon name="target" size={17} color="primaryTextSoft" />}
+                    label="Adjustments"
+                    description={concerns.size ? `${concerns.size} area${concerns.size === 1 ? '' : 's'} noted` : 'No areas to protect'}
+                    onPress={() => setOpenBuilderSection((section) => section === 'adjustments' ? null : 'adjustments')}
+                    trailing={<Icon name={openBuilderSection === 'adjustments' ? 'chevronUp' : 'chevronDown'} color="primaryTextSoft" />}
+                  />
+                  {openBuilderSection === 'adjustments' && (
+                    <Card tone="surfaceAlt">
+                      <Text variant="caption" color="textFaint">ANY AREAS TO TAKE CARE WITH?</Text>
+                      <Row gap="sm" wrap style={{ marginTop: spacing.sm }}>
+                        {CONCERN_OPTIONS.map((concern) => {
+                          const key = areaKey(concern.area);
+                          return <Chip key={key} label={concernLabel(concern.label, key)} selected={concerns.has(key)} onPress={() => cycleConcern(key)} />;
+                        })}
+                      </Row>
+                    </Card>
+                  )}
+                </View>
+              )}
+
+              <Button title={building ? 'Building…' : 'Build Workout'} onPress={build} loading={building} fullWidth />
+            </View>
 
           </Card>
           </View>
+          )}
 
           {plan && (
             <View
@@ -1039,6 +1233,26 @@ export default function TodayScreen() {
                   </Text>
                 </Row>
               </Row>
+              <View style={{ marginTop: spacing.lg, padding: spacing.md, borderRadius: radii.lg, backgroundColor: colors.primarySoft }}>
+                <Text variant="caption" color="primaryTextSoft" weight="bold">WHY THIS TODAY</Text>
+                <Text variant="body" color="primaryTextSoft" style={{ marginTop: 4 }}>{plan.rationale}</Text>
+              </View>
+              <View style={{ marginTop: spacing.lg, gap: spacing.sm }}>
+                <Text variant="caption" color="textFaint" weight="bold">YOUR SESSION FLOW</Text>
+                <Row gap="sm" wrap>
+                  {plan.blocks.map((block) => {
+                    const label = block.label.toLowerCase();
+                    const icon = label.includes('warm') ? 'warmup' : label.includes('cool') ? 'cooldown' : label.includes('condition') || block.modality === 'cardio' ? 'conditioning' : 'workout';
+                    return (
+                      <View key={block.label} style={{ minWidth: 92, flexGrow: 1, padding: spacing.sm, borderRadius: radii.md, backgroundColor: colors.surfaceAlt }}>
+                        <Icon name={icon} size={16} color="primaryTextSoft" />
+                        <Text variant="label" weight="semibold" style={{ marginTop: 5 }}>{block.label}</Text>
+                        <Text variant="caption" color="textMuted">{block.exercises.length} exercise{block.exercises.length === 1 ? '' : 's'}</Text>
+                      </View>
+                    );
+                  })}
+                </Row>
+              </View>
               <View style={{ marginTop: spacing.lg }}>
                 <WorkoutDetails
                   plan={plan}
@@ -1058,9 +1272,10 @@ export default function TodayScreen() {
                 fullWidth
                 style={{ marginTop: spacing.xl }}
               />
-              {SHOW_WEEK_AHEAD && (
-                <Row gap="sm" wrap style={{ marginTop: spacing.md }}>
-                  {weekDays.slice(1, 4).map((day) => (
+              <Row gap="sm" wrap style={{ marginTop: spacing.md }}>
+                {[1, 2, 3].map((offset) => {
+                  const day = weekStart + offset * 86_400_000;
+                  return (
                     <Button
                       key={day}
                       title={`Plan ${new Date(day).toLocaleDateString(undefined, { weekday: 'short' })}`}
@@ -1068,9 +1283,9 @@ export default function TodayScreen() {
                       variant="secondary"
                       onPress={() => scheduleWorkout(day)}
                     />
-                  ))}
-                </Row>
-              )}
+                  );
+                })}
+              </Row>
             </Card>
             </View>
           )}

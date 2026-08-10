@@ -44,6 +44,7 @@ interface WorkoutState {
    * changed again or the session restarts. */
   manualFocusExerciseId: string | null;
   setManualFocus: (exerciseId: string | null) => void;
+  toggleTimerPause: () => void;
   start: (plan: SessionPlan) => void;
   /** Rehydrate an already-persisted in-progress session (ADR-0108 resumability)
    * without creating a new record or writing anything. */
@@ -107,6 +108,21 @@ export const useWorkoutStore = create<WorkoutState>((set, get) => ({
   setManualFocus: (exerciseId) => {
     const { plan, record } = get();
     set({ manualFocusExerciseId: exerciseId, liveFocus: deriveLiveFocus(plan, record, exerciseId) });
+  },
+
+  toggleTimerPause: () => {
+    const { record } = get();
+    if (!record?.startedAt) return;
+    const now = Date.now();
+    const next: SessionRecord = record.pausedAt
+      ? {
+          ...record,
+          pausedAt: undefined,
+          pausedDurationMs: (record.pausedDurationMs ?? 0) + now - record.pausedAt,
+        }
+      : { ...record, pausedAt: now };
+    saveSessionRecord(next);
+    set({ record: next });
   },
 
   start: (plan) => {
@@ -398,7 +414,13 @@ export const useWorkoutStore = create<WorkoutState>((set, get) => ({
   finish: () => {
     const { record } = get();
     if (!record) return null;
-    const finished: SessionRecord = { ...record, completedAt: Date.now() };
+    const completedAt = Date.now();
+    const finished: SessionRecord = {
+      ...record,
+      completedAt,
+      pausedAt: undefined,
+      pausedDurationMs: (record.pausedDurationMs ?? 0) + (record.pausedAt ? completedAt - record.pausedAt : 0),
+    };
     saveSessionRecord(finished);
     set({ record: finished, liveFocus: null, restEndsAt: null });
     writeWorkoutToHealth(finished);
@@ -424,9 +446,12 @@ export const useWorkoutStore = create<WorkoutState>((set, get) => ({
       });
       return null;
     }
+    const completedAt = Date.now();
     const finished: SessionRecord = {
       ...record,
-      completedAt: Date.now(),
+      completedAt,
+      pausedAt: undefined,
+      pausedDurationMs: (record.pausedDurationMs ?? 0) + (record.pausedAt ? completedAt - record.pausedAt : 0),
       endedEarly: true,
       // ADR-0126: WHY matters. Running out of time is at least as common as
       // running out of gas, and only the latter says anything about the

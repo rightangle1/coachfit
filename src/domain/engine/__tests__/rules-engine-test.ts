@@ -360,6 +360,34 @@ describe('RulesEngine.generateSession — Warmup/Cool down match today\'s Main m
   });
 });
 
+describe('RulesEngine.generateSession — a session never recommends the same exercise twice (ADR-0136)', () => {
+  it('does not pick the same stretch for both Warmup and Cool down, even when their pools overlap heavily', async () => {
+    // Bodyweight-only equipment + a single narrow emphasis area collapses both
+    // Warmup's and Cool down's pool down to the same ~3 hamstring stretches,
+    // scored identically (no history/volume signal differentiates them) — the
+    // exact shape of the reported bug: one chest stretch opening AND closing
+    // the workout.
+    const engine = new RulesEngine();
+    const equipment: EquipmentInventory = { items: [{ type: 'bodyweight' }] };
+    const plan = await engine.generateSession(
+      context({ equipment, targeting: { emphasize: [{ group: 'hamstrings' }], avoid: [] } }),
+    );
+    const warmupIds = new Set((plan.blocks.find((b) => b.label === 'Warmup')?.exercises ?? []).map((e) => e.exerciseId));
+    const cooldownIds = (plan.blocks.find((b) => b.label === 'Cool down')?.exercises ?? []).map((e) => e.exerciseId);
+    expect(warmupIds.size).toBeGreaterThan(0);
+    expect(cooldownIds.length).toBeGreaterThan(0);
+    expect(cooldownIds.some((id) => warmupIds.has(id))).toBe(false);
+  });
+
+  it('never repeats one exercise id across any two blocks of a full session', async () => {
+    const engine = new RulesEngine();
+    const MIXED: ModalityWeights = { strength: 0.6, cardio: 0.2, mobility: 0.1, general: 0.1 };
+    const plan = await engine.generateSession(context({ goals: { weights: MIXED } }));
+    const allIds = plan.blocks.flatMap((b) => b.exercises.map((e) => e.exerciseId));
+    expect(new Set(allIds).size).toBe(allIds.length);
+  });
+});
+
 describe('RulesEngine.generateSession — optional session components', () => {
   function mainExercises(plan: Awaited<ReturnType<RulesEngine['generateSession']>>) {
     return plan.blocks.find((block) => block.label === 'Main')?.exercises ?? [];

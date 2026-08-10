@@ -92,6 +92,14 @@ export default function SettingsScreen() {
       router.push({ pathname: '/', params: { scrollTo: 'build' } });
       return;
     }
+    if (destination === 'explore') {
+      router.push('/explore' as never);
+      return;
+    }
+    if (destination === 'progress') {
+      router.push('/progress' as never);
+      return;
+    }
     router.push({
       pathname: '/settings',
       params: destination === 'profile'
@@ -161,12 +169,7 @@ export default function SettingsScreen() {
 
   return (
     <Screen>
-      <View style={{ gap: spacing.xs }}>
-        <Text variant="caption" color="textMuted" weight="bold">
-          SETTINGS
-        </Text>
-        <Text variant="display" italic>Training plan</Text>
-      </View>
+      <View><Text variant="display" italic>Settings</Text></View>
 
       <Card tone="primarySoft" elevated>
         <Text variant="caption" color="primaryTextSoft" weight="bold">

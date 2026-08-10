@@ -135,6 +135,7 @@ score = W_EMPHASIS  × emphasisMatch     (primary 1.0 / secondary 0.5 / joint 0.
       + W_ANCHOR    × hasProgressionBasis
       + W_FAVORITE  × isFavorite
       + W_MEV       × volumeDeficit     (graded by how far under MEV)
+      + W_EXPERIENCE_FIT × difficultyFit (athlete experience vs. exercise difficulty)
       + W_COMPOUND  × isCompound
       + W_ENJOYMENT × learnedSessionPreference
       − W_FATIGUE   × peakFatigue
@@ -150,6 +151,7 @@ score = W_EMPHASIS  × emphasisMatch     (primary 1.0 / secondary 0.5 / joint 0.
 | `ANCHOR` | 30 |
 | `FAVORITE` | 25 |
 | `VOLUME_DEFICIT` | 20 |
+| `EXPERIENCE_FIT` | ±16 maximum (ADR-0136) |
 | `COMPOUND` | 8 |
 | `FATIGUE` | −40 |
 | `VOLUME_EXCESS` | −35 |
@@ -161,7 +163,23 @@ score = W_EMPHASIS  × emphasisMatch     (primary 1.0 / secondary 0.5 / joint 0.
 **Anchor vs accessory.** The first `MAIN_ANCHOR_COUNT = 2` picks use a profile
 that damps recency to 0.15× and rewards a known load baseline; later picks rotate
 freely. You cannot run progressive overload on a lift you meet once a month, so
-variety is deliberately *not* uniform.
+variety is deliberately *not* uniform. `EXPERIENCE_FIT` is damped the same way
+(0.2×) for anchors — a difficulty-tier reshuffle must not bump a stable
+progression lift.
+
+**Experience tiers the catalog (ADR-0136).** A beginner is biased hard toward
+`difficulty: 'beginner'` — the common, foundational catalog — and away from
+`intermediate`/`advanced`; an advanced athlete takes no penalty for staying in
+beginner-tier accessory work but a real bonus toward the intermediate/advanced
+catalog they've earned. Never a filter — a beginner whose pool is entirely
+advanced-tier still gets it, just outranked when a safer alternative exists.
+
+**No exercise repeats across blocks (ADR-0136).** Warmup, Main, Conditioning,
+and Cool down share one running "already chosen this session" id set — Main's
+strength/cardio picks and Warmup/Cool down's mobility picks can't collide by
+modality today, but Warmup and Cool down draw from genuinely overlapping
+stretch pools, so this is enforced as a hard exclusion (not a scoring bias)
+threaded through every block build.
 
 **Emphasis is a quota, not a nudge.** `balanced` (default) guarantees ~half the
 Main block (floor 2) trains an emphasized area; `priority` restricts the Main pool

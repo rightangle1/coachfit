@@ -4,7 +4,7 @@
     "slug": "coachfit",
     "version": "1.0.0",
     "orientation": "portrait",
-    "icon": "./assets/images/coachfit-icon-option-2-barbell.png",
+    "icon": "./assets/images/coachfit-icon-fluid-strength.png",
     "scheme": "coachfit",
     "userInterfaceStyle": "automatic",
     "ios": {
@@ -14,15 +14,15 @@
     },
     "android": {
       "adaptiveIcon": {
-        "backgroundColor": "#10120E",
-        "foregroundImage": "./assets/images/coachfit-icon-barbell-foreground.png",
-        "monochromeImage": "./assets/images/coachfit-icon-barbell-monochrome.png"
+        "backgroundColor": "#12131C",
+        "foregroundImage": "./assets/images/coachfit-icon-fluid-strength-foreground.png",
+        "monochromeImage": "./assets/images/coachfit-icon-fluid-strength-monochrome.png"
       },
       "predictiveBackGestureEnabled": false
     },
     "web": {
       "output": "static",
-      "favicon": "./assets/images/coachfit-icon-option-2-barbell.png"
+      "favicon": "./assets/images/coachfit-icon-fluid-strength.png"
     },
     "plugins": [
       "expo-router",
@@ -61,8 +61,8 @@
       [
         "expo-notifications",
         {
-          "icon": "./assets/images/coachfit-icon-option-2-barbell.png",
-          "color": "#171922"
+          "icon": "./assets/images/coachfit-icon-fluid-strength-notification.png",
+          "color": "#8DBFA0"
         }
       ]
     ],

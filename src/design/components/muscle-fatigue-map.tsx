@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { View } from 'react-native';
 import Svg, { Circle, Path } from 'react-native-svg';
 
-import type { FatigueState, MuscleGroup } from '@/domain/types';
+import { GROUP_TO_REGION, type BodyRegion, type FatigueState, type MuscleGroup } from '@/domain/types';
 import { fatigueStatus } from '@/domain/engine';
 import { MUSCLE_GROUP_LABELS } from '@/app-lib/options';
 import { Chip } from './controls';
@@ -123,6 +123,66 @@ export function MuscleFatigueMap({ fatigue, selectedGroup, onSelect }: MuscleFat
       </Svg>
       <Text variant="caption" color="textFaint" center>
         Tap a muscle for its recovery detail
+      </Text>
+    </View>
+  );
+}
+
+export interface MuscleTargetMapProps {
+  selectedGroups: MuscleGroup[];
+  onToggle: (group: MuscleGroup) => void;
+  /**
+   * A broad area selection, shown as a soft, tappable highlight. Individual
+   * muscles remain governed by selectedGroups, so people can refine the area
+   * without losing the context of the larger selection.
+   */
+  highlightedRegion?: BodyRegion | 'all';
+  /** Muscles deliberately removed from the broad area selection. */
+  removedHighlightedGroups?: MuscleGroup[];
+}
+
+/** Tappable anatomy map for discovering exercises by the muscles they train.
+ * Unlike the recovery map above, this never implies readiness or a score. */
+export function MuscleTargetMap({ selectedGroups, onToggle, highlightedRegion, removedHighlightedGroups = [] }: MuscleTargetMapProps) {
+  const { colors, spacing } = useTheme();
+  const [side, setSide] = useState<Side>('front');
+  const regions = side === 'front' ? FRONT_REGIONS : BACK_REGIONS;
+  const hasAreaHighlight = Boolean(highlightedRegion);
+
+  function isInHighlightedArea(group: MuscleGroup) {
+    return highlightedRegion === 'all' || GROUP_TO_REGION[group] === highlightedRegion;
+  }
+
+  return (
+    <View style={{ alignItems: 'center', gap: spacing.sm }}>
+      <Row gap="sm">
+        <Chip label="Front" selected={side === 'front'} onPress={() => setSide('front')} />
+        <Chip label="Back" selected={side === 'back'} onPress={() => setSide('back')} />
+      </Row>
+      <Svg width={206} height={375} viewBox="0 0 260 455" accessibilityLabel={`${side} body target map`}>
+        <Path d={BODY_OUTLINE} fill={hasAreaHighlight ? colors.primarySoft : colors.surfaceAlt} stroke={hasAreaHighlight ? colors.primary : colors.borderStrong} strokeWidth={1.5} />
+        <Circle cx="130" cy="39" r="25" fill={hasAreaHighlight && highlightedRegion === 'all' ? colors.primarySoft : colors.surfaceAlt} stroke={hasAreaHighlight ? colors.primary : colors.borderStrong} strokeWidth={1.5} />
+        {regions.map((region, index) => {
+          const selected = selectedGroups.includes(region.group);
+          const highlighted = isInHighlightedArea(region.group) && !removedHighlightedGroups.includes(region.group);
+          const included = selected || highlighted;
+          return (
+            <Path
+              key={`${region.group}-${index}`}
+              d={region.d}
+              fill={selected ? colors.primary : highlighted ? colors.primarySoft : colors.surface}
+              fillOpacity={selected ? 0.94 : 1}
+              stroke={selected ? colors.primaryText : highlighted ? colors.primary : colors.border}
+              strokeWidth={selected ? 2.2 : highlighted ? 1.8 : 1.5}
+              strokeLinejoin="round"
+              accessibilityLabel={`${included ? 'Remove' : 'Add'} ${MUSCLE_GROUP_LABELS[region.group]} ${included ? 'from' : 'to'} the movement filter`}
+              onPress={() => onToggle(region.group)}
+            />
+          );
+        })}
+      </Svg>
+      <Text variant="caption" color="textFaint" center>
+        Tap a muscle to filter movements
       </Text>
     </View>
   );

@@ -11,7 +11,7 @@ import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 import Swipeable, { type SwipeableMethods } from 'react-native-gesture-handler/ReanimatedSwipeable';
 import type { SharedValue } from 'react-native-reanimated';
 
-import { Button, Divider, Icon, Row, Text, ZoneBadge, useTheme } from '@/design';
+import { Button, Divider, Icon, MuscleLogo, Row, Text, ZoneBadge, useTheme } from '@/design';
 import { ExercisePickerSheet } from '@/features/exercise-picker-sheet';
 import { ExerciseAdjustView } from '@/features/exercise-adjust-view';
 import { intensityLabel, unilateralLabel } from '@/features/exercise-detail';
@@ -532,6 +532,7 @@ export function WorkoutExerciseGroups({
               const editable = canEdit(exercise.exerciseId);
               const progressLabel = `${completed} of ${total} complete`;
               const exerciseCatalog = EXERCISES.find((candidate) => candidate.id === exercise.exerciseId);
+              const primaryMuscles = exercise.primaryAreas.flatMap((area) => area.group ? [area.group] : []);
               const exerciseIntensity = intensityLabel(exerciseCatalog);
               const perSideLabel = unilateralLabel(exerciseCatalog);
               const removable = block.exercises.length > 1;
@@ -596,22 +597,25 @@ export function WorkoutExerciseGroups({
                         opacity: pressed ? 0.7 : isComplete && !isHighlighted ? 0.42 : 1,
                       })}
                     >
-                      <View style={{ gap: 2 }}>
-                        <Row style={{ alignItems: 'center', gap: spacing.sm }}>
-                          <Text variant="body" weight="semibold" style={{ flexShrink: 1 }}>{exercise.name}</Text>
-                          {/* ADR-0128: the athlete has to know what kind of
-                              effort is being asked before they reach the set. */}
-                          <ZoneBadge zone={exercise.zone} />
-                        </Row>
-                        <Row style={{ justifyContent: 'space-between', alignItems: 'center', gap: spacing.sm }}>
-                          <Text variant="caption" color="textFaint" numberOfLines={1} style={{ flex: 1 }}>
-                            {exercise.primaryAreas.map((area) => area.group ? MUSCLE_GROUP_LABELS[area.group] : area.region ?? area.joint ?? 'Target area').join(' · ')}
-                            {exerciseIntensity ? ` · ${exerciseIntensity}` : ''}
-                            {perSideLabel ? ` · ${perSideLabel}` : ''}
-                          </Text>
-                          <Text variant="caption" color={completed === total ? 'success' : 'textFaint'} weight="semibold">{progressLabel}</Text>
-                        </Row>
-                      </View>
+                      <Row gap="sm" style={{ alignItems: 'center' }}>
+                        <MuscleLogo groups={primaryMuscles} size={44} />
+                        <View style={{ flex: 1, gap: 2 }}>
+                          <Row style={{ alignItems: 'center', gap: spacing.sm }}>
+                            <Text variant="body" weight="semibold" style={{ flexShrink: 1 }}>{exercise.name}</Text>
+                            {/* ADR-0128: the athlete has to know what kind of
+                                effort is being asked before they reach the set. */}
+                            <ZoneBadge zone={exercise.zone} />
+                          </Row>
+                          <Row style={{ justifyContent: 'space-between', alignItems: 'center', gap: spacing.sm }}>
+                            <Text variant="caption" color="textFaint" numberOfLines={1} style={{ flex: 1 }}>
+                              {exercise.primaryAreas.map((area) => area.group ? MUSCLE_GROUP_LABELS[area.group] : area.region ?? area.joint ?? 'Target area').join(' · ')}
+                              {exerciseIntensity ? ` · ${exerciseIntensity}` : ''}
+                              {perSideLabel ? ` · ${perSideLabel}` : ''}
+                            </Text>
+                            <Text variant="caption" color={completed === total ? 'success' : 'textFaint'} weight="semibold">{progressLabel}</Text>
+                          </Row>
+                        </View>
+                      </Row>
                     </Pressable>
                   </SortableExerciseRow>
                   </Swipeable>

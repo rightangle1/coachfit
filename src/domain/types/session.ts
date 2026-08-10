@@ -309,6 +309,10 @@ export interface SessionRecord {
   planId: string;
   plannedFor: number;
   startedAt?: number;
+  /** Active timer is paused locally without changing the workout's started-at
+   * record. These fields keep the elapsed clock honest across app reloads. */
+  pausedAt?: number;
+  pausedDurationMs?: number;
   /** Estimate shown before starting; used to calibrate future time estimates. */
   plannedDurationMin?: number;
   completedAt?: number;

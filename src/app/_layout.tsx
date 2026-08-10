@@ -19,7 +19,7 @@ import { useWorkoutStore } from '@/state/workout-store';
 SplashScreen.preventAutoHideAsync().catch(() => {});
 SplashScreen.setOptions({ duration: 450, fade: true });
 
-type TabName = 'home' | 'workout' | 'progress' | 'settings';
+type TabName = 'home' | 'explore' | 'progress' | 'settings';
 
 const LAUNCH_SCENES = [
   require('../../assets/images/launch/yoga-strength.png'),
@@ -126,7 +126,7 @@ function TabGlyphMarks({ name, color, focused }: { name: TabName; color: ColorVa
       </View>
     );
   }
-  if (name === 'workout') {
+  if (name === 'explore') {
     return (
       <View style={{ width: 24, height: 24, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 2 }}>
         <View style={[shared, { width: 4, height: 14, borderRadius: 2 }]} />
@@ -202,15 +202,15 @@ function ThemedStack() {
         <Tabs.Screen
           name="index"
           options={{
-          title: 'Home',
+          title: 'Today',
             tabBarIcon: ({ color, focused }) => <TabGlyph name="home" color={color} focused={focused} />,
           }}
         />
         <Tabs.Screen
-          name="workout"
+          name="explore"
           options={{
-            title: 'Workout',
-            tabBarIcon: ({ color, focused }) => <TabGlyph name="workout" color={color} focused={focused} />,
+            title: 'Explore',
+            tabBarIcon: ({ color, focused }) => <TabGlyph name="explore" color={color} focused={focused} />,
           }}
         />
         <Tabs.Screen
@@ -227,7 +227,8 @@ function ThemedStack() {
             tabBarIcon: ({ color, focused }) => <TabGlyph name="settings" color={color} focused={focused} />,
           }}
         />
-        {['onboarding', 'equipment', 'debrief', 'tour'].map((name) => (
+        <Tabs.Screen name="workout" options={{ href: null }} />
+        {['onboarding', 'equipment', 'debrief', 'tour', 'tour-choice', 'exercise'].map((name) => (
           <Tabs.Screen key={name} name={name} options={{ href: null, tabBarStyle: { display: 'none' } }} />
         ))}
       </Tabs>

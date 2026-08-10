@@ -118,8 +118,8 @@ export default function WorkoutScreen() {
   const setExerciseRpe = useWorkoutStore((state) => state.setExerciseRpe);
   const applySwap = useWorkoutStore((state) => state.applySwap);
   const applyPlanEdit = useWorkoutStore((state) => state.applyPlanEdit);
-  const finish = useWorkoutStore((state) => state.finish);
   const endEarly = useWorkoutStore((state) => state.endEarly);
+  const toggleTimerPause = useWorkoutStore((state) => state.toggleTimerPause);
   const preSessionBestE1rm = useWorkoutStore((state) => state.preSessionBestE1rm);
   const recordLiveCelebration = useWorkoutStore((state) => state.recordLiveCelebration);
 
@@ -177,11 +177,14 @@ export default function WorkoutScreen() {
 
   useEffect(() => {
     if (!record?.startedAt) return;
-    const update = () => setElapsed(Math.max(0, Math.floor((Date.now() - record.startedAt!) / 1000)));
+    const update = () => {
+      const endpoint = record.pausedAt ?? Date.now();
+      setElapsed(Math.max(0, Math.floor((endpoint - record.startedAt! - (record.pausedDurationMs ?? 0)) / 1000)));
+    };
     update();
     const timer = setInterval(update, 1000);
     return () => clearInterval(timer);
-  }, [record?.startedAt]);
+  }, [record?.pausedAt, record?.pausedDurationMs, record?.startedAt]);
 
   const selectedExercise = plan?.blocks.flatMap((block) => block.exercises).find((exercise) => exercise.exerciseId === selectedExerciseId) ?? null;
   const selectedBlock = plan?.blocks.find((block) => block.exercises.some((exercise) => exercise.exerciseId === selectedExerciseId)) ?? null;
@@ -193,7 +196,6 @@ export default function WorkoutScreen() {
   const totalSets = record?.performed.reduce((sum, exercise) => sum + exercise.sets.length, 0) ?? 0;
   const completeSets = record?.performed.reduce((sum, exercise) => sum + exercise.sets.filter((set) => set.completed || set.skipped).length, 0) ?? 0;
   const progress = totalSets ? Math.round((completeSets / totalSets) * 100) : 0;
-  const workoutComplete = totalSets > 0 && totalSets === completeSets;
 
   // Same hard floor the engine enforces on commit (`replacementAllowed`) — see
   // exercise-adjust-view.tsx for the non-superset Replace flow this mirrors.
@@ -286,20 +288,6 @@ export default function WorkoutScreen() {
     }
     setSelectedGroupId(null);
     setView('exercise');
-  }
-
-  function continueWorkout() {
-    const next = activePlan.blocks.flatMap((block) => block.exercises).find((exercise) => {
-      const actual = activeRecord.performed.find((item) => item.exerciseId === exercise.exerciseId);
-      return actual && !completed(actual.sets);
-    });
-    if (next) openExercise(next.exerciseId);
-    else finishWorkout();
-  }
-
-  function finishWorkout() {
-    finish();
-    router.push('/debrief');
   }
 
   function returnToOverview(exerciseId: string | null = selectedExerciseId) {
@@ -498,7 +486,7 @@ export default function WorkoutScreen() {
 
   if (view === 'overview') {
     return (
-      <Screen footer={<Row gap="sm"><Button title={workoutComplete ? 'Finish workout' : 'Continue workout'} onPress={continueWorkout} style={{ flex: 2 }} /><Button title="End early" variant="quiet" onPress={() => setEndEarlyPrompt(true)} style={{ flex: 1 }} /></Row>}>
+      <Screen footer={<Row gap="sm"><Button title={record.pausedAt ? 'Resume workout' : 'Pause workout'} variant="secondary" onPress={toggleTimerPause} style={{ flex: 1 }} /><Button title="End early" variant="danger" onPress={() => setEndEarlyPrompt(true)} style={{ flex: 1 }} /></Row>}>
         <ViewSwap key="overview">
         <View style={{ position: 'relative', zIndex: 50, elevation: 50 }}>{renderStatus()}{renderLiveCelebration()}</View>
         <Card tone="primarySoft">

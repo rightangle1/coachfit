@@ -6,6 +6,7 @@ export * from './floating-edit-field';
 export * from './icon';
 export * from './text-field';
 export * from './movement-illustration';
+export * from './muscle-logo';
 export * from './muscle-fatigue-map';
 export * from './exercise-media';
 export * from './how-to-panel';

@@ -4,6 +4,7 @@ import {
   type ScoreContext,
   buildHistoryIndex,
   emphasisStrength,
+  experienceFit,
   orderForSession,
   scoreExercise,
 } from '../selection-score';
@@ -30,6 +31,7 @@ function context(over: Partial<ScoreContext> = {}): ScoreContext {
   return {
     emphasize: [],
     favorites: new Set(),
+    experience: 'intermediate',
     weeklyVolume: {},
     fatigueByGroup: {},
     lastPerformedAt: new Map(),
@@ -58,6 +60,55 @@ describe('emphasisStrength — graded, not primary-only', () => {
     const ctx = context({ emphasize: [{ group: 'chest' }] });
     expect(scoreExercise(dip, ctx)).toBeGreaterThan(scoreExercise(curl, ctx));
     expect(scoreExercise(press, ctx)).toBeGreaterThan(scoreExercise(dip, ctx));
+  });
+});
+
+describe('experienceFit — beginners toward the common catalog, advanced toward the deeper one', () => {
+  it('rewards beginner-tier and penalizes harder tiers for a beginner athlete', () => {
+    expect(experienceFit('beginner', exercise('a', { difficulty: 'beginner' }))).toBeGreaterThan(0);
+    expect(experienceFit('beginner', exercise('a', { difficulty: 'intermediate' }))).toBeLessThan(0);
+    expect(experienceFit('beginner', exercise('a', { difficulty: 'advanced' }))).toBeLessThan(
+      experienceFit('beginner', exercise('a', { difficulty: 'intermediate' })),
+    );
+  });
+
+  it('gives an advanced athlete no penalty for beginner-tier work, but a real pull toward the deeper catalog', () => {
+    const beginnerTier = experienceFit('advanced', exercise('a', { difficulty: 'beginner' }));
+    const intermediateTier = experienceFit('advanced', exercise('a', { difficulty: 'intermediate' }));
+    const advancedTier = experienceFit('advanced', exercise('a', { difficulty: 'advanced' }));
+    expect(beginnerTier).toBe(0);
+    expect(intermediateTier).toBeGreaterThan(beginnerTier);
+    expect(advancedTier).toBeGreaterThan(intermediateTier);
+  });
+
+  it('treats a fixture with no difficulty tag as beginner-tier, the common case', () => {
+    const untagged = exercise('a');
+    expect(experienceFit('beginner', untagged)).toBe(experienceFit('beginner', exercise('b', { difficulty: 'beginner' })));
+  });
+
+  it('prefers the common beginner-tier lift over an equally-relevant harder one, for a beginner', () => {
+    const common = exercise('pushup', { difficulty: 'beginner' });
+    const harder = exercise('single-leg-pushup', { difficulty: 'advanced' });
+    const ctx = context({ experience: 'beginner' });
+    expect(scoreExercise(common, ctx)).toBeGreaterThan(scoreExercise(harder, ctx));
+  });
+
+  it('lets an advanced athlete favor the deeper-catalog lift over the beginner-tier one, all else equal', () => {
+    const common = exercise('pushup', { difficulty: 'beginner' });
+    const harder = exercise('single-leg-pushup', { difficulty: 'advanced' });
+    const ctx = context({ experience: 'advanced' });
+    expect(scoreExercise(harder, ctx)).toBeGreaterThan(scoreExercise(common, ctx));
+  });
+
+  it('damps the bias almost away for anchor picks, so a difficulty reshuffle cannot bump a stable progression lift', () => {
+    const common = exercise('pushup', { difficulty: 'beginner' });
+    const harder = exercise('single-leg-pushup', { difficulty: 'advanced' });
+    const accessory = context({ experience: 'advanced', profile: 'accessory' });
+    const anchor = context({ experience: 'advanced', profile: 'anchor' });
+    const accessoryGap = scoreExercise(harder, accessory) - scoreExercise(common, accessory);
+    const anchorGap = scoreExercise(harder, anchor) - scoreExercise(common, anchor);
+    expect(anchorGap).toBeGreaterThan(0);
+    expect(anchorGap).toBeLessThan(accessoryGap);
   });
 });
 

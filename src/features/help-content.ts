@@ -1,9 +1,9 @@
 import type { IconName } from '@/design';
 
-export type HelpDestination = 'today' | 'profile' | 'catalog' | 'equipment';
+export type HelpDestination = 'today' | 'explore' | 'progress' | 'profile' | 'catalog' | 'equipment';
 
 export interface HelpTopic {
-  id: 'plan' | 'reorder' | 'supersets' | 'catalog' | 'equipment' | 'metrics';
+  id: 'today' | 'plan' | 'reorder' | 'supersets' | 'catalog' | 'equipment' | 'metrics' | 'you';
   title: string;
   summary: string;
   body: string;
@@ -14,6 +14,14 @@ export interface HelpTopic {
 /** The first-run tour and Settings Help hub read from this one source so their
  * terminology and destinations stay aligned as the app evolves. */
 export const HELP_TOPICS: readonly HelpTopic[] = [
+  {
+    id: 'today',
+    title: 'Today is your starting point',
+    summary: 'One clear next session, shaped around you.',
+    body: 'Today shows your weekly rhythm and recovery context before offering one clear next step. Build the recommended session, or adjust it only when you need to.',
+    icon: 'target',
+    action: { label: 'Open Today', destination: 'today' },
+  },
   {
     id: 'plan',
     title: 'Your plan and defaults',
@@ -40,11 +48,11 @@ export const HELP_TOPICS: readonly HelpTopic[] = [
   },
   {
     id: 'catalog',
-    title: 'Favorites and exclusions',
-    summary: 'Fine-tune the exercises you see.',
-    body: 'Favorite exercises are preferred when CoachFit has equally suitable choices. Excluded exercises are never selected for a workout and never offered as a replacement. Manage both from the Exercise catalog in Settings.',
+    title: 'Explore movement',
+    summary: 'Find form guidance and save movements you enjoy.',
+    body: 'Explore is where you search by goal, body area, and equipment. Saved exercises gently influence equally suitable workouts; catalog exclusions remain available in You when you need them.',
     icon: 'favorite',
-    action: { label: 'Open exercise catalog', destination: 'catalog' },
+    action: { label: 'Open Explore', destination: 'explore' },
   },
   {
     id: 'equipment',
@@ -56,19 +64,27 @@ export const HELP_TOPICS: readonly HelpTopic[] = [
   },
   {
     id: 'metrics',
-    title: 'How your metrics work',
-    summary: 'Strength, calories, and endurance explained.',
-    body: 'See the plain-language explanation of the Progress metrics and the estimates behind them.',
+    title: 'Progress tells a clear story',
+    summary: 'Weight, consistency, and the signal that matters most.',
+    body: 'Progress starts with a concise dashboard, then lets you drill into bodyweight, performance, and your training log. Every trend is personal to your own history—never a made-up fitness score.',
     icon: 'goalStrength',
+    action: { label: 'Open Progress', destination: 'progress' },
+  },
+  {
+    id: 'you',
+    title: 'You keep your plan practical',
+    summary: 'Profile, equipment, preferences, and help live here.',
+    body: 'Use You to update your training profile, equipment, workout defaults, catalog exclusions, and help. Those preferences shape recommendations without interrupting everyday training.',
+    icon: 'target',
+    action: { label: 'Open You', destination: 'profile' },
   },
 ];
 
 export const TOUR_TOPIC_IDS: readonly HelpTopic['id'][] = [
-  'plan',
-  'reorder',
-  'supersets',
+  'today',
   'catalog',
-  'equipment',
+  'metrics',
+  'you',
 ];
 
 export function helpTopic(id: HelpTopic['id']): HelpTopic {

@@ -96,3 +96,14 @@ describe('workout-store endEarly', () => {
     expect(deleteSessionRecord).not.toHaveBeenCalled();
   });
 });
+
+describe('workout-store timer pause', () => {
+  it('persists pause and resume state with accumulated paused time', () => {
+    useWorkoutStore.getState().start(plan());
+    useWorkoutStore.getState().toggleTimerPause();
+    expect(useWorkoutStore.getState().record?.pausedAt).toBeDefined();
+    useWorkoutStore.getState().toggleTimerPause();
+    expect(useWorkoutStore.getState().record?.pausedAt).toBeUndefined();
+    expect(useWorkoutStore.getState().record?.pausedDurationMs).toBeGreaterThanOrEqual(0);
+  });
+});

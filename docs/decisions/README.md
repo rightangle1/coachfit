@@ -63,6 +63,7 @@ and the safety envelope — see
 | 0132 | Live pain and substitution safety | Accepted |
 | 0133 | Lightweight weekly program layer | Accepted |
 | 0134 | Per-session volume ceiling & movement redundancy | Accepted (v1) |
+| 0136 | Experience-tiered selection & cross-block de-duplication | Accepted (v1) |
 
 ### Phase 2 — Metrics & achievements
 | ADR | Title | Status |

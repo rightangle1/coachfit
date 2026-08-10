@@ -79,7 +79,7 @@ export default function DebriefScreen() {
 
   const summary = workoutSummary(record);
   const durationMin = record.startedAt != null && record.completedAt != null && record.completedAt > record.startedAt
-    ? Math.round((record.completedAt - record.startedAt) / 60_000)
+    ? Math.round((record.completedAt - record.startedAt - (record.pausedDurationMs ?? 0)) / 60_000)
     : undefined;
   const streak = currentStreakDays(history, record.completedAt ?? record.plannedFor);
   const milestone = nextMilestone(achievementStatus.locked);

@@ -23,6 +23,10 @@ export interface Palette {
   primarySoft: string; // tinted accent background
   primaryTextSoft: string; // text on `primarySoft`
   accent: string; // warm terracotta secondary
+  info: string; // ocean — conditioning, discovery, neutral guidance
+  infoSoft: string;
+  mobility: string; // calm lavender/moss for mobility/recovery contexts
+  mobilitySoft: string;
   success: string;
   warning: string;
   danger: string;
@@ -67,6 +71,10 @@ export const palettes: Record<ColorScheme, Palette> = {
   primarySoft: '#E1ECE3',
   primaryTextSoft: '#294A38',
   accent: '#B9764D',
+    info: '#3D7180',
+    infoSoft: '#DCECEF',
+    mobility: '#6B6E9B',
+    mobilitySoft: '#E8E7F2',
     success: '#477B57',
     warning: '#B08346',
   danger: '#A95245',
@@ -105,6 +113,10 @@ export const palettes: Record<ColorScheme, Palette> = {
   primarySoft: '#23372B',
   primaryTextSoft: '#C4DEC9',
   accent: '#D99A70',
+    info: '#8BBECC',
+    infoSoft: '#223941',
+    mobility: '#B5B3E1',
+    mobilitySoft: '#35334D',
     success: '#86E5CC',
     warning: '#E9C66C',
   danger: '#DE8378',
