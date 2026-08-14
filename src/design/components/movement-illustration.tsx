@@ -39,8 +39,11 @@ const PATTERN_CONFIG: Record<MovementPattern, PatternConfig> = {
   core: { label: 'Core', motion: 'pulse', duration: 1600, tone: 'primary' },
   steady_cardio: { label: 'Cardio', motion: 'orbit', duration: 1300, tone: 'accent' },
   interval: { label: 'Interval', motion: 'orbit', duration: 650, tone: 'accent' },
+  aerobics: { label: 'Aerobics', motion: 'orbit', duration: 950, tone: 'accent' },
   stretch: { label: 'Mobility', motion: 'pulse', duration: 2400, tone: 'primary' },
   yoga_flow: { label: 'Yoga', motion: 'pulse', duration: 2600, tone: 'accent' },
+  barre_flow: { label: 'Barre', motion: 'pulse', duration: 1800, tone: 'accent' },
+  pilates_flow: { label: 'Pilates', motion: 'pulse', duration: 2000, tone: 'accent' },
 };
 
 export function MovementIllustration({

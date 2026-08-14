@@ -97,6 +97,25 @@ describe('workout-store endEarly', () => {
   });
 });
 
+describe('workout-store skipSet', () => {
+  it('marks the set skipped and not completed, distinct from an honest completion', () => {
+    useWorkoutStore.getState().start(plan());
+    useWorkoutStore.getState().skipSet('squat', 0);
+    const set = useWorkoutStore.getState().record?.performed[0]?.sets[0];
+    expect(set?.skipped).toBe(true);
+    expect(set?.completed).toBe(false);
+  });
+
+  it('clears a prior skip when the same set is later completed', () => {
+    useWorkoutStore.getState().start(plan());
+    useWorkoutStore.getState().skipSet('squat', 0);
+    useWorkoutStore.getState().toggleComplete('squat', 0);
+    const set = useWorkoutStore.getState().record?.performed[0]?.sets[0];
+    expect(set?.completed).toBe(true);
+    expect(set?.skipped).toBe(false);
+  });
+});
+
 describe('workout-store timer pause', () => {
   it('persists pause and resume state with accumulated paused time', () => {
     useWorkoutStore.getState().start(plan());

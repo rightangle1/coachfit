@@ -22,7 +22,8 @@ const MAX_JSON_FIELD_CHARS = 64 * 1024;
 export type EngineCall =
   | 'generateSession'
   | 'adjustDuringSession'
-  | 'interpretDebrief';
+  | 'interpretDebrief'
+  | 'planRollingWeek';
 
 export interface LogDecisionArgs {
   call: EngineCall;

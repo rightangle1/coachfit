@@ -228,7 +228,7 @@ function ThemedStack() {
           }}
         />
         <Tabs.Screen name="workout" options={{ href: null }} />
-        {['onboarding', 'equipment', 'debrief', 'tour', 'tour-choice', 'exercise'].map((name) => (
+        {['onboarding', 'equipment', 'debrief', 'tour', 'tour-choice', 'exercise', 'workout-flow', 'dev-seed'].map((name) => (
           <Tabs.Screen key={name} name={name} options={{ href: null, tabBarStyle: { display: 'none' } }} />
         ))}
       </Tabs>

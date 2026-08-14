@@ -1,8 +1,10 @@
 import { fireEvent, render } from '@testing-library/react-native';
 
 import { ThemeProvider } from '../../theme';
-import { ActionRow, ChoiceTile, Chip } from '../controls';
+import { ActionRow, ChoiceTile, Chip, Meter } from '../controls';
 import { Button, IconButton } from '../button';
+import { Card } from '../layout';
+import { Text } from '../text';
 
 describe('Editorial Athlete controls', () => {
   it('exposes each action level and a busy primary action accessibly', async () => {
@@ -41,5 +43,18 @@ describe('Editorial Athlete controls', () => {
     expect(onChoice).toHaveBeenCalledTimes(1);
     expect(onRow).toHaveBeenCalledTimes(1);
     expect(onIcon).toHaveBeenCalledTimes(1);
+  });
+
+  it('keeps contextual controls selectable and visible to assistive technology', async () => {
+    const screen = await render(
+      <ThemeProvider>
+        <Card contextTone="strength"><Text>Contextual summary</Text></Card>
+        <Chip label="Cardio" tone="endurance" selected />
+        <Meter value={3} max={5} tone="mobility" />
+      </ThemeProvider>,
+    );
+
+    expect(screen.getByText('Contextual summary')).toBeTruthy();
+    expect(screen.getByRole('button', { name: 'Cardio' }).props.accessibilityState).toMatchObject({ selected: true });
   });
 });

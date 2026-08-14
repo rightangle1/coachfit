@@ -51,6 +51,14 @@ export interface ExercisePreferencesRow {
   updatedAt: number;
 }
 
+export interface RoutineRow {
+  id: string;
+  name: string;
+  routineJson: string;
+  createdAt: number;
+  updatedAt: number;
+}
+
 export interface PlanRow {
   id: string;
   plannedFor: number;
@@ -90,6 +98,11 @@ export interface StorageApi {
 
   getExercisePreferences(id: string): ExercisePreferencesRow | undefined;
   saveExercisePreferences(row: ExercisePreferencesRow): void;
+
+  listRoutines(): RoutineRow[];
+  getRoutine(id: string): RoutineRow | undefined;
+  saveRoutine(row: RoutineRow): void;
+  deleteRoutineRow(id: string): void;
 
   savePlan(row: PlanRow): void;
   getPlan(id: string): PlanRow | undefined;

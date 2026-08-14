@@ -52,7 +52,7 @@ function isRepBased(planned: PlannedExercise): boolean {
 /** Two exercises can share a round only if they don't contend for fixed equipment. */
 function equipmentCompatible(a: Exercise, b: Exercise): boolean {
   return !a.equipment.some(
-    (piece) => piece !== 'bodyweight' && piece !== 'yoga_mat' && b.equipment.includes(piece),
+    (piece) => piece !== 'bodyweight' && piece !== 'yoga_mat' && piece !== 'barre' && b.equipment.includes(piece),
   );
 }
 

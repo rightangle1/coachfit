@@ -1,8 +1,7 @@
 import { EXERCISES as SEED_EXERCISES } from './exercises';
 import { EXERCISE_MEDIA } from './media';
-import { mechanicOf } from '../engine/mechanic';
+import { implementFor, mechanicOf } from '../engine/mechanic';
 import type {
-  EquipmentType,
   Exercise,
   ExerciseDifficulty,
   ImpactLevel,
@@ -36,8 +35,11 @@ function movementSlotFor(exercise: Exercise): MovementSlot {
     case 'carry': return 'carry';
     case 'steady_cardio': return 'steady_cardio';
     case 'interval': return 'intervals';
+    case 'aerobics': return 'aerobics';
     case 'stretch': return text.includes('balance') || exercise.flowStage === 'balance' ? 'balance' : 'mobility';
     case 'yoga_flow': return exercise.flowStage === 'balance' ? 'balance' : 'mobility';
+    case 'barre_flow': return 'mobility';
+    case 'pilates_flow': return exercise.flowStage === 'core' ? 'anti_extension' : 'mobility';
     case 'push':
       return /overhead|shoulder press|military|handstand|pike/.test(text) ? 'vertical_push' : 'horizontal_push';
     case 'pull':
@@ -66,19 +68,6 @@ function impactFor(exercise: Exercise): ImpactLevel {
 }
 
 /**
- * Equipment that positions the body rather than supplying the resistance. A
- * push-up and a decline push-up are the same movement whether or not a bench is
- * involved, so these must not split a variant family (ADR-0134).
- */
-const POSITIONING_EQUIPMENT = new Set<EquipmentType>(['bench', 'squat_rack', 'yoga_mat', 'foam_roller']);
-
-/** What actually supplies the resistance — the family's defining implement. */
-function implementFor(exercise: Exercise): EquipmentType {
-  return exercise.equipment.find((type) => !POSITIONING_EQUIPMENT.has(type) && type !== 'bodyweight')
-    ?? 'bodyweight';
-}
-
-/**
  * "Same movement, done slightly differently" (ADR-0134) — the redundancy key,
  * deliberately narrower than `substitutionFamily`. Slot fixes the movement,
  * implement separates bodyweight variants from loaded ones, and mechanic keeps a
@@ -101,9 +90,12 @@ function jointsFor(exercise: Exercise): string[] {
     case 'carry': return ['shoulder', 'wrist', 'spine'];
     case 'core': return ['spine'];
     case 'steady_cardio':
-    case 'interval': return ['knee', 'hip', 'ankle'];
+    case 'interval':
+    case 'aerobics': return ['knee', 'hip', 'ankle'];
     case 'stretch':
     case 'yoga_flow': return ['spine', 'hip', 'shoulder'];
+    case 'barre_flow': return ['knee', 'hip', 'ankle', 'spine'];
+    case 'pilates_flow': return ['spine', 'hip'];
   }
 }
 

@@ -4,6 +4,7 @@
  */
 
 import type { Exercise, PlannedExercise, PlannedSet, WeightUnit } from '@/domain/types';
+import { startingWeightKgFor } from '@/domain/engine/progression';
 
 /**
  * Build sets that match the NEW exercise's own progression — a hold/timed
@@ -20,19 +21,19 @@ export function setsForProgression(
 ): PlannedSet[] {
   const count = Math.max(1, template?.sets.length ?? 3);
   // A new weighted movement needs a usable load immediately. Prefer a proven
-  // load from the exercise it replaces; otherwise start with the lightest
-  // configured option, or a conservative 10 kg / 20 lb when the rack is unbounded.
+  // load from the exercise it replaces; otherwise a sensible, equipment-aware
+  // starting weight (ADR-0144) — never a flat number that ignores whether
+  // this is a barbell (floors at the empty bar) or a dumbbell the athlete
+  // might only own very light plates for.
   const templateWeightKg = template?.sets.find((s) => s.weightKg != null && s.weightKg > 0)?.weightKg;
-  const weightKg = templateWeightKg
-    ?? availableWeightsKg?.filter((weight) => Number.isFinite(weight) && weight > 0).sort((a, b) => a - b)[0]
-    ?? (weightUnit === 'lb' ? 20 * 0.45359237 : 10);
+  const weightKg = templateWeightKg ?? startingWeightKgFor(exercise, availableWeightsKg, weightUnit);
   if (exercise.progression === 'time' || exercise.progression === 'hold') {
     const durationSec = template?.sets.find((s) => s.durationSec != null)?.durationSec ?? 30;
     // A loaded timed hold (farmer's carry, weighted plank) still needs a
     // usable load, same as a 'weight' progression movement below.
     return Array.from({ length: count }, () => ({
       durationSec,
-      ...(exercise.loadsWeight ? { weightKg } : {}),
+      ...(exercise.loadsWeight && weightKg != null ? { weightKg } : {}),
     }));
   }
   const reps = template?.sets.find((s) => s.reps != null)?.reps ?? 10;
@@ -40,7 +41,7 @@ export function setsForProgression(
   const restSec = template?.sets.find((s) => s.restSec != null)?.restSec;
   return Array.from({ length: count }, (_, i) => ({
     reps,
-    ...(exercise.progression === 'weight' ? { weightKg } : {}),
+    ...(exercise.progression === 'weight' && weightKg != null ? { weightKg } : {}),
     ...(targetRpe != null ? { targetRpe } : {}),
     ...(restSec != null && i < count - 1 ? { restSec } : {}),
   }));

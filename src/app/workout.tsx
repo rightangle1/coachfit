@@ -9,7 +9,7 @@ import { useFocusEffect, useRouter } from 'expo-router';
 import { Modal, View } from 'react-native';
 import Animated, { FadeIn } from 'react-native-reanimated';
 
-import { Button, Card, CelebrationBurst, Chip, HowToSheet, Icon, Row, Screen, SheetModal, Text, useTheme } from '@/design';
+import { Button, Card, CelebrationBurst, Chip, HowToSheet, Icon, Row, Screen, SheetModal, Text, ToneIconTile, toneForWorkoutType, useTheme } from '@/design';
 import { ExercisePickerSheet } from '@/features/exercise-picker-sheet';
 import { Meter, Stepper } from '@/design/components/controls';
 import { useWorkoutStore } from '@/state/workout-store';
@@ -21,7 +21,7 @@ import { getEquipmentInventory } from '@/services/equipment';
 import { getExercisePreferences } from '@/services/exercise-preferences';
 import { initStorage } from '@/data/persistence';
 import { getActiveSessionRecord, getPlan, listEngineHistory, savePlan } from '@/services/sessions';
-import { MODALITY_LABELS, MUSCLE_GROUP_LABELS } from '@/app-lib/options';
+import { familyOfWorkoutType, MODALITY_LABELS, MUSCLE_GROUP_LABELS } from '@/app-lib/options';
 import { WorkoutDetails } from '@/features/workout-details';
 import { ExerciseHistorySheet } from '@/features/exercise-history-sheet';
 import { ExerciseAdjustView } from '@/features/exercise-adjust-view';
@@ -32,6 +32,7 @@ import {
 } from '@/features/exercise-detail';
 import { formatWeight } from '@/app-lib/units';
 import {
+  defaultAutoAdvance,
   type EquipmentInventory,
   type EndedEarlyReason,
   type Exercise,
@@ -58,11 +59,15 @@ function workoutOverview(plan: SessionPlan): { focus: string; primaryGroups: str
     ?? plan.blocks[0];
   const focus = plan.workoutType === 'yoga'
     ? 'Yoga flow'
-    : plan.workoutType === 'stretch'
-      ? 'Stretch flow'
-      : mainBlock
-        ? MODALITY_LABELS[mainBlock.modality]
-        : 'Workout';
+    : plan.workoutType === 'barre'
+      ? 'Barre flow'
+      : plan.workoutType === 'pilates'
+        ? 'Pilates flow'
+        : plan.workoutType === 'stretch'
+          ? 'Stretch flow'
+          : mainBlock
+            ? MODALITY_LABELS[mainBlock.modality]
+            : 'Workout';
   const counts = new Map<MuscleGroup, number>();
 
   mainBlock?.exercises.forEach((exercise) => {
@@ -105,7 +110,7 @@ function ViewSwap({ children }: { children: ReactNode }) {
 }
 
 export default function WorkoutScreen() {
-  const { colors, radii, spacing } = useTheme();
+  const { colors, spacing } = useTheme();
   const router = useRouter();
   const plan = useWorkoutStore((state) => state.plan);
   const record = useWorkoutStore((state) => state.record);
@@ -224,6 +229,7 @@ export default function WorkoutScreen() {
   if (!plan || !record || totalSets === 0) {
     if (builtPlan) {
       const overview = workoutOverview(builtPlan);
+      const focusTone = toneForWorkoutType(builtPlan.workoutType);
       return (
         <Screen
           footer={
@@ -238,15 +244,13 @@ export default function WorkoutScreen() {
             <Text variant="display" italic>Ready when you are</Text>
             <Text variant="body" color="textMuted">Review today&apos;s plan, then start whenever you&apos;re ready.</Text>
           </View>
-          <Card tone="primarySoft">
+          <Card>
             <Row gap="sm" style={{ alignItems: 'flex-start' }}>
-              <View style={{ width: 36, height: 36, borderRadius: radii.md, backgroundColor: colors.surface, alignItems: 'center', justifyContent: 'center' }}>
-                <Icon name="workout" size={19} color="primaryTextSoft" />
-              </View>
+              <ToneIconTile name="workout" size={36} iconSize={19} tone={focusTone} />
               <View style={{ flex: 1 }}>
-                <Text variant="title" color="primaryTextSoft" italic>Workout Focus: {overview.focus}</Text>
+                <Text variant="title" tint={colors.tones[focusTone].text} italic>Workout Focus: {overview.focus}</Text>
                 {overview.primaryGroups.length > 0 && (
-                  <Text variant="body" color="primaryTextSoft" style={{ marginTop: spacing.xs }}>
+                  <Text variant="body" tint={colors.tones[focusTone].text} style={{ marginTop: spacing.xs }}>
                     {overview.primaryGroups.join(' · ')}
                   </Text>
                 )}
@@ -275,6 +279,24 @@ export default function WorkoutScreen() {
     const exercise = block?.exercises.find((entry) => entry.exerciseId === exerciseId);
     if (!block || !exercise) return;
     setSelectedExerciseId(exerciseId);
+    // Yoga/stretch/barre (block.modality === 'mobility') is a single
+    // stage-ordered flow, never a rotationGroup — checked ahead of the
+    // rotationGroup branch below so it can't be shadowed by it (aerobics
+    // circuit members DO carry a rotationGroup, so this must win first for
+    // them too). `autoAdvance` unset resolves per-WorkoutType
+    // (guided-flow-sequencer.md §3.4); an explicit false always falls
+    // through to today's plain manual view.
+    const autoAdvance = activePlan.workoutOptions?.autoAdvance
+      ?? defaultAutoAdvance(activePlan.workoutType, activePlan.workoutOptions?.cardioIntent);
+    // A Conditioning block bolted onto another workout type is also
+    // `modality: 'cardio'` but must never auto-advance — `defaultAutoAdvance`
+    // already keys off `workoutType`, not block modality, so this just makes
+    // that intent explicit (ADR-0406) rather than relying on it implicitly.
+    const cardioFlowEligible = block.modality === 'cardio' && activePlan.workoutType === 'cardio';
+    if ((block.modality === 'mobility' || cardioFlowEligible) && autoAdvance) {
+      router.push({ pathname: '/workout-flow', params: { exerciseId } });
+      return;
+    }
     if (exercise.rotationGroup) {
       const group = block.exercises.filter((entry) => entry.rotationGroup === exercise.rotationGroup);
       const nextRound = group[0]?.sets.findIndex((_set, index) => group.some((member) => {
@@ -357,8 +379,17 @@ export default function WorkoutScreen() {
     const actual = activeRecord.performed.find((exercise) => exercise.exerciseId === exerciseId);
     const set = actual?.sets[setIndex];
     if (!actual || !set) return;
+    const block = activePlan.blocks.find((entry) => entry.exercises.some((exercise) => exercise.exerciseId === exerciseId));
     const isBecomingComplete = !set.completed && !set.skipped;
-    const completesExercise = isBecomingComplete && actual.sets.every((item, index) => index === setIndex || item.completed || item.skipped);
+    // A mobility flow (ADR-0405) always advances to the next pose in stage
+    // order on completing a round, rather than waiting for every round of
+    // this one pose first — the 'exercise' view below slices to a single
+    // current round for a mobility block, so `setIndex` here is always that
+    // round; there is never a "round 2 of this same pose" left to log before
+    // moving on. Strength/cardio straight sets keep the original all-sets rule.
+    const completesExercise = isBecomingComplete && (
+      block?.modality === 'mobility' || actual.sets.every((item, index) => index === setIndex || item.completed || item.skipped)
+    );
     if (isBecomingComplete) celebratePersonalRecord(exerciseId, set);
     toggleComplete(exerciseId, setIndex);
     if (completesExercise) handleExerciseComplete(exerciseId);
@@ -485,19 +516,18 @@ export default function WorkoutScreen() {
   );
 
   if (view === 'overview') {
+    const focusTone = toneForWorkoutType(plan.workoutType);
     return (
       <Screen footer={<Row gap="sm"><Button title={record.pausedAt ? 'Resume workout' : 'Pause workout'} variant="secondary" onPress={toggleTimerPause} style={{ flex: 1 }} /><Button title="End early" variant="danger" onPress={() => setEndEarlyPrompt(true)} style={{ flex: 1 }} /></Row>}>
         <ViewSwap key="overview">
         <View style={{ position: 'relative', zIndex: 50, elevation: 50 }}>{renderStatus()}{renderLiveCelebration()}</View>
-        <Card tone="primarySoft">
+        <Card>
           <Row gap="sm" style={{ alignItems: 'flex-start' }}>
-            <View style={{ width: 36, height: 36, borderRadius: radii.md, backgroundColor: colors.surface, alignItems: 'center', justifyContent: 'center' }}>
-              <Icon name="workout" size={19} color="primaryTextSoft" />
-            </View>
+            <ToneIconTile name="workout" size={36} iconSize={19} tone={focusTone} />
             <View style={{ flex: 1 }}>
-              <Text variant="title" color="primaryTextSoft" italic>Workout Focus: {workoutOverview(plan).focus}</Text>
+              <Text variant="title" tint={colors.tones[focusTone].text} italic>Workout Focus: {workoutOverview(plan).focus}</Text>
               {workoutOverview(plan).primaryGroups.length > 0 && (
-                <Text variant="body" color="primaryTextSoft" style={{ marginTop: spacing.xs }}>
+                <Text variant="body" tint={colors.tones[focusTone].text} style={{ marginTop: spacing.xs }}>
                   {workoutOverview(plan).primaryGroups.join(' · ')}
                 </Text>
               )}
@@ -506,6 +536,7 @@ export default function WorkoutScreen() {
         </Card>
         <WorkoutDetails plan={plan} weightUnit={weightUnit} performed={record.performed} showProgress showHeading={false} onChangePlan={applyPlanEdit} onChangePerformedSet={updateSet} onOpenExercise={openExercise} onLogAllSets={logAllSets} highlightedExerciseId={overviewHighlightExerciseId} />
         </ViewSwap>
+        {renderEndEarlyPrompt()}
       </Screen>
     );
   }
@@ -519,26 +550,37 @@ export default function WorkoutScreen() {
     // before it recedes. Until ADR-0130 every set rendered identically, so
     // there was no visual answer to "which one am I on?".
     const activeSetIndex = actual.sets.findIndex((set) => !set.completed && !set.skipped);
+    // A mobility flow's "sets" are rounds of the whole stage-ordered sequence
+    // (ADR-0114/ADR-0404), not reps of this one pose — showing every round at
+    // once here would read as "do Sun salutation twice in a row," which isn't
+    // how a flow works. Manual tracking must agree with the touchless guided
+    // player (ADR-0405) on ordering, differing only in pacing: slice to the
+    // single current round, and completing it (toggleIndividualSet/toggleExercise
+    // above) always advances to the next pose rather than asking for this
+    // pose's next round first.
+    const isMobilityFlow = selectedBlock.modality === 'mobility';
+    const roundIndex = activeSetIndex === -1 ? Math.max(0, actual.sets.length - 1) : activeSetIndex;
+    const displaySets = isMobilityFlow ? [actual.sets[roundIndex]] : actual.sets;
     return (
-      <Screen>
+      <Screen footer={<Row gap="sm"><Button title={record.pausedAt ? 'Resume workout' : 'Pause workout'} variant="secondary" onPress={toggleTimerPause} style={{ flex: 1 }} /><Button title="End early" variant="danger" onPress={() => setEndEarlyPrompt(true)} style={{ flex: 1 }} /></Row>}>
         <ViewSwap key="exercise">
           <View style={{ position: 'relative', zIndex: 50, elevation: 50 }}>{renderStatus()}{renderLiveCelebration()}</View>
           <ExerciseAdjustView
             exercise={selectedExercise}
-            sets={actual.sets}
+            sets={displaySets}
             weightUnit={weightUnit}
             equipment={equipment}
             workoutType={plan.workoutType}
             modality={selectedBlock.modality}
-            eyebrow={`${actual.sets.filter((set) => set.completed || set.skipped).length} OF ${actual.sets.length} SETS`}
+            eyebrow={isMobilityFlow ? `ROUND ${roundIndex + 1} OF ${actual.sets.length}` : `${actual.sets.filter((set) => set.completed || set.skipped).length} OF ${actual.sets.length} SETS`}
             onClose={() => returnToOverview(selectedExercise.exerciseId)}
-            onUpdateSet={(index, patch) => updateSet(selectedExercise.exerciseId, index, patch)}
-            onToggleSet={(index) => toggleIndividualSet(selectedExercise.exerciseId, index)}
-            onToggleAll={() => toggleExercise(selectedExercise.exerciseId, actual.sets.map((_set, index) => index))}
-            allComplete={completed(actual.sets)}
-            activeSetIndex={activeSetIndex}
-            onAddSet={() => addSet(selectedExercise.exerciseId)}
-            onRemoveSet={() => removeSet(selectedExercise.exerciseId)}
+            onUpdateSet={(index, patch) => updateSet(selectedExercise.exerciseId, isMobilityFlow ? roundIndex : index, patch)}
+            onToggleSet={(index) => toggleIndividualSet(selectedExercise.exerciseId, isMobilityFlow ? roundIndex : index)}
+            onToggleAll={() => toggleExercise(selectedExercise.exerciseId, isMobilityFlow ? [roundIndex] : actual.sets.map((_set, index) => index))}
+            allComplete={isMobilityFlow ? Boolean(displaySets[0]?.completed || displaySets[0]?.skipped) : completed(actual.sets)}
+            activeSetIndex={isMobilityFlow ? 0 : activeSetIndex}
+            onAddSet={isMobilityFlow ? undefined : () => addSet(selectedExercise.exerciseId)}
+            onRemoveSet={isMobilityFlow ? undefined : () => removeSet(selectedExercise.exerciseId)}
             canRemoveSet={mayRemove}
             onRemoveExercise={() => removeExercise(selectedExercise.exerciseId)}
             canRemoveExercise={selectedBlock.exercises.length > 1}
@@ -549,6 +591,7 @@ export default function WorkoutScreen() {
           />
         </ViewSwap>
         {renderExerciseDebrief()}
+        {renderEndEarlyPrompt()}
       </Screen>
     );
   }
@@ -594,9 +637,15 @@ export default function WorkoutScreen() {
     </Card>
 
     <Modal visible={supersetAction != null} transparent animationType="fade" onRequestClose={() => setSupersetAction(null)}><View style={{ flex: 1, justifyContent: 'center', padding: spacing.xl, backgroundColor: colors.overlay }}><Card elevated><View style={{ gap: spacing.md }}><Text variant="caption" color="primaryTextSoft" weight="bold">SUPERSET</Text><Text variant="title" italic>Choose an exercise</Text><Text variant="body" color="textMuted">Which exercise do you want to {supersetAction === 'howto' ? 'learn' : supersetAction === 'history' ? 'view history for' : 'replace'}?</Text>{selectedGroup.map((exercise) => <Button key={exercise.exerciseId} title={exercise.name} variant="secondary" onPress={() => { if (supersetAction === 'howto') { setFocusExerciseId(exercise.exerciseId); setHowToOpen(true); } else if (supersetAction === 'history') setHistoryExerciseId(exercise.exerciseId); else { setFocusExerciseId(exercise.exerciseId); setReplaceOpen(true); } setSupersetAction(null); }} fullWidth />)}<Button title="Cancel" variant="quiet" onPress={() => setSupersetAction(null)} fullWidth /></View></Card></View></Modal>
-    <Modal visible={endEarlyPrompt} transparent animationType="fade" onRequestClose={() => setEndEarlyPrompt(false)}><View style={{ flex: 1, justifyContent: 'center', padding: spacing.xl, backgroundColor: colors.overlay }}><Card elevated><View style={{ gap: spacing.md }}><Text variant="caption" color="primaryTextSoft" weight="bold">ENDING EARLY</Text><Text variant="title" italic>What&apos;s cutting it short?</Text><Text variant="body" color="textMuted">This tells the app whether to ease off next time — running out of time shouldn&apos;t make your next session lighter.</Text><Button title="Out of time" variant="secondary" onPress={() => finishEarly('out_of_time')} fullWidth /><Button title="Too hard today" variant="secondary" onPress={() => finishEarly('too_hard')} fullWidth /><Button title="Something else" variant="secondary" onPress={() => finishEarly('other')} fullWidth /><Button title="Keep going" variant="quiet" onPress={() => setEndEarlyPrompt(false)} fullWidth /></View></Card></View></Modal>
+    {renderEndEarlyPrompt()}
     {renderModals()}
   </Screen>;
+
+  function renderEndEarlyPrompt() {
+    return (
+      <Modal visible={endEarlyPrompt} transparent animationType="fade" onRequestClose={() => setEndEarlyPrompt(false)}><View style={{ flex: 1, justifyContent: 'center', padding: spacing.xl, backgroundColor: colors.overlay }}><Card elevated><View style={{ gap: spacing.md }}><Text variant="caption" color="primaryTextSoft" weight="bold">ENDING EARLY</Text><Text variant="title" italic>What&apos;s cutting it short?</Text><Text variant="body" color="textMuted">This tells the app whether to ease off next time — running out of time shouldn&apos;t make your next session lighter.</Text><Button title="Out of time" variant="secondary" onPress={() => finishEarly('out_of_time')} fullWidth /><Button title="Too hard today" variant="secondary" onPress={() => finishEarly('too_hard')} fullWidth /><Button title="Something else" variant="secondary" onPress={() => finishEarly('other')} fullWidth /><Button title="Keep going" variant="quiet" onPress={() => setEndEarlyPrompt(false)} fullWidth /></View></Card></View></Modal>
+    );
+  }
 
   function finishEarly(reason: EndedEarlyReason) {
     setEndEarlyPrompt(false);
@@ -616,7 +665,7 @@ export default function WorkoutScreen() {
     const exercise = debriefExerciseId ? activeRecord.performed.find((item) => item.exerciseId === debriefExerciseId) : undefined;
     const planned = debriefExerciseId ? activePlan.blocks.flatMap((block) => block.exercises).find((item) => item.exerciseId === debriefExerciseId) : undefined;
     if (!exercise || !planned) return null;
-    const isFlow = activePlan.workoutType === 'stretch' || activePlan.workoutType === 'yoga';
+    const isFlow = familyOfWorkoutType(activePlan.workoutType) === 'mobility';
     const isCardio = activePlan.workoutType === 'cardio';
     const prompt = isFlow ? 'How did that feel?' : isCardio ? 'How hard did that feel?' : 'How many more reps could you have done?';
     return (

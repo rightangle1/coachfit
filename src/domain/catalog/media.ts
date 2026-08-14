@@ -10,7 +10,16 @@
  * expected state for most of the catalog for now.
  */
 
-import type { ExerciseMedia } from '../types';
+import type { ExerciseMedia, StillAsset } from '../types';
+
+/** Original, in-app alignment cards generated for the yoga instruction set. */
+const formGuide = (file: StillAsset['file']): StillAsset => ({
+  file,
+  license: 'app-original',
+  attribution: 'FitnessTrainter original instructional image',
+  sourceUrl: 'Generated in-house with OpenAI image generation, August 2026',
+  role: 'form-guide',
+});
 
 export const EXERCISE_MEDIA: Record<string, ExerciseMedia> = {
   // ---- Resistance band catalog expansion (ADR-0117) — clips verified via
@@ -703,6 +712,7 @@ export const EXERCISE_MEDIA: Record<string, ExerciseMedia> = {
     ],
   },
   'mob-hip': {
+    stills: [formGuide(require('../../../assets/images/exercises/stretch-hip-mobility-flow-form-guide.png'))],
     clips: [
       {
         url: 'https://www.youtube.com/watch?v=WUKHM6-ekJM',
@@ -712,20 +722,7 @@ export const EXERCISE_MEDIA: Record<string, ExerciseMedia> = {
     ],
   },
   'mob-hamstring': {
-    stills: [
-      {
-        file: require('../../../assets/images/exercises/mob-hamstring-fedb-0.jpg'),
-        license: 'public-domain',
-        attribution: 'free-exercise-db (The Unlicense)',
-        sourceUrl: 'https://github.com/yuhonas/free-exercise-db/blob/main/exercises/Standing_Hamstring_and_Calf_Stretch/0.jpg',
-      },
-      {
-        file: require('../../../assets/images/exercises/mob-hamstring-fedb-1.jpg'),
-        license: 'public-domain',
-        attribution: 'free-exercise-db (The Unlicense)',
-        sourceUrl: 'https://github.com/yuhonas/free-exercise-db/blob/main/exercises/Standing_Hamstring_and_Calf_Stretch/1.jpg',
-      },
-    ],
+    stills: [formGuide(require('../../../assets/images/exercises/stretch-standing-hamstring-form-guide.png'))],
     clips: [
       {
         url: 'https://www.youtube.com/watch?v=B0jl9k3ImKU',
@@ -735,6 +732,7 @@ export const EXERCISE_MEDIA: Record<string, ExerciseMedia> = {
     ],
   },
   'mob-shoulder': {
+    stills: [formGuide(require('../../../assets/images/exercises/stretch-shoulder-circles-form-guide.png'))],
     clips: [
       {
         url: 'https://www.youtube.com/watch?v=h8H2fEMlVfI',
@@ -744,6 +742,7 @@ export const EXERCISE_MEDIA: Record<string, ExerciseMedia> = {
     ],
   },
   'mob-thoracic': {
+    stills: [formGuide(require('../../../assets/images/exercises/stretch-cat-cow-form-guide.png'))],
     clips: [
       {
         url: 'https://www.youtube.com/watch?v=nbhJvFWFPTE',
@@ -753,14 +752,7 @@ export const EXERCISE_MEDIA: Record<string, ExerciseMedia> = {
     ],
   },
   'mob-neck': {
-    stills: [
-      {
-        file: require('../../../assets/images/exercises/neck-flexion.jpg'),
-        license: 'cc-by-sa',
-        attribution: 'BruceBlaus, CC BY-SA 4.0',
-        sourceUrl: 'https://commons.wikimedia.org/wiki/File:Exercise_Neck_Flexion.png',
-      },
-    ],
+    stills: [formGuide(require('../../../assets/images/exercises/stretch-neck-trap-release-form-guide.png'))],
     clips: [
       {
         url: 'https://www.youtube.com/watch?v=DwCIZ4YSyd4',
@@ -770,14 +762,7 @@ export const EXERCISE_MEDIA: Record<string, ExerciseMedia> = {
     ],
   },
   'mob-ankle': {
-    stills: [
-      {
-        file: require('../../../assets/images/exercises/ankle-rotation.jpg'),
-        license: 'cc-by-sa',
-        attribution: 'BruceBlaus, CC BY-SA 4.0',
-        sourceUrl: 'https://commons.wikimedia.org/wiki/File:Exercise_Ankle_Rotation.png',
-      },
-    ],
+    stills: [formGuide(require('../../../assets/images/exercises/stretch-ankle-circles-form-guide.png'))],
     clips: [
       {
         url: 'https://www.youtube.com/watch?v=6XX3R9ibBfw',
@@ -792,14 +777,7 @@ export const EXERCISE_MEDIA: Record<string, ExerciseMedia> = {
     ],
   },
   'mob-wrist': {
-    stills: [
-      {
-        file: require('../../../assets/images/exercises/wrist-flexor-stretch.jpg'),
-        license: 'cc-by-sa',
-        attribution: 'BruceBlaus, CC BY-SA 4.0',
-        sourceUrl: 'https://commons.wikimedia.org/wiki/File:Exercise_Wrist_Flexor_Stretch.png',
-      },
-    ],
+    stills: [formGuide(require('../../../assets/images/exercises/stretch-wrist-circles-form-guide.png'))],
     clips: [
       {
         url: 'https://www.youtube.com/watch?v=IJvS9bYl_cs',
@@ -814,20 +792,7 @@ export const EXERCISE_MEDIA: Record<string, ExerciseMedia> = {
     ],
   },
   'mob-hip-flexor': {
-    stills: [
-      {
-        file: require('../../../assets/images/exercises/mob-hip-flexor-fedb-0.jpg'),
-        license: 'public-domain',
-        attribution: 'free-exercise-db (The Unlicense)',
-        sourceUrl: 'https://github.com/yuhonas/free-exercise-db/blob/main/exercises/Kneeling_Hip_Flexor/0.jpg',
-      },
-      {
-        file: require('../../../assets/images/exercises/mob-hip-flexor-fedb-1.jpg'),
-        license: 'public-domain',
-        attribution: 'free-exercise-db (The Unlicense)',
-        sourceUrl: 'https://github.com/yuhonas/free-exercise-db/blob/main/exercises/Kneeling_Hip_Flexor/1.jpg',
-      },
-    ],
+    stills: [formGuide(require('../../../assets/images/exercises/stretch-kneeling-hip-flexor-form-guide.png'))],
     clips: [
       {
         url: 'https://www.youtube.com/watch?v=6o-GpPIGR5w',
@@ -837,6 +802,7 @@ export const EXERCISE_MEDIA: Record<string, ExerciseMedia> = {
     ],
   },
   'mob-90-90': {
+    stills: [formGuide(require('../../../assets/images/exercises/stretch-90-90-form-guide.png'))],
     clips: [
       {
         url: 'https://www.youtube.com/watch?v=qq_Z7sAmVrA',
@@ -846,14 +812,7 @@ export const EXERCISE_MEDIA: Record<string, ExerciseMedia> = {
     ],
   },
   'mob-pigeon': {
-    stills: [
-      {
-        file: require('../../../assets/images/exercises/pigeon-pose.jpg'),
-        license: 'cc-by',
-        attribution: 'Barry Silver, CC BY 2.0',
-        sourceUrl: 'https://commons.wikimedia.org/wiki/File:Kapotasana_-_Pigeon_pose.jpg',
-      },
-    ],
+    stills: [formGuide(require('../../../assets/images/exercises/stretch-pigeon-form-guide.png'))],
     clips: [
       {
         url: 'https://www.youtube.com/watch?v=0RQVD6viVXo',
@@ -863,14 +822,7 @@ export const EXERCISE_MEDIA: Record<string, ExerciseMedia> = {
     ],
   },
   'mob-cobra': {
-    stills: [
-      {
-        file: require('../../../assets/images/exercises/press-up-cobra.jpg'),
-        license: 'cc-by-sa',
-        attribution: 'BruceBlaus, CC BY-SA 4.0',
-        sourceUrl: 'https://commons.wikimedia.org/wiki/File:Exercise_Press_Up.png',
-      },
-    ],
+    stills: [formGuide(require('../../../assets/images/exercises/stretch-cobra-form-guide.png'))],
     clips: [
       {
         url: 'https://www.youtube.com/watch?v=YYudWYM5Q9g',
@@ -880,6 +832,7 @@ export const EXERCISE_MEDIA: Record<string, ExerciseMedia> = {
     ],
   },
   'mob-downdog': {
+    stills: [formGuide(require('../../../assets/images/exercises/stretch-downdog-form-guide.png'))],
     clips: [
       {
         url: 'https://www.youtube.com/watch?v=ulZr-S0cFOI',
@@ -889,6 +842,7 @@ export const EXERCISE_MEDIA: Record<string, ExerciseMedia> = {
     ],
   },
   'mob-quad-stretch': {
+    stills: [formGuide(require('../../../assets/images/exercises/stretch-quad-form-guide.png'))],
     clips: [
       {
         url: 'https://www.youtube.com/watch?v=kia2OzZiwqw',
@@ -898,6 +852,7 @@ export const EXERCISE_MEDIA: Record<string, ExerciseMedia> = {
     ],
   },
   'mob-calf-stretch': {
+    stills: [formGuide(require('../../../assets/images/exercises/stretch-calf-form-guide.png'))],
     clips: [
       {
         url: 'https://www.youtube.com/watch?v=YTYQo4WvJHA',
@@ -907,6 +862,7 @@ export const EXERCISE_MEDIA: Record<string, ExerciseMedia> = {
     ],
   },
   'mob-chest-stretch': {
+    stills: [formGuide(require('../../../assets/images/exercises/stretch-chest-form-guide.png'))],
     clips: [
       {
         url: 'https://www.youtube.com/watch?v=M850sCj9LHQ',
@@ -916,6 +872,7 @@ export const EXERCISE_MEDIA: Record<string, ExerciseMedia> = {
     ],
   },
   'mob-lat-stretch': {
+    stills: [formGuide(require('../../../assets/images/exercises/stretch-lat-form-guide.png'))],
     clips: [
       {
         url: 'https://www.youtube.com/watch?v=OX5NZLkidtY',
@@ -925,6 +882,7 @@ export const EXERCISE_MEDIA: Record<string, ExerciseMedia> = {
     ],
   },
   'mob-tricep-stretch': {
+    stills: [formGuide(require('../../../assets/images/exercises/stretch-tricep-form-guide.png'))],
     clips: [
       {
         url: 'https://www.youtube.com/watch?v=cPTrm13hSSo',
@@ -934,6 +892,7 @@ export const EXERCISE_MEDIA: Record<string, ExerciseMedia> = {
     ],
   },
   'mob-bicep-stretch': {
+    stills: [formGuide(require('../../../assets/images/exercises/stretch-wall-biceps-form-guide.png'))],
     clips: [
       {
         url: 'https://www.youtube.com/watch?v=7WiSuaPAorU',
@@ -943,6 +902,7 @@ export const EXERCISE_MEDIA: Record<string, ExerciseMedia> = {
     ],
   },
   'mob-groin-stretch': {
+    stills: [formGuide(require('../../../assets/images/exercises/stretch-butterfly-form-guide.png'))],
     clips: [
       {
         url: 'https://www.youtube.com/watch?v=QehQaZvvquA',
@@ -952,6 +912,7 @@ export const EXERCISE_MEDIA: Record<string, ExerciseMedia> = {
     ],
   },
   'mob-it-band': {
+    stills: [formGuide(require('../../../assets/images/exercises/stretch-standing-it-band-form-guide.png'))],
     clips: [
       {
         url: 'https://www.youtube.com/watch?v=wzDoSQ8-GWY',
@@ -961,6 +922,7 @@ export const EXERCISE_MEDIA: Record<string, ExerciseMedia> = {
     ],
   },
   'mob-spinal-twist': {
+    stills: [formGuide(require('../../../assets/images/exercises/stretch-seated-spinal-twist-form-guide.png'))],
     clips: [
       {
         url: 'https://www.youtube.com/watch?v=r5JuFoNzOU8',
@@ -970,6 +932,7 @@ export const EXERCISE_MEDIA: Record<string, ExerciseMedia> = {
     ],
   },
   'mob-scorpion': {
+    stills: [formGuide(require('../../../assets/images/exercises/stretch-scorpion-form-guide.png'))],
     clips: [
       {
         url: 'https://www.youtube.com/watch?v=7GjzFFdUnQQ',
@@ -979,6 +942,7 @@ export const EXERCISE_MEDIA: Record<string, ExerciseMedia> = {
     ],
   },
   'mob-band-dislocate': {
+    stills: [formGuide(require('../../../assets/images/exercises/stretch-band-shoulder-pass-through-form-guide.png'))],
     clips: [
       {
         url: 'https://www.youtube.com/watch?v=riVxa9By-pM',
@@ -988,6 +952,7 @@ export const EXERCISE_MEDIA: Record<string, ExerciseMedia> = {
     ],
   },
   'mob-band-hip-distraction': {
+    stills: [formGuide(require('../../../assets/images/exercises/stretch-banded-hip-distraction-form-guide.png'))],
     clips: [
       {
         url: 'https://www.youtube.com/watch?v=2b3lbYf8SuE',
@@ -997,6 +962,7 @@ export const EXERCISE_MEDIA: Record<string, ExerciseMedia> = {
     ],
   },
   'mob-sphinx': {
+    stills: [formGuide(require('../../../assets/images/exercises/stretch-sphinx-form-guide.png'))],
     clips: [
       {
         url: 'https://www.youtube.com/watch?v=beQs5ChCZ0U',
@@ -1005,7 +971,11 @@ export const EXERCISE_MEDIA: Record<string, ExerciseMedia> = {
       },
     ],
   },
+  'mob-thread-the-needle': {
+    stills: [formGuide(require('../../../assets/images/exercises/stretch-thread-the-needle-form-guide.png'))],
+  },
   'mob-seated-forward-fold': {
+    stills: [formGuide(require('../../../assets/images/exercises/stretch-seated-forward-fold-form-guide.png'))],
     clips: [
       {
         url: 'https://www.youtube.com/watch?v=zWWTdrJulmk',
@@ -1181,10 +1151,11 @@ export const EXERCISE_MEDIA: Record<string, ExerciseMedia> = {
   'yg-mountain': {
     stills: [
       {
-        file: require('../../../assets/images/exercises/yoga-mountain.jpg'),
-        license: 'cc-by-sa',
-        attribution: 'Mr. Yoga, CC BY-SA 4.0',
-        sourceUrl: 'https://commons.wikimedia.org/wiki/File:Mr-yoga-mountain-pose-1.jpg',
+        file: require('../../../assets/images/exercises/yoga-mountain-form-guide.png'),
+        license: 'app-original',
+        attribution: 'FitnessTrainter original instructional image',
+        sourceUrl: 'Generated in-house with OpenAI image generation, August 2026',
+        role: 'form-guide',
       },
     ],
     clips: [
@@ -1196,6 +1167,7 @@ export const EXERCISE_MEDIA: Record<string, ExerciseMedia> = {
     ],
   },
   'yg-sun-salutation': {
+    stills: [formGuide(require('../../../assets/images/exercises/yoga-sun-salutation-form-guide.png'))],
     clips: [
       {
         url: 'https://www.youtube.com/watch?v=zE369yup5A0',
@@ -1207,10 +1179,11 @@ export const EXERCISE_MEDIA: Record<string, ExerciseMedia> = {
   'yg-warrior-1': {
     stills: [
       {
-        file: require('../../../assets/images/exercises/yoga-warrior1.jpg'),
-        license: 'cc-by-sa',
-        attribution: 'Jarek Tuszyński, CC BY-SA 3.0',
-        sourceUrl: 'https://commons.wikimedia.org/wiki/File:Joshua_Tree_yoga_-_warrior_1a.jpg',
+        file: require('../../../assets/images/exercises/yoga-warrior1-form-guide.png'),
+        license: 'app-original',
+        attribution: 'FitnessTrainter original instructional image',
+        sourceUrl: 'Generated in-house with OpenAI image generation, August 2026',
+        role: 'form-guide',
       },
     ],
     clips: [
@@ -1222,14 +1195,7 @@ export const EXERCISE_MEDIA: Record<string, ExerciseMedia> = {
     ],
   },
   'yg-warrior-2': {
-    stills: [
-      {
-        file: require('../../../assets/images/exercises/yoga-warrior2.jpg'),
-        license: 'cc-by',
-        attribution: 'lululemon athletica, CC BY 2.0',
-        sourceUrl: 'https://commons.wikimedia.org/wiki/File:Virabhadrasana_II_-_Warrior_II_Pose.jpg',
-      },
-    ],
+    stills: [formGuide(require('../../../assets/images/exercises/yoga-warrior2-form-guide.png'))],
     clips: [
       {
         url: 'https://www.youtube.com/watch?v=dW231uCUvyg',
@@ -1239,6 +1205,7 @@ export const EXERCISE_MEDIA: Record<string, ExerciseMedia> = {
     ],
   },
   'yg-reverse-warrior': {
+    stills: [formGuide(require('../../../assets/images/exercises/yoga-reverse-warrior-form-guide.png'))],
     clips: [
       {
         url: 'https://www.youtube.com/watch?v=h_iHFVf-1J4',
@@ -1248,14 +1215,7 @@ export const EXERCISE_MEDIA: Record<string, ExerciseMedia> = {
     ],
   },
   'yg-triangle': {
-    stills: [
-      {
-        file: require('../../../assets/images/exercises/yoga-triangle.jpg'),
-        license: 'cc-by-sa',
-        attribution: 'Matthew Greenfield, CC BY-SA 3.0',
-        sourceUrl: 'https://commons.wikimedia.org/wiki/File:Uttitha_Trikonasana.jpg',
-      },
-    ],
+    stills: [formGuide(require('../../../assets/images/exercises/yoga-triangle-form-guide.png'))],
     clips: [
       {
         url: 'https://www.youtube.com/watch?v=Op72srvfIXM',
@@ -1265,14 +1225,7 @@ export const EXERCISE_MEDIA: Record<string, ExerciseMedia> = {
     ],
   },
   'yg-extended-side-angle': {
-    stills: [
-      {
-        file: require('../../../assets/images/exercises/yoga-sideangle.jpg'),
-        license: 'cc-by',
-        attribution: 'Nicholas A. Tonelli, CC BY 2.0',
-        sourceUrl: 'https://commons.wikimedia.org/wiki/File:Baddha_utthita_parsvakonasana.jpg',
-      },
-    ],
+    stills: [formGuide(require('../../../assets/images/exercises/yoga-side-angle-form-guide.png'))],
     clips: [
       {
         url: 'https://www.youtube.com/watch?v=0k0A_N_FA7k',
@@ -1282,14 +1235,7 @@ export const EXERCISE_MEDIA: Record<string, ExerciseMedia> = {
     ],
   },
   'yg-tree': {
-    stills: [
-      {
-        file: require('../../../assets/images/exercises/yoga-tree.jpg'),
-        license: 'cc-by-sa',
-        attribution: 'Plankfad, CC BY-SA 4.0',
-        sourceUrl: 'https://commons.wikimedia.org/wiki/File:Tree_pose_at_home.png',
-      },
-    ],
+    stills: [formGuide(require('../../../assets/images/exercises/yoga-tree-form-guide.png'))],
     clips: [
       {
         url: 'https://www.youtube.com/watch?v=bcwq1qeybWs',
@@ -1299,14 +1245,7 @@ export const EXERCISE_MEDIA: Record<string, ExerciseMedia> = {
     ],
   },
   'yg-chair': {
-    stills: [
-      {
-        file: require('../../../assets/images/exercises/yoga-chair.jpg'),
-        license: 'cc-by-sa',
-        attribution: 'Thamizhpparithi Maari, CC BY-SA 3.0',
-        sourceUrl: 'https://commons.wikimedia.org/wiki/File:A_style_of_Utkatasana.JPG',
-      },
-    ],
+    stills: [formGuide(require('../../../assets/images/exercises/yoga-chair-form-guide.png'))],
     clips: [
       {
         url: 'https://www.youtube.com/watch?v=UEsSjeq5B18',
@@ -1316,15 +1255,7 @@ export const EXERCISE_MEDIA: Record<string, ExerciseMedia> = {
     ],
   },
   'yg-eagle': {
-    stills: [
-      {
-        file: require('../../../assets/images/exercises/yoga-eagle.jpg'),
-        license: 'cc-by',
-        attribution: 'lululemon athletica, CC BY 2.0',
-        sourceUrl:
-          'https://commons.wikimedia.org/wiki/File:Garu%E1%B8%8D%C4%81sana_-_Eagle_Pose_2_in_side_view.jpg',
-      },
-    ],
+    stills: [formGuide(require('../../../assets/images/exercises/yoga-eagle-form-guide.png'))],
     clips: [
       {
         url: 'https://www.youtube.com/watch?v=oZAG1NMr3-I',
@@ -1334,14 +1265,7 @@ export const EXERCISE_MEDIA: Record<string, ExerciseMedia> = {
     ],
   },
   'yg-half-moon': {
-    stills: [
-      {
-        file: require('../../../assets/images/exercises/yoga-halfmoon.jpg'),
-        license: 'cc-by-sa',
-        attribution: 'Nikiwiki242, CC BY-SA 4.0',
-        sourceUrl: 'https://commons.wikimedia.org/wiki/File:Ardha_Chandrasana.jpg',
-      },
-    ],
+    stills: [formGuide(require('../../../assets/images/exercises/yoga-halfmoon-form-guide.png'))],
     clips: [
       {
         url: 'https://www.youtube.com/watch?v=EriPRTk1ly0',
@@ -1351,14 +1275,7 @@ export const EXERCISE_MEDIA: Record<string, ExerciseMedia> = {
     ],
   },
   'yg-bridge': {
-    stills: [
-      {
-        file: require('../../../assets/images/exercises/yoga-bridge.jpg'),
-        license: 'cc-by',
-        attribution: 'Biswarup Ganguly, CC BY 3.0',
-        sourceUrl: 'https://commons.wikimedia.org/wiki/File:Setubandhasana_oblique_view.JPG',
-      },
-    ],
+    stills: [formGuide(require('../../../assets/images/exercises/yoga-bridge-form-guide.png'))],
     clips: [
       {
         url: 'https://www.youtube.com/watch?v=XMHf6FUGSmk',
@@ -1368,14 +1285,7 @@ export const EXERCISE_MEDIA: Record<string, ExerciseMedia> = {
     ],
   },
   'yg-boat': {
-    stills: [
-      {
-        file: require('../../../assets/images/exercises/yoga-boat.jpg'),
-        license: 'cc-by-sa',
-        attribution: 'MilenaGlebova1989, CC BY-SA 4.0',
-        sourceUrl: 'https://commons.wikimedia.org/wiki/File:Navasana_Boat_Pose_Yoga_Pose.jpg',
-      },
-    ],
+    stills: [formGuide(require('../../../assets/images/exercises/yoga-boat-form-guide.png'))],
     clips: [
       {
         url: 'https://www.youtube.com/watch?v=972i40ShAm0',
@@ -1385,14 +1295,7 @@ export const EXERCISE_MEDIA: Record<string, ExerciseMedia> = {
     ],
   },
   'yg-locust': {
-    stills: [
-      {
-        file: require('../../../assets/images/exercises/yoga-locust.jpg'),
-        license: 'cc-by-sa',
-        attribution: 'Nikiwiki242, CC BY-SA 4.0',
-        sourceUrl: 'https://commons.wikimedia.org/wiki/File:Salabhasana_(cropped).jpg',
-      },
-    ],
+    stills: [formGuide(require('../../../assets/images/exercises/yoga-locust-form-guide.png'))],
     clips: [
       {
         url: 'https://www.youtube.com/watch?v=v-h-nVkxJBY',
@@ -1402,14 +1305,7 @@ export const EXERCISE_MEDIA: Record<string, ExerciseMedia> = {
     ],
   },
   'yg-camel': {
-    stills: [
-      {
-        file: require('../../../assets/images/exercises/yoga-camel.jpg'),
-        license: 'cc-by',
-        attribution: 'lululemon athletica, CC BY 2.0',
-        sourceUrl: 'https://commons.wikimedia.org/wiki/File:Ustrasana_-_Camel_Pose.jpg',
-      },
-    ],
+    stills: [formGuide(require('../../../assets/images/exercises/yoga-camel-form-guide.png'))],
     clips: [
       {
         url: 'https://www.youtube.com/watch?v=hm0TJfe0oIg',
@@ -1419,14 +1315,7 @@ export const EXERCISE_MEDIA: Record<string, ExerciseMedia> = {
     ],
   },
   'yg-fish': {
-    stills: [
-      {
-        file: require('../../../assets/images/exercises/yoga-fish.jpg'),
-        license: 'cc-by-sa',
-        attribution: 'Mr. Yoga, CC BY-SA 4.0',
-        sourceUrl: 'https://commons.wikimedia.org/wiki/File:Mr-yoga-fish-pose.jpg',
-      },
-    ],
+    stills: [formGuide(require('../../../assets/images/exercises/yoga-fish-form-guide.png'))],
     clips: [
       {
         url: 'https://www.youtube.com/watch?v=DEMd1dJTEpg',
@@ -1436,6 +1325,7 @@ export const EXERCISE_MEDIA: Record<string, ExerciseMedia> = {
     ],
   },
   'yg-legs-up-wall': {
+    stills: [formGuide(require('../../../assets/images/exercises/yoga-legs-up-wall-form-guide.png'))],
     clips: [
       {
         url: 'https://www.youtube.com/watch?v=xmcDj4Bf--0',
@@ -1445,14 +1335,7 @@ export const EXERCISE_MEDIA: Record<string, ExerciseMedia> = {
     ],
   },
   'yg-final-relaxation': {
-    stills: [
-      {
-        file: require('../../../assets/images/exercises/yoga-relaxation.jpg'),
-        license: 'cc-by-sa',
-        attribution: 'Akhlispurnomo, CC BY-SA 3.0',
-        sourceUrl: 'https://commons.wikimedia.org/wiki/File:Savasana_in_yoga_gembira_community.jpg',
-      },
-    ],
+    stills: [formGuide(require('../../../assets/images/exercises/yoga-relaxation-form-guide.png'))],
     clips: [
       {
         url: 'https://www.youtube.com/watch?v=w7cGoJwUTkc',
@@ -4731,6 +4614,7 @@ export const EXERCISE_MEDIA: Record<string, ExerciseMedia> = {
     ],
   },
   'mob-worlds-greatest': {
+    stills: [formGuide(require('../../../assets/images/exercises/stretch-worlds-greatest-form-guide.png'))],
     clips: [
       {
         url: 'https://www.youtube.com/watch?v=F-glWKg3xFI',
@@ -5968,6 +5852,7 @@ export const EXERCISE_MEDIA: Record<string, ExerciseMedia> = {
     ],
   },
   'mob-doorway-bicep-stretch': {
+    stills: [formGuide(require('../../../assets/images/exercises/stretch-doorway-biceps-form-guide.png'))],
     clips: [
       {
         url: 'https://www.youtube.com/watch?v=B9uY01NoqBg',
@@ -5977,6 +5862,7 @@ export const EXERCISE_MEDIA: Record<string, ExerciseMedia> = {
     ],
   },
   'yg-single-leg-balance-reach': {
+    stills: [formGuide(require('../../../assets/images/exercises/yoga-single-leg-balance-reach-form-guide.png'))],
     clips: [
       {
         url: 'https://www.youtube.com/watch?v=TShLyAkKU9c',
@@ -5986,6 +5872,7 @@ export const EXERCISE_MEDIA: Record<string, ExerciseMedia> = {
     ],
   },
   'yf-warrior-3': {
+    stills: [formGuide(require('../../../assets/images/exercises/yoga-warrior3-form-guide.png'))],
     clips: [
       {
         url: 'https://www.youtube.com/watch?v=L3BZeR_z2cQ',
@@ -6004,6 +5891,7 @@ export const EXERCISE_MEDIA: Record<string, ExerciseMedia> = {
     ],
   },
   'mob-childs-pose': {
+    stills: [formGuide(require('../../../assets/images/exercises/stretch-childs-pose-form-guide.png'))],
     clips: [
       {
         url: 'https://www.youtube.com/watch?v=kH12QrSGedM',

@@ -278,8 +278,10 @@ export function weeklyTotalVolumeSeries(history: SessionRecord[], weeks = 8, now
 // ---------------------------------------------------------------------------
 
 /** A completed session's dominant modality — the majority of its performed
- * exercises' catalog modality. Self-contained (no plan lookup needed). */
-function dominantModalityOf(record: SessionRecord): Modality | undefined {
+ * exercises' catalog modality. Self-contained (no plan lookup needed).
+ * Exported for `sessionCountsByModalitySince` below and for
+ * `services/rolling-plan.ts` (item 5, ADR-0142 v4). */
+export function dominantModalityOf(record: SessionRecord): Modality | undefined {
   const counts: Partial<Record<Modality, number>> = {};
   for (const exercise of record.performed) {
     const catalogExercise = EXERCISES.find((candidate) => candidate.id === exercise.exerciseId);
@@ -297,6 +299,26 @@ function dominantModalityOf(record: SessionRecord): Modality | undefined {
   return best;
 }
 
+/** Completed sessions in an explicit [since, until) window, bucketed by
+ * dominant modality — the general form `weeklySessionCountsByModality`
+ * wraps below. Exists separately because a rolling (non-Monday-reset)
+ * window, like `rolling-plan.ts`'s trailing 7 days, isn't expressible as an
+ * ISO-week offset. */
+export function sessionCountsByModalitySince(
+  history: SessionRecord[],
+  since: number,
+  until: number,
+): Partial<Record<Modality, number>> {
+  const out: Partial<Record<Modality, number>> = {};
+  for (const record of history) {
+    if (!record.completedAt || record.completedAt < since || record.completedAt >= until) continue;
+    const modality = dominantModalityOf(record);
+    if (!modality) continue;
+    out[modality] = (out[modality] ?? 0) + 1;
+  }
+  return out;
+}
+
 /** Completed sessions this ISO week (0 = current), bucketed by dominant modality. */
 export function weeklySessionCountsByModality(
   history: SessionRecord[],
@@ -304,14 +326,5 @@ export function weeklySessionCountsByModality(
   now = Date.now(),
 ): Partial<Record<Modality, number>> {
   const weekStart = weekStartFor(weekOffset, now);
-  const out: Partial<Record<Modality, number>> = {};
-
-  for (const record of history) {
-    if (!record.completedAt || !inWeek(record.completedAt, weekStart)) continue;
-    const modality = dominantModalityOf(record);
-    if (!modality) continue;
-    out[modality] = (out[modality] ?? 0) + 1;
-  }
-
-  return out;
+  return sessionCountsByModalitySince(history, weekStart, weekStart + WEEK_MS);
 }

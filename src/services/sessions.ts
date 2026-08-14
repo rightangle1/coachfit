@@ -41,6 +41,7 @@ export function startSessionRecord(plan: SessionPlan): SessionRecord {
     startedAt: Date.now(),
     plannedDurationMin: plan.estimatedDurationMin,
     workoutType: plan.workoutType,
+    routineId: plan.routineId,
     readiness: plan.readiness,
     performed: plan.blocks.flatMap((b) =>
       b.exercises.map((ex) => {

@@ -26,18 +26,24 @@ implementation.
 
 ```
 UI  →  services/programming.ts  →  ProgrammingEngine  →  RulesEngine
-             (decision log)                                  ├─ selection-score
-                                                             ├─ training-zone
+             ├─ decision log                                 ├─ selection-score
+             └─ session-shape (post-hoc audit)               ├─ training-zone
                                                              ├─ progression
                                                              ├─ load-finalization
                                                              ├─ fatigue / systemic-load
                                                              ├─ readiness
                                                              ├─ layoff
-                                                             ├─ weekly-program
+                                                             ├─ anchors
                                                              ├─ debrief-feedback
                                                              ├─ matching / mechanic
                                                              ├─ timing / intensity
                                                              └─ supersets
+
+UI  →  services/rolling-plan.ts  →  rolling-plan.ts (the weekly layer, ADR-0142)
+             resolves fixed (routine)         produces today's entry, which the
+             days from the catalog +          UI thread into RulesEngine's
+             AthleteProfile                   SessionContext.weeklyPlan — a
+                                               DEFAULT it may still adapt/override
 ```
 
 Every call to `generateSession` / `adjustDuringSession` / `interpretDebrief` is
@@ -62,7 +68,9 @@ it (CLAUDE.md §7).
 | `timing.ts` | The real time model — work, rest, transitions |
 | `intensity.ts` | Per-exercise systemic cost (MET / load demand) |
 | `supersets.ts` | Typed, explainable pairing |
-| `weekly-program.ts` | Six-week stable weekly intent: modalities, slots, priorities, set ranges, anchors |
+| `anchors.ts` | Stable per-modality progression anchors — up to 2 exercises per movement slot with an existing baseline, preferred in ordering (ADR-0142) |
+| `rolling-plan.ts` | The weekly programming layer (ADR-0142) — rolling day-level forecast: workout/rest, modality, cardio format, priority muscles. UI-facing AND the source of `SessionContext.weeklyPlan` |
+| `session-shape.ts` | Cross-workout-type shape sanity (ADR-0143) — no single exercise past a round cap outside a declared format, Main never silently below the exercise floor. Called post-hoc from `services/programming.ts`, not from `RulesEngine` itself |
 
 ---
 
@@ -79,8 +87,11 @@ it (CLAUDE.md §7).
 5. **Day modifiers** — readiness, training intent, layoff ramp, systemic load →
    a single `volumeScale`.
 6. **Filter the pool** by owned equipment and exclusions.
-7. **Resolve weekly intent** — modality, movement slots, priority muscles,
-   target set range, and stable anchors for the current session in a six-week block.
+7. **Resolve today's modality and (for cardio) format** — explicit `workoutType`
+   wins outright; else a routine's own modality; else `SessionContext.weeklyPlan`'s
+   proposal (ADR-0142, the weekly forecast's default) arbitrated by any explicit
+   `weeklyTargets` cadence override; else the naive goal-weight pick. Resolve this
+   session's stable anchors (`anchors.ts`) against the modality actually chosen.
 8. **Select the Main block** — weighted score, anchors, emphasis quota (§4).
 9. **Assign the declared resistance working zone**; optionally place a
    milestone/calibration test when the athlete has configured max-day testing (§5).
@@ -338,6 +349,7 @@ Capped against the session's *working* weight, never the test weight.
 | Weekly load increase | +15% | vs. previous ISO week's best **working** load |
 | Deload magnitude | −10% | Clear RPE grind-out; never a plateau alone |
 | Minimum increment allowance | conditional | Candidate e1RM at reset reps must be within 4% of achieved e1RM |
+| Barbell bar-weight floor | ≈20.41 kg (45 lb) | `BARBELL_BAR_WEIGHT_KG` (ADR-0144) — `weightKg` is the TOTAL on the bar; never floored below the empty bar itself |
 
 **Large minimum increments require proof.** A percentage cap is the wrong
 instrument for a light lift, but reduced volume-load after a rep reset is not
@@ -562,6 +574,19 @@ Secondary credit is 0.4 here too, and headroom is **floored** rather than
 rounded: fractional assistance credit must not let the ceiling be crossed a
 fraction of a set at a time.
 
+### Cardio round ceiling (ADR-0143)
+
+Cardio had no equivalent to the per-session ceiling above until a single
+exercise's own round count was found landing around 22 (`round(1200s / 1
+station / 55s)`), because `cardioSets()`'s time-budget division was uncapped
+at the base — `Math.min(8, priorRounds + 1)` only ever bounded the
+*progression-growth* step, never the base itself. `MAX_CARDIO_ROUNDS = 8` /
+`MIN_CARDIO_ROUNDS = 2` now cap the base in both the circuit/aerobics and
+interval branches; `volumeScale` (the same readiness/intent signal
+`strengthSets()` already used) scales the capped base downward before any
+growth runs, so a recovery day's cardio volume actually shrinks instead of
+only having its further progression blocked.
+
 ### Movement redundancy
 
 `variantFamily` (`movementSlot:implement:mechanic`) is the redundancy key —
@@ -601,19 +626,62 @@ sets should outrank lats at 9 — a flag treats them as equal.
 Records predating any of these fields degrade gracefully to the previous behavior
 rather than failing.
 
-### Weekly program layer
+### Weekly program layer (ADR-0142)
 
-`buildWeeklyProgram` creates a stable six-week boundary (inside the requested
-4–8-week range). It allocates the expected sessions across modality targets or,
-when none are supplied, goal weights. Each session carries specific movement
-slots, explicit priority muscles, experience-based target set ranges, and up to
-two stable anchor exercises with existing progression baselines preferred.
+`buildRollingPlan` (`rolling-plan.ts`) is the weekly layer — a rolling,
+day-level forecast (workout/rest, modality, cardio format, priority muscles;
+deliberately no exercises/weights) that plays both of its roles at once: the
+"Weekly Plan" UI card, and the real input `generateSession` reads as
+`SessionContext.weeklyPlan`. It rolls across week boundaries rather than
+resetting every Monday.
 
-The current session index is the number of completed sessions in the program
-week. Missing a day does not change a later session's target range or cram the
-missed work forward. Daily readiness may reduce today's prescription without
-mutating the remaining weekly intent. Power focus places a power slot first;
-mobility weeks include a balance slot.
+**Modality mix.** Either the athlete's explicit `weeklyTargets` expanded
+directly, or — when none are set — a weight-*proportional* apportionment
+(largest-remainder), so a 60%-cardio goal actually produces mostly-cardio
+sessions rather than an equal split across every non-zero modality. Either
+way, `interleaveModalities` spaces same-modality sessions apart afterward.
+
+**Cardio format** (`cardioIntentFor`, ADR-0143) varies across the week and
+never repeats `'interval'` on two consecutive cardio days.
+
+**Fatigue projection** is cumulative across the forecast itself: a muscle
+prioritized on day 1 registers as more fatigued going into day 2, exactly
+like a completed session would — otherwise every day independently re-asks
+"what's freshest?" and produces the same answer all week.
+
+**Routine awareness.** A day already fixed by an explicit `scheduledWorkouts`
+entry or a recurring `Routine` is resolved by `services/rolling-plan.ts`
+(the one place allowed to touch the catalog for this — `rolling-plan.ts`
+itself stays catalog-free, ADR-0003) and passed in as `FixedForecastDay[]`.
+A fixed day never gets an algorithmic slot spent on it, still projects its
+fatigue contribution forward, and **counts toward the weekly session
+budget** — a routine that already covers the stated frequency doesn't get
+algorithmic sessions piled on top. Its exact cardio format isn't resolved
+(this layer stays exercise-free by design), so the format rotation
+conservatively restarts at `'basic'` after one rather than guessing.
+
+**The daily handoff is a default, never a mandate.** `generateSession`
+resolves today's modality in this order: explicit `workoutType` → a set
+`routine`'s own modality → `weeklyPlan`'s proposal (arbitrated by any
+explicit `weeklyTargets` cadence override, same as always) → the naive
+goal-weight pick. `weeklyPlan.cardioIntent` gets the identical treatment for
+cardio format. Absent `weeklyPlan` (every caller before ADR-0142), this is
+byte-identical to prior behavior.
+
+**Stable anchors** (`anchors.ts`, extracted from the retired
+`weekly-program.ts`) — up to two exercises per movement slot with an
+existing progression baseline, preferred in Main's ordering. Resolved
+against the modality `generateSession` actually chose for today, fixing a
+latent inconsistency in the old module (its own separately-recomputed
+hypothetical schedule could name a different "today" modality than the one
+actually trained).
+
+**Known gap, not a regression**: an implicit (non-`'stretch'`/`'yoga'`)
+`mainModality` of `'mobility'` — reachable via a mobility-dominant goal
+weighting even without `weeklyPlan` involved — hits a separate, pre-existing
+bug where the generic Main-block pipeline hardcodes `'strength'` regardless
+of the resolved modality. Found while testing this change; tracked
+separately, not fixed here.
 
 ---
 
@@ -674,8 +742,26 @@ Full reasoning lives in the ADRs; this is the index.
   the source of ordinary work; tests become opt-in.
 - **ADR-0132:** pain-stop and compatibility-gated substitution are hard live
   boundaries; no unrelated load transfer.
-- **ADR-0133:** a lightweight six-week weekly intent layer sits above daily
-  adaptation without introducing complex periodization.
+- **ADR-0133:** *(superseded by ADR-0142)* originally a lightweight six-week
+  weekly intent layer sitting above daily adaptation. Replaced once its
+  "today" selection was found to disagree with the modality actually
+  trained, and once the athlete-facing rolling forecast (`rolling-plan.ts`)
+  turned out to already do the job better.
+
+### ADR-0142 — Weekly rolling-plan promotion, routine awareness, daily handoff
+
+- `rolling-plan.ts` (already the UI-facing forecast) is now also the source
+  of `SessionContext.weeklyPlan` — a default `generateSession` may adapt or
+  override, never a mandate, resolved behind explicit `workoutType` and
+  `routine`.
+- Weight-only modality apportionment became proportional (largest-remainder)
+  instead of an equal round-robin across every non-zero-weight modality.
+- A day fixed by a routine (explicit or recurring) is resolved by
+  `services/rolling-plan.ts` and counts toward the weekly session budget
+  rather than adding an extra algorithmic session on top of it.
+- Superseded ADR-0133's now-redundant `weekly-program.ts`, keeping only its
+  stable-anchor concept (`anchors.ts`), now resolved against the modality
+  actually trained instead of a separately-recomputed hypothetical schedule.
 
 ---
 
@@ -714,7 +800,6 @@ Worth keeping — most were invisible in a single session and only showed up as
 
 Recorded honestly rather than left to be rediscovered.
 
-- **Barbell plate math** — a bar is treated as infinitely adjustable.
 - **Catalog metadata is deterministically enriched, not fully hand-curated.**
   Every selectable row now has difficulty, impact, joint load, prerequisite,
   relationship, substitution family, and movement slot, but unusual exercises
@@ -732,7 +817,7 @@ Recorded honestly rather than left to be rediscovered.
 
 ## 16. Testing strategy
 
-522 tests across 35 suites. The parts that matter for this engine:
+788 tests across 56 suites. The parts that matter for this engine:
 
 - **Single-session behavior** — `rules-engine-test.ts` is the broad regression net.
 - **Multi-week scenarios** — `multi-week-scenario-test.ts` simulates an athlete
@@ -749,9 +834,23 @@ Recorded honestly rather than left to be rediscovered.
   three-set work, `12/10/8`, lower-load proportional credit, and pain/form gates.
 - **Live adjustment coverage** — pain, too-hard, too-easy, skip, time-short,
   accepted/rejected replacement, grouping, rest, rationale, and load isolation.
-- **New longitudinal boundaries** — `cardio-progression-test.ts` and
-  `weekly-program-test.ts`; catalog completeness and athlete-specific timing are
-  also pinned.
+- **New longitudinal boundaries** — `cardio-progression-test.ts`; catalog
+  completeness and athlete-specific timing are also pinned.
+- **Cardio session-shape coverage (ADR-0143)** — `cardio-progression-test.ts`
+  pins `cardioSets()`'s first-exposure exact shape, the round cap, intent-vs-
+  tag authority, and `volumeScale`; `rules-engine-test.ts` covers the same
+  invariants end-to-end (implicit cardio, explicit Interval Main, Conditioning,
+  the single-focus running/machine exception, and a routine's tag-trust
+  exception) plus a sweep across workout style × experience × training intent
+  asserting zero `session-shape-test.ts` (`auditSessionShape`) warn findings.
+- **Weekly engine coverage (ADR-0142)** — `rolling-plan-test.ts` covers goal
+  adherence (explicit targets AND weight-proportional apportionment) over a
+  28-day horizon, cardio-format variety, 8-week stability, and fixed
+  (routine) day behavior; `weekly-daily-integration-test.ts` is the one file
+  that exercises the actual seam — a real `buildRollingPlan` output fed into
+  `generateSession` as `weeklyPlan`, confirming it's honored as a default and
+  overridden by an explicit choice or a routine.
+  asserting zero `session-shape-test.ts` (`auditSessionShape`) warn findings.
 
 When adding a rule, prefer a multi-week assertion over a snapshot one. The
 single-session view is exactly what hid these problems.

@@ -53,6 +53,9 @@ export const REST = {
   CORE_MOBILITY: 15,
   WARMUP: 15,
   CARDIO: 0, // rest is intrinsic to the bout / recovery phase
+  // A circuit keeps moving between stations (ADR-0138) — brief, not zero
+  // like steady/interval cardio's "rest is intrinsic to the bout" case.
+  AEROBICS_TRANSITION: 10,
 } as const;
 
 /**
@@ -77,6 +80,7 @@ function isHeavySet(set: PlannedSet): boolean {
 /** Rest AFTER a set of `exercise`, before superset adjustment. */
 export function restSecondsFor(exercise: Exercise, set: PlannedSet): number {
   if (set.isWarmup) return REST.WARMUP;
+  if (exercise.movementPattern === 'aerobics') return REST.AEROBICS_TRANSITION;
   if (exercise.modality === 'cardio') return REST.CARDIO;
   if (
     exercise.modality === 'mobility' ||
@@ -109,6 +113,9 @@ export function transitionSecondsFor(exercise: Exercise): number {
     return 10;
   }
   if (exercise.modality === 'cardio') return 20;
+  // This 45 is SECONDS of rack-setup time — unrelated to progression.ts's
+  // BARBELL_BAR_WEIGHT_KG (ADR-0144, the empty bar's 45-LB weight). Same
+  // number, disjoint meaning; don't conflate the two when reading either one.
   if (exercise.equipment.includes('barbell') || exercise.equipment.includes('squat_rack')) return 45;
   if (exercise.equipment.includes('cable_machine') || exercise.equipment.includes('bench')) return 35;
   return 30;

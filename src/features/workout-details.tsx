@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import { Pressable, View } from 'react-native';
 
-import { Card, Icon, Row, Text, useTheme } from '@/design';
+import { Card, Row, Text, ToneIconTile, toneForWorkoutType, useTheme } from '@/design';
 import { EXERCISES } from '@/domain/catalog';
 import { estimateBlocksSeconds } from '@/domain/engine/timing';
 import { WorkoutExerciseGroups } from '@/features/workout-exercise-groups';
@@ -45,7 +45,10 @@ export function WorkoutDetails({
   onLogAllSets?: (exerciseId: string) => void;
   highlightedExerciseId?: string | null;
 }) {
-  const { colors, radii, spacing } = useTheme();
+  const { colors, spacing } = useTheme();
+  // A session gets one visual voice. Warmups, conditioning, and cooldowns
+  // support the workout rather than each asking for their own accent color.
+  const workoutTone = toneForWorkoutType(plan.workoutType);
   const [expandedBlocks, setExpandedBlocks] = useState<Set<string> | null>(null);
   // Default to whichever block the athlete would actually do next — the
   // first one with unfinished exercises — so starting a workout opens on
@@ -87,14 +90,12 @@ export function WorkoutDetails({
               style={({ pressed }) => ({ padding: spacing.lg, opacity: pressed ? 0.72 : 1 })}
             >
               <Row gap="sm">
-                <View style={{ width: 32, height: 32, borderRadius: radii.md, backgroundColor: colors.primarySoft, alignItems: 'center', justifyContent: 'center' }}>
-                  <Icon name={blockIcon(block)} size={16} color="primaryTextSoft" />
-                </View>
+                <ToneIconTile name={blockIcon(block)} size={32} iconSize={16} tone={workoutTone} />
                 <View style={{ flex: 1 }}>
                   <Text variant="subtitle">{block.label}</Text>
                   <Text variant="caption" color="textFaint">{block.exercises.length} exercises · ~{minutes} min</Text>
                 </View>
-                <Text variant="subtitle" color="primaryTextSoft">{expanded ? '⌃' : '⌄'}</Text>
+                <Text variant="subtitle" tint={colors.tones[workoutTone].text}>{expanded ? '⌃' : '⌄'}</Text>
               </Row>
             </Pressable>
             {expanded && (

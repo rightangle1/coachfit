@@ -7,7 +7,44 @@
 import type { AthleteProfile, WeightUnit } from './athlete';
 import type { BodyArea, MuscleGroup } from './body-area';
 import type { EquipmentInventory } from './equipment';
+import type { CardioModality } from './exercise';
 import type { Modality, TrainingGoals, TrainingZone } from './goals';
+
+// ---------------------------------------------------------------------------
+// Rolling weekly plan — a day-level forecast (no exercises/weights), the
+// output of `buildRollingPlan`. Persisted on `AthleteProfile.rollingPlan`.
+// ---------------------------------------------------------------------------
+
+export interface RollingPlanDay {
+  /** localDay-anchored (noon) epoch ms. */
+  date: number;
+  kind: 'workout' | 'rest';
+  modality?: Modality;
+  priorityMuscles?: MuscleGroup[];
+  targetSetRange?: { min: number; max: number };
+  /** Today's proposed cardio format (ADR-0143), only set when modality is
+   * 'cardio'. A default `generateSession` may still adapt or override —
+   * see `SessionContext.weeklyPlan`. */
+  cardioIntent?: CardioIntent;
+}
+
+export interface RollingPlan {
+  id: string;
+  generatedAt: number;
+  /** localDay this plan was generated on — the trigger checks compare against it. */
+  generatedForDay: number;
+  horizonDays: number;
+  days: RollingPlanDay[];
+  /** Short, rules-generated (templated) explanation of the forecast. */
+  rationale: string;
+  /** Whole-athlete systemic-load verdict as of `generatedForDay` (`systemicState`,
+   * ADR-0126) — surfaced one interaction earlier than the same-day volume cut
+   * it already drives inside `generateSession`. A snapshot of TODAY's
+   * backward-looking signal, not a forecast of a future week — periodization
+   * stays out of scope (ADR-0133). */
+  deloadRecommended: boolean;
+  deloadNote?: string;
+}
 
 // ---------------------------------------------------------------------------
 // Inputs to generateSession()
@@ -38,8 +75,8 @@ export interface SessionContext {
    * User-selected session style for today, layered on top of (not replacing)
    * goals/equipment/readiness/avoidance. Unset preserves prior goal-weighted
    * behavior exactly. 'bodyweight' restricts equipment to bodyweight-only;
-   * 'stretch'/'yoga'/'cardio' replace the usual Main/Conditioning shape with a
-   * single-purpose block for that style.
+   * 'stretch'/'yoga'/'barre'/'cardio' replace the usual Main/Conditioning shape
+   * with a single-purpose block for that style.
    */
   workoutType?: WorkoutType;
   /** Per-session controls that make each dedicated workout style behave differently. */
@@ -48,19 +85,77 @@ export interface SessionContext {
   excludedExerciseIds?: string[];
   /** Catalog ids the athlete has favorited (settings) — biases selection, doesn't override it. */
   favoriteExerciseIds?: string[];
+  /**
+   * A user-authored routine (ADR-0137) driving today's Main exercise
+   * selection. When set, Main draws only from this ordered list (filtered
+   * by equipment/avoidance exactly like normal selection) instead of the
+   * goal-weighted catalog pool. Every other rule — progression, load,
+   * safety caps, warmup/cooldown — still applies unchanged.
+   */
+  routine?: { id: string; name: string; exerciseIds: string[] };
+  /**
+   * Today's baseline from the weekly rolling plan (ADR-0142), threaded in by
+   * the caller from `AthleteProfile.rollingPlan` / `services/rolling-plan.ts`.
+   * Optional and additive — absent preserves today's exact naive-weight-
+   * based behavior. A DEFAULT the daily engine may still adapt or override,
+   * never a mandate: an explicit `workoutType`/`workoutOptions` choice and a
+   * `routine` both still win outright, exactly like `goals.weeklyTargets`'s
+   * existing cadence override never touches an explicit choice either.
+   */
+  weeklyPlan?: { modality?: Modality; cardioIntent?: CardioIntent };
 }
 
-export type WorkoutType = 'stretch' | 'yoga' | 'bodyweight' | 'cardio' | 'bodybuilding' | 'sculpting';
+export type WorkoutType = 'stretch' | 'yoga' | 'barre' | 'pilates' | 'bodyweight' | 'cardio' | 'bodybuilding' | 'sculpting';
+
+/**
+ * The "Kind of session" picker's top-level grouping (ADR-0407) — three broad
+ * families the athlete picks between before narrowing to a specific
+ * `WorkoutType`. See `familyOfWorkoutType()` (app-lib/options.ts) for the
+ * single source-of-truth mapping; nothing else should re-derive this bucketing.
+ */
+export type WorkoutFamily = 'strength' | 'cardio' | 'mobility';
 
 export type BodybuildingRotation = 'straight' | 'superset' | 'triset';
-export type CardioIntent = 'base' | 'intervals' | 'benchmark';
+/**
+ * Cardio's intensity-structure axis (ADR-0141) — orthogonal to
+ * `CardioModality` (the movement-family axis, exercise.ts), which
+ * deliberately keeps its own `'aerobics'` value; `'circuit'` here used to be
+ * named `'aerobics'` too until that collision was renamed away. `'basic'`
+ * absorbs the old `'base'` and `'benchmark'` values (ADR-0141) — benchmark's
+ * only distinguishing behavior (a single exercise, RPE hard-pinned to 7) was
+ * never tracked as a distinct entity anywhere, so it was dropped rather than
+ * preserved as a toggle.
+ */
+export type CardioIntent = 'basic' | 'circuit' | 'interval';
 export type FlowPace = 'gentle' | 'standard';
+
+/**
+ * Normalizes a `CardioIntent` value, including stale pre-ADR-0141 strings
+ * that may still live in previously-persisted `WorkoutOptions` (this repo
+ * has no schema-migration framework — see ADR-0141). Anything unrecognized
+ * falls back to `'basic'`, the safest/most conservative structure.
+ */
+export function normalizeCardioIntent(value: string | undefined): CardioIntent {
+  if (value === 'circuit' || value === 'aerobics') return 'circuit';
+  if (value === 'interval' || value === 'intervals') return 'interval';
+  return 'basic'; // covers 'basic', 'base', 'benchmark', undefined, and anything else stale/unrecognized
+}
 
 export interface WorkoutOptions {
   /** Available to intermediate and advanced athletes in a bodybuilding session. */
   bodybuildingRotation?: BodybuildingRotation;
   /** Cardio format is explicit instead of treating every timed session alike. */
   cardioIntent?: CardioIntent;
+  /**
+   * Which cardio movement families (ADR-0139) today's Main block may draw
+   * from — e.g. combat, running/walking. Empty/unset means no preference
+   * (every modality eligible, today's default behavior). OR-matched: an
+   * exercise is eligible if its `cardioModality` is any one of these. When a
+   * combination has no matching exercises for the chosen `cardioIntent`, the
+   * engine drops the preference for that session rather than failing —
+   * see `rules-engine.ts`'s cardio pool build (ADR-0140).
+   */
+  cardioModalities?: CardioModality[];
   /**
    * Dedicated yoga/stretch controls; visual cues stay entirely offline. What
    * to target for a Stretch session comes from `SessionContext.targeting.emphasize`
@@ -78,6 +173,25 @@ export interface WorkoutOptions {
   includeWarmup?: boolean;
   includeConditioning?: boolean;
   includeCooldown?: boolean;
+  /**
+   * Touchless, auto-advancing playback for a timed flow (yoga/stretch/barre
+   * stage order, an aerobics circuit, or steady/interval cardio phases) —
+   * see `src/domain/engine/guided-flow.ts` and `src/app/workout-flow.tsx`.
+   * Deliberately a different field from `flow` above (that's yoga/stretch
+   * pacing knobs, unrelated). Unset resolves via `defaultAutoAdvance()`
+   * rather than "off" — there's no prior guided-flow behavior to preserve,
+   * so the per-style smart default is the right unset behavior here.
+   */
+  autoAdvance?: boolean;
+}
+
+/** Unset `workoutOptions.autoAdvance` resolves here — a timed flow defaults
+ * to touchless playback, everything else has nothing to sequence. */
+export function defaultAutoAdvance(workoutType: WorkoutType | undefined, cardioIntent?: CardioIntent): boolean {
+  if (workoutType === 'yoga' || workoutType === 'stretch' || workoutType === 'barre' || workoutType === 'pilates') return true;
+  if (workoutType === 'cardio') return true;
+  void cardioIntent; // every CardioIntent gets a guided flow (thumbnail strip or phase timer) — see guided-flow.ts
+  return false;
 }
 
 /** Per-area fatigue estimates (0 = fresh, 1 = maximally fatigued). ADR-0102. */
@@ -164,6 +278,8 @@ export interface SessionPlan {
   readiness?: ReadinessInput;
   /** Structured record of mid-session decisions, retained for explanation/audit. */
   liveAdjustments?: LiveAdjustmentRecord[];
+  /** Set when this plan was generated from a routine (ADR-0137) — the id of `SessionContext.routine`. */
+  routineId?: string;
 }
 
 export interface SessionBlock {
@@ -209,8 +325,10 @@ export interface PlannedExercise {
   group?: SupersetGroup;
 }
 
-/** Why two/three exercises are paired — never random (ADR-0121). */
-export type SupersetType = 'antagonist' | 'pre_exhaust' | 'post_exhaust' | 'time_saver';
+/** Why two/three exercises are paired — never random (ADR-0121). `circuit`
+ * (ADR-0138) is a distinct case: an aerobics circuit's stations aren't paired
+ * by muscle relationship at all, just rotated together for continuous work. */
+export type SupersetType = 'antagonist' | 'pre_exhaust' | 'post_exhaust' | 'time_saver' | 'circuit';
 
 export interface SupersetGroup {
   /** Shared id across the group's members (mirrors `rotationGroup`). */
@@ -320,6 +438,8 @@ export interface SessionRecord {
   endedEarly?: boolean;
   /** Denormalized from the plan at start (mirrors `plannedFor`); older records predate this and are simply excluded from workout-style achievements. */
   workoutType?: WorkoutType;
+  /** Denormalized from the plan at start (ADR-0137) — lets history be filtered to "sessions that used this routine" for routine-level progress. */
+  routineId?: string;
   performed: PerformedExercise[];
   debrief?: DebriefInput;
   /** iOS-only. Set once this session's workout is written to HealthKit; guards against a duplicate write. */

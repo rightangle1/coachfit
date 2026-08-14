@@ -19,7 +19,7 @@ import { useTheme } from '../theme';
 import { FloatingEditField } from './floating-edit-field';
 import { PressScale } from './pressable';
 import { Text } from './text';
-import type { ColorToken } from '../tokens';
+import type { ColorToken, ContextTone } from '../tokens';
 
 const AnimatedPath = Animated.createAnimatedComponent(Path);
 
@@ -28,13 +28,17 @@ export function Chip({
   selected,
   onPress,
   icon,
+  tone,
 }: {
   label: string;
   selected?: boolean;
   onPress?: () => void;
   icon?: ReactNode;
+  /** Applies only when selected, so filter groups stay easy to scan. */
+  tone?: ContextTone;
 }) {
   const { colors, radii, spacing } = useTheme();
+  const contextual = tone ? colors.tones[tone] : null;
   return (
     <PressScale
       onPress={onPress}
@@ -50,13 +54,13 @@ export function Chip({
         paddingVertical: spacing.xs,
         paddingHorizontal: spacing.md,
         borderRadius: radii.sm,
-        backgroundColor: selected ? colors.primarySoft : colors.surfaceAlt,
+        backgroundColor: selected ? (contextual?.surface ?? colors.primarySoft) : colors.surfaceAlt,
         borderWidth: 1,
-        borderColor: selected ? colors.primary : 'transparent',
+        borderColor: selected ? (contextual?.border ?? colors.primary) : 'transparent',
       }}
     >
       {icon}
-      <Text variant="label" weight="semibold" color={selected ? 'primaryTextSoft' : 'textMuted'}>
+      <Text variant="label" weight="semibold" color={selected ? 'primaryTextSoft' : 'textMuted'} tint={selected ? contextual?.text : undefined}>
         {label}
       </Text>
     </PressScale>
@@ -71,14 +75,17 @@ export function ChoiceTile({
   onPress,
   icon,
   style,
+  tone,
 }: {
   label: string;
   selected?: boolean;
   onPress: () => void;
   icon?: ReactNode;
   style?: ViewStyle;
+  tone?: ContextTone;
 }) {
   const { colors, radii, spacing } = useTheme();
+  const contextual = tone ? colors.tones[tone] : null;
   return (
     <PressScale
       onPress={onPress}
@@ -91,9 +98,9 @@ export function ChoiceTile({
           minHeight: 88,
           padding: spacing.md,
           borderRadius: radii.md,
-          backgroundColor: selected ? colors.primarySoft : colors.surface,
+          backgroundColor: selected ? (contextual?.surface ?? colors.primarySoft) : colors.surface,
           borderWidth: selected ? 2 : 1,
-          borderColor: selected ? colors.primary : colors.border,
+          borderColor: selected ? (contextual?.border ?? colors.primary) : colors.border,
           justifyContent: 'space-between',
         },
         style,
@@ -101,9 +108,9 @@ export function ChoiceTile({
     >
       <View style={{ flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between' }}>
         {icon ? <View pointerEvents="none">{icon}</View> : <View />}
-        {selected ? <Text variant="label" color="primaryTextSoft" weight="bold">✓</Text> : null}
+        {selected ? <Text variant="label" color="primaryTextSoft" tint={contextual?.text} weight="bold">✓</Text> : null}
       </View>
-      <Text variant="label" weight="semibold" color={selected ? 'primaryTextSoft' : 'textMuted'} style={{ marginTop: spacing.sm }}>
+      <Text variant="label" weight="semibold" color={selected ? 'primaryTextSoft' : 'textMuted'} tint={selected ? contextual?.text : undefined} style={{ marginTop: spacing.sm }}>
         {label}
       </Text>
     </PressScale>
@@ -435,11 +442,13 @@ export function Meter({
   value,
   max,
   color = 'primary',
+  tone,
   style,
 }: {
   value: number;
   max: number;
   color?: ColorToken;
+  tone?: ContextTone;
   style?: ViewStyle;
 }) {
   const { colors, radii, gradients, motion } = useTheme();
@@ -453,7 +462,9 @@ export function Meter({
   const fillStyle = useAnimatedStyle(() => ({ width: `${width.get()}%` }));
   // Only the brand fill gets the gradient; semantic tints (danger, warning…)
   // must stay their exact token color to remain readable as status.
-  const gradient = color === 'primary' ? gradients.meterFill : null;
+  const contextual = tone ? colors.tones[tone] : null;
+  const gradient = (tone === 'primary' || (!tone && color === 'primary')) ? gradients.meterFill : null;
+  const fillColor = contextual?.solid ?? colors[color];
 
   return (
     <View
@@ -472,7 +483,7 @@ export function Meter({
             style={{ flex: 1 }}
           />
         ) : (
-          <View style={{ flex: 1, backgroundColor: colors[color] }} />
+          <View style={{ flex: 1, backgroundColor: fillColor }} />
         )}
       </Animated.View>
     </View>

@@ -8,6 +8,7 @@
 
 import type { Exercise, PerformedSet, SessionRecord, TrainingZone, WeightUnit } from '../types';
 import { type WeeklyLoadPoint, epley1RM, isoWeekStart } from '../metrics';
+import { implementFor } from './mechanic';
 
 export const SAFETY = {
   /** Absolute ceiling on any session-to-session load increase. */
@@ -139,7 +140,34 @@ export function snapToAvailableWeight(kg: number, available?: number[]): number 
 
 const KG_PER_LB = 0.45359237;
 
-function defaultIncrementKg(unit: WeightUnit): number {
+/**
+ * Standard Olympic barbell, empty: 45 lb ≈ 20.41 kg (ADR-0144). A barbell
+ * exercise's `weightKg` is the TOTAL on the bar (bar + plates) and must never
+ * be prescribed below this — "0 added weight" means the bar, not nothing.
+ * Unrelated to timing.ts's `transitionSecondsFor()`'s literal `45` (a
+ * 45-SECOND rack-setup time budget) — same number, disjoint meaning; noted at
+ * both sites so nobody conflates them. Barbell deliberately stays outside
+ * `WeightedEquipmentType` (ADR-0115: plates combine freely, so this is a
+ * continuous floor, not a discrete owned-weight snap list).
+ */
+export const BARBELL_BAR_WEIGHT_KG = 45 * KG_PER_LB; // ≈ 20.41 kg
+
+/** The floor a barbell exercise's weight may never go below; undefined for
+ * every other implement (nothing to floor generically — see
+ * `startingWeightKgFor` for the dumbbell/kettlebell/band starting-weight
+ * rule, which is a different concern from this hard floor). Exported so
+ * callers that snap a weight AFTER this module returns it (e.g.
+ * `finalizeLoad`'s post-hoc readiness/fatigue reduction in rules-engine.ts)
+ * can apply the same floor to their own final `snapToSensibleWeight` call. */
+export function barbellFloorKg(ex: Exercise): number | undefined {
+  return implementFor(ex) === 'barbell' ? BARBELL_BAR_WEIGHT_KG : undefined;
+}
+
+/** The smallest realistic load increment for `unit` — 2.5 kg metric, 5 lb
+ * imperial (converted to kg for storage). Exported so `startingWeightKgFor`
+ * (ADR-0144) can reuse it as the generic starting-weight floor rather than
+ * hand-rolling a second "smallest sensible weight" number. */
+export function defaultIncrementKg(unit: WeightUnit): number {
   return unit === 'lb' ? SAFETY.DEFAULT_STEP_LB * KG_PER_LB : SAFETY.DEFAULT_STEP_KG;
 }
 
@@ -155,19 +183,57 @@ export function formatSuggestedWeight(kg: number, unit: WeightUnit): string {
  * automatic recommendation never exceeds the load safety cap. If a legacy
  * logged load is lighter than one default increment, retain it rather than
  * emitting the nonsensical recommendation of 0 kg.
+ *
+ * `floorKg` (ADR-0144) is an implement-specific hard minimum — e.g. a
+ * barbell's empty-bar weight — applied AFTER snapping, so it can raise (but
+ * never lower) the result. Omitted for every non-barbell call site.
  */
 export function snapToSensibleWeight(
   kg: number,
   unit: WeightUnit = 'kg',
   available?: number[],
+  floorKg?: number,
 ): number {
   if (!Number.isFinite(kg) || kg <= 0) return kg;
+  let snapped: number;
   if (available?.some((weight) => Number.isFinite(weight) && weight > 0)) {
-    return snapToAvailableWeight(kg, available);
+    snapped = snapToAvailableWeight(kg, available);
+  } else {
+    const incrementKg = defaultIncrementKg(unit);
+    const rounded = Math.floor((kg + 1e-9) / incrementKg) * incrementKg;
+    snapped = rounded > 0 ? Math.round(rounded * 1_000_000) / 1_000_000 : kg;
   }
-  const incrementKg = defaultIncrementKg(unit);
-  const rounded = Math.floor((kg + 1e-9) / incrementKg) * incrementKg;
-  return rounded > 0 ? Math.round(rounded * 1_000_000) / 1_000_000 : kg;
+  return floorKg != null ? Math.max(snapped, floorKg) : snapped;
+}
+
+/**
+ * A sensible, conservative STARTING weight for a fresh weight-progression
+ * exercise with no history yet (ADR-0144) — never a progression
+ * recommendation. `recommendLoad`/`recommendPrescription`'s "no history →
+ * undefined, the athlete logs it" contract (ADR-0103) is unchanged; this is a
+ * separate, explicit, opt-in fallback each caller invokes when those return
+ * nothing, so a fresh exercise shows a real number instead of a blank/dash
+ * that reads as "0".
+ *
+ * Barbell floors at the bar. Dumbbell/kettlebell/band prefer the lightest
+ * weight the athlete actually owns when their inventory specifies one — real
+ * 2-3 lb dumbbells are honored, never overridden upward by a generic floor —
+ * otherwise the generic smallest-increment floor. Bodyweight-implement
+ * exercises return undefined: there is no sensible weight to suggest for
+ * something that isn't loaded by default.
+ */
+export function startingWeightKgFor(
+  exercise: Exercise,
+  available?: number[],
+  unit: WeightUnit = 'kg',
+): number | undefined {
+  if (exercise.progression !== 'weight' && !exercise.loadsWeight) return undefined;
+  const implement = implementFor(exercise);
+  if (implement === 'barbell') return BARBELL_BAR_WEIGHT_KG;
+  if (implement === 'bodyweight') return undefined;
+  const owned = available?.filter((weight) => Number.isFinite(weight) && weight > 0);
+  if (owned?.length) return Math.min(...owned);
+  return defaultIncrementKg(unit);
 }
 
 /**
@@ -229,6 +295,7 @@ export function recommendLoad(
   const last = lastTopSet(ex.id, history);
   if (!last) return undefined;
 
+  const floorKg = barbellFloorKg(ex);
   const lastW = last.weightKg;
   const lastRpe = last.rpe;
   const capBase = last.priorWorkingWeightKg ?? lastW;
@@ -241,7 +308,7 @@ export function recommendLoad(
   if (last.isCalibration && last.reps != null && last.reps > 0 && (lastRpe ?? 9) <= 9) {
     const estimatedOneRepMax = lastW * (1 + last.reps / 30);
     const estimatedWorkingWeight = estimatedOneRepMax / (1 + 10 / 30);
-    const target = snapToSensibleWeight(Math.min(estimatedWorkingWeight, cap), unit);
+    const target = snapToSensibleWeight(Math.min(estimatedWorkingWeight, cap), unit, undefined, floorKg);
     return {
       weightKg: target,
       note: `calibrated from ${last.reps} clean reps — next working load capped at ${formatSuggestedWeight(target, unit)}`,
@@ -252,13 +319,13 @@ export function recommendLoad(
   let note: string;
 
   if (lastRpe != null && lastRpe <= targetRpe - 1) {
-    target = snapToSensibleWeight(Math.min(lastW + defaultIncrementKg(unit), cap), unit);
+    target = snapToSensibleWeight(Math.min(lastW + defaultIncrementKg(unit), cap), unit, undefined, floorKg);
     const increase = target - lastW;
     note = increase > 0
       ? `+${formatSuggestedWeight(increase, unit)} from last — felt easy at RPE ${lastRpe}`
       : `holding ${formatSuggestedWeight(target, unit)} — the next ${unit === 'lb' ? SAFETY.DEFAULT_STEP_LB : SAFETY.DEFAULT_STEP_KG} ${unit} step is above the safety cap`;
   } else if (lastRpe != null && lastRpe >= targetRpe + 2) {
-    target = snapToSensibleWeight(lastW * (1 - SAFETY.DELOAD_PCT), unit);
+    target = snapToSensibleWeight(lastW * (1 - SAFETY.DELOAD_PCT), unit, undefined, floorKg);
     note = `deloaded ${Math.round(SAFETY.DELOAD_PCT * 100)}% — RPE ${lastRpe} last time`;
   } else {
     target = lastW;
@@ -479,6 +546,7 @@ function steppedLoad(
   weeklyCeilingKg: number | undefined,
   achievedReps: number,
   resetReps: number,
+  floorKg?: number,
 ): number {
   const increment = defaultIncrementKg(unit);
   const ceiling = Math.max(fromKg * (1 + SAFETY.MAX_SESSION_LOAD_INCREASE_PCT), fromKg + increment);
@@ -487,7 +555,7 @@ function steppedLoad(
   // load already being used — it exists to stop compounding, not to force a
   // reduction (which is what the deload branches are for).
   const capped = weeklyCeilingKg != null ? Math.min(target, Math.max(fromKg, weeklyCeilingKg)) : target;
-  const candidate = snapToSensibleWeight(capped, unit, available);
+  const candidate = snapToSensibleWeight(capped, unit, available, floorKg);
   // A large minimum increment needs performance evidence. A rep reset is not
   // proof when the candidate implies a materially higher estimated strength.
   if (epley1RM(candidate, resetReps) > epley1RM(fromKg, achievedReps) * 1.04) return fromKg;
@@ -537,10 +605,10 @@ export function weeklyLoadCeiling(
 }
 
 /** Preserve estimated 1RM when the prescribed rep count moves (ADR-0125). */
-function reconcileForReps(weightKg: number, earnedReps: number, targetReps: number, unit: WeightUnit, available?: number[]): number {
+function reconcileForReps(weightKg: number, earnedReps: number, targetReps: number, unit: WeightUnit, available?: number[], floorKg?: number): number {
   if (earnedReps <= 0 || targetReps <= 0 || earnedReps === targetReps) return weightKg;
   const estimated = epley1RM(weightKg, earnedReps) / (1 + targetReps / 30);
-  return snapToSensibleWeight(roundToHalfKg(estimated), unit, available);
+  return snapToSensibleWeight(roundToHalfKg(estimated), unit, available, floorKg);
 }
 
 function clamp(value: number, min: number, max: number): number {
@@ -577,6 +645,7 @@ export function recommendPrescription(
   const { unit = 'kg', available, now, zone } = options;
   const loaded = ex.progression === 'weight' || ex.loadsWeight === true;
   const timed = ex.progression === 'time' || ex.progression === 'hold';
+  const floorKg = barbellFloorKg(ex);
   const last = lastPerformance(ex.id, history, loaded);
 
   // No basis yet — start in the MIDDLE of the range and let the athlete log the
@@ -656,7 +725,7 @@ export function recommendPrescription(
     const effortGap = clamp(testRpe - targetRpe, 0, PROGRESSION.MAX_TEST_BUFFER_RPE);
     const buffer = 1 - effortGap * PROGRESSION.LOAD_PCT_PER_RPE;
     const workingAtTarget = (estimatedOneRepMax / (1 + range.min / 30)) * buffer;
-    const target = snapToSensibleWeight(Math.min(workingAtTarget, cap), unit, available);
+    const target = snapToSensibleWeight(Math.min(workingAtTarget, cap), unit, available, floorKg);
     return {
       weightKg: target,
       reps: range.min,
@@ -666,7 +735,7 @@ export function recommendPrescription(
 
   if (groundOut) {
     return {
-      weightKg: snapToSensibleWeight(lastW * (1 - SAFETY.DELOAD_PCT), unit, available),
+      weightKg: snapToSensibleWeight(lastW * (1 - SAFETY.DELOAD_PCT), unit, available, floorKg),
       reps: range.min,
       note: `deloaded ${Math.round(SAFETY.DELOAD_PCT * 100)}% — RPE ${last.rpe} last time`,
     };
@@ -698,7 +767,7 @@ export function recommendPrescription(
     askedReps != null &&
     (askedReps < range.min || askedReps > range.max + PROGRESSION.EQUIPMENT_CAPPED_REP_HEADROOM);
   if (zoneChanged || (last.prescribedZone == null && bandDrifted)) {
-    const reconciled = reconcileForReps(lastW, performedReps, range.min, unit, available);
+    const reconciled = reconcileForReps(lastW, performedReps, range.min, unit, available, floorKg);
     return {
       weightKg: reconciled,
       reps: range.min,
@@ -717,7 +786,7 @@ export function recommendPrescription(
   // Top of the range earned → step the load and reset the reps.
   if (performedReps >= range.max) {
     const weeklyCeiling = now != null ? weeklyLoadCeiling(ex.id, history, now, unit) : undefined;
-    const stepped = steppedLoad(lastW, unit, available, weeklyCeiling, performedReps, range.min);
+    const stepped = steppedLoad(lastW, unit, available, weeklyCeiling, performedReps, range.min, floorKg);
     if (stepped > lastW) {
       return {
         weightKg: stepped,

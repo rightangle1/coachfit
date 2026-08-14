@@ -64,6 +64,14 @@ and the safety envelope — see
 | 0133 | Lightweight weekly program layer | Accepted |
 | 0134 | Per-session volume ceiling & movement redundancy | Accepted (v1) |
 | 0136 | Experience-tiered selection & cross-block de-duplication | Accepted (v1) |
+| 0137 | Routines | Accepted (v1) |
+| 0138 | Aerobics as a third cardio flow | Accepted (v1) |
+| 0139 | Cardio modality taxonomy | Accepted (v1) |
+| 0140 | Wire cardio modality into session generation | Accepted (v1) |
+| 0141 | Cardio format simplification, visual type cards, target-area | Accepted (v1) |
+| 0142 | Weekly rolling-plan promotion, routine awareness, and daily handoff | Accepted (v1) |
+| 0143 | Cardio session-shape integrity (intent authority, round caps, shape-audit layer) | Accepted (v1) |
+| 0144 | Barbell total-weight modeling & weighted-equipment starting floors | Accepted (v1) |
 
 ### Phase 2 — Metrics & achievements
 | ADR | Title | Status |
@@ -88,3 +96,4 @@ and the safety envelope — see
 |-----|-------|--------|
 | 0401 | iOS Live Activity for the active workout | Accepted |
 | 0402 | HealthKit write-back for completed workouts | Accepted |
+| 0404 | Barre equipment, workout type, and stage-ordered flow | Accepted |

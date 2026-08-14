@@ -24,7 +24,8 @@ export type EquipmentType =
   | 'rowing_machine'    // includes rowing- and skiing-style pulling ergometers
   | 'yoga_mat'
   | 'foam_roller'
-  | 'suspension_trainer';   // TRX or equivalent suspension/cable trainer
+  | 'suspension_trainer'   // TRX or equivalent suspension/cable trainer
+  | 'barre';   // ballet barre or equivalent stand-in (sturdy chair/countertop)
 
 /** Equipment whose *specific owned weights* the rules engine can constrain
  * recommendations to (ADR-0115) — as opposed to e.g. a barbell, where plates

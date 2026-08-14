@@ -16,6 +16,8 @@ const WORKOUT_TYPE_TO_HEALTH_ACTIVITY: Record<WorkoutType, HealthActivityType> =
   sculpting: 'strength',
   cardio: 'cardio',
   yoga: 'yoga',
+  barre: 'barre',
+  pilates: 'pilates',
   stretch: 'flexibility',
   bodyweight: 'functional',
 };

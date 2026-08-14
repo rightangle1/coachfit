@@ -36,6 +36,13 @@ describe('exercise catalog invariants', () => {
     expect(invalid.map((exercise) => exercise.id)).toEqual([]);
   });
 
+  it('gives cardio exercises exactly a cardioModality, and nothing else one (ADR-0139)', () => {
+    const missing = SEED_EXERCISES.filter((exercise) => exercise.modality === 'cardio' && !exercise.cardioModality);
+    const misplaced = SEED_EXERCISES.filter((exercise) => exercise.modality !== 'cardio' && exercise.cardioModality);
+    expect(missing.map((exercise) => exercise.id)).toEqual([]);
+    expect(misplaced.map((exercise) => exercise.id)).toEqual([]);
+  });
+
   it('gives every selectable exercise complete programming and substitution metadata', () => {
     const invalid = EXERCISES.filter((exercise) =>
       !exercise.difficulty ||

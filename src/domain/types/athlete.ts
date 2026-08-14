@@ -5,7 +5,7 @@
 
 import type { BodyArea, MuscleGroup } from './body-area';
 import type { ExperienceLevel, TrainingGoals } from './goals';
-import type { WorkoutOptions, WorkoutType } from './session';
+import type { RollingPlan, WorkoutOptions, WorkoutType } from './session';
 
 /** Display unit for weight entry/output. Storage stays kg-canonical everywhere
  * else (progression, achievements, decision log) — this only drives the UI
@@ -74,6 +74,13 @@ export interface AthleteProfile {
   maxDay?: MaxDayPreferences;
   /** Lightweight week-ahead intent; the exact session is regenerated on the day. */
   scheduledWorkouts?: ScheduledWorkout[];
+  /**
+   * Rolling day-level forecast (workout/rest + focus areas, no exercises/
+   * weights) over the next several days. Recomputed only after a workout
+   * completes or on first app-open of a new day when a workout was missed
+   * (`services/rolling-plan.ts`), never on every render.
+   */
+  rollingPlan?: RollingPlan;
   /** Standing default workout style (e.g. 'sculpting'). Pre-fills the Today
    * screen's per-session picker; the athlete can always override per session. */
   preferredWorkoutType?: WorkoutType;
@@ -135,6 +142,8 @@ export interface ScheduledWorkout {
   workoutType?: WorkoutType;
   workoutOptions?: WorkoutOptions;
   trainingIntent?: 'recovery' | 'balanced' | 'challenge';
+  /** Routine (ADR-0137) to run this day, if any. */
+  routineId?: string;
 }
 
 export const DEFAULT_WARMUP_PREFERENCES: WarmupPreferences = {

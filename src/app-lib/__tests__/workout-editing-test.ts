@@ -49,17 +49,41 @@ describe('setsForProgression — a swapped/added exercise gets ITS own prescript
   });
 
   it('gives a weighted add or replacement a safe usable load', () => {
+    // ADR-0144: the fallback is equipment-aware, so this needs a real
+    // weighted implement — ex()'s shared 'bodyweight' tag would (correctly)
+    // suggest nothing, which is covered separately below.
+    const dumbbellWeight: Exercise = { ...ex('weight'), equipment: ['dumbbells'] };
     const weightedTemplate: PlannedExercise = {
       ...strengthTemplate,
       sets: strengthTemplate.sets.map((set) => ({ ...set, weightKg: 32.5 })),
     };
-    expect(setsForProgression(ex('weight'), weightedTemplate).every((set) => set.reps === 10 && set.weightKg === 32.5)).toBe(true);
-    expect(setsForProgression(ex('weight'), undefined, [5, 10, 15])[0].weightKg).toBe(5);
-    expect(setsForProgression(ex('weight'), undefined, undefined, 'lb')[0].weightKg).toBeCloseTo(9.0718474);
+    expect(setsForProgression(dumbbellWeight, weightedTemplate).every((set) => set.reps === 10 && set.weightKg === 32.5)).toBe(true);
+    // A proven template weight wins over any owned-weight guess.
+    expect(setsForProgression(dumbbellWeight, undefined, [5, 10, 15])[0].weightKg).toBe(5);
+    // No template, no owned weights: the generic 5 lb-equivalent floor —
+    // never the old flat, equipment-blind 20 lb guess.
+    expect(setsForProgression(dumbbellWeight, undefined, undefined, 'lb')[0].weightKg).toBeCloseTo(2.267962, 5);
+  });
+
+  it('never floors a dumbbell add below what the athlete actually owns, even a very light weight', () => {
+    const dumbbellWeight: Exercise = { ...ex('weight'), equipment: ['dumbbells'] };
+    expect(setsForProgression(dumbbellWeight, undefined, [1, 2.5, 5])[0].weightKg).toBe(1);
+  });
+
+  it('gives a barbell add or replacement the empty bar, never a lighter equipment-blind guess', () => {
+    const barbellWeight: Exercise = { ...ex('weight'), equipment: ['barbell'] };
+    expect(setsForProgression(barbellWeight, undefined)[0].weightKg).toBeCloseTo(20.41, 1);
+  });
+
+  it('suggests no weight for a bodyweight-implement exercise even if nominally weight-progression', () => {
+    // ex('weight') itself is tagged equipment: ['bodyweight'] — nothing sensible to suggest.
+    expect(setsForProgression(ex('weight'), undefined, [5, 10, 15]).every((set) => set.weightKg == null)).toBe(true);
   });
 
   it('a loaded timed hold (e.g. a farmer\'s carry) gets both a duration AND a usable load', () => {
-    const carry: Exercise = { ...ex('time'), loadsWeight: true };
+    // ADR-0144: needs a real weighted implement — ex()'s shared 'bodyweight'
+    // tag would (correctly) suggest no weight even with loadsWeight set.
+    const carry: Exercise = { ...ex('time'), equipment: ['dumbbells'], loadsWeight: true };
     const sets = setsForProgression(carry, undefined, [10, 15, 20]);
     expect(sets.every((s) => s.durationSec != null && s.reps == null && s.weightKg === 10)).toBe(true);
   });

@@ -1,11 +1,12 @@
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import { View } from 'react-native';
 
-import { Card, Divider, MuscleLogo, Row, SheetModal, Text, useTheme } from '@/design';
+import { Button, Card, Divider, MuscleLogo, Row, SheetModal, Text, TextField, useTheme } from '@/design';
 import { workoutSummary } from '@/app-lib/presentation';
 import { formatWeight } from '@/app-lib/units';
 import { getAthleteProfile } from '@/services/athlete';
 import { getSessionRecord } from '@/services/sessions';
+import { createRoutineFromSession } from '@/services/routines';
 import { estimateSessionCalories } from '@/domain/metrics';
 
 export function WorkoutDetailSheet({
@@ -18,6 +19,9 @@ export function WorkoutDetailSheet({
   const { spacing } = useTheme();
   const athlete = useMemo(() => getAthleteProfile(), []);
   const record = useMemo(() => (recordId ? getSessionRecord(recordId) : undefined), [recordId]);
+  const [savingRoutine, setSavingRoutine] = useState(false);
+  const [routineName, setRoutineName] = useState('');
+  const [savedRoutineName, setSavedRoutineName] = useState<string | null>(null);
 
   if (!recordId) return null;
 
@@ -88,6 +92,51 @@ export function WorkoutDetailSheet({
               );
             })}
         </View>
+      </Card>
+
+      <Card style={{ marginTop: spacing.lg }}>
+        <Text variant="heading" italic>Save as routine</Text>
+        {savedRoutineName ? (
+          <Text variant="body" color="textMuted" style={{ marginTop: spacing.sm }}>
+            Saved as &quot;{savedRoutineName}&quot; — find it in Explore → Routines.
+          </Text>
+        ) : savingRoutine ? (
+          <View style={{ marginTop: spacing.sm, gap: spacing.sm }}>
+            <TextField value={routineName} onChangeText={setRoutineName} placeholder="Routine name" />
+            <Row gap="md">
+              <Button title="Cancel" variant="secondary" onPress={() => setSavingRoutine(false)} style={{ flex: 1 }} />
+              <Button
+                title="Save"
+                disabled={!routineName.trim()}
+                onPress={() => {
+                  const trimmed = routineName.trim();
+                  if (!trimmed) return;
+                  const created = createRoutineFromSession(record, trimmed);
+                  if (created) {
+                    setSavingRoutine(false);
+                    setSavedRoutineName(created.name);
+                  }
+                }}
+                style={{ flex: 1 }}
+              />
+            </Row>
+          </View>
+        ) : (
+          <>
+            <Text variant="body" color="textMuted" style={{ marginTop: spacing.sm }}>
+              Turn this workout&apos;s exercises into a reusable routine.
+            </Text>
+            <Button
+              title="Save as routine"
+              variant="secondary"
+              onPress={() => {
+                setRoutineName(summary.title);
+                setSavingRoutine(true);
+              }}
+              style={{ marginTop: spacing.md }}
+            />
+          </>
+        )}
       </Card>
     </SheetModal>
   );

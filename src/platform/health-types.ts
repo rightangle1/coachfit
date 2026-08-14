@@ -4,7 +4,7 @@
  * read path here.
  */
 
-export type HealthActivityType = 'strength' | 'cardio' | 'yoga' | 'flexibility' | 'functional';
+export type HealthActivityType = 'strength' | 'cardio' | 'yoga' | 'barre' | 'pilates' | 'flexibility' | 'functional';
 
 export interface HealthWorkoutInput {
   activityType: HealthActivityType;

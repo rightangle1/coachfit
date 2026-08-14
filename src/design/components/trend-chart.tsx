@@ -31,7 +31,7 @@ import Animated, {
 
 import { timing } from '../motion';
 import { useTheme } from '../theme';
-import type { ColorToken } from '../tokens';
+import type { ColorToken, ContextTone } from '../tokens';
 
 const AnimatedPath = Animated.createAnimatedComponent(Path);
 const AnimatedRect = Animated.createAnimatedComponent(Rect);
@@ -45,6 +45,8 @@ export interface TrendChartProps {
   points: TrendChartPoint[];
   type?: 'bar' | 'line';
   color?: ColorToken;
+  /** Semantic alternative to a raw palette token for contextual metrics. */
+  tone?: ContextTone;
   height?: number;
   valueFormatter?: (value: number) => string;
 }
@@ -90,9 +92,9 @@ function Bar({
   );
 }
 
-export function TrendChart({ points, type = 'bar', color = 'primary', height = 90, valueFormatter }: TrendChartProps) {
+export function TrendChart({ points, type = 'bar', color = 'primary', tone, height = 90, valueFormatter }: TrendChartProps) {
   const { colors, gradients, motion } = useTheme();
-  const tint = colors[color];
+  const tint = tone ? colors.tones[tone].solid : colors[color];
   // SVG ids are document-global once react-native-svg renders real SVG on web,
   // so every chart instance needs its own or they cross-wire their fills.
   const uid = useId().replace(/[^a-zA-Z0-9]/g, '');

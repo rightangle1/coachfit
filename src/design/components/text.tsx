@@ -10,6 +10,8 @@ export interface TextProps extends RNTextProps {
   weight?: FontWeightName;
   center?: boolean;
   italic?: boolean;
+  /** A contextual tone value when a semantic token is not the right fit. */
+  tint?: string;
 }
 
 export function Text({
@@ -18,6 +20,7 @@ export function Text({
   weight,
   center,
   italic,
+  tint,
   style,
   ...rest
 }: TextProps) {
@@ -27,7 +30,7 @@ export function Text({
     <RNText
       style={[
         {
-          color: colors[color],
+          color: tint ?? colors[color],
           fontSize: t.fontSize,
           lineHeight: t.lineHeight,
           fontWeight: weight ? fw[weight] : t.fontWeight,

@@ -10,6 +10,7 @@ import {
   muscleGroupStrengthIndex,
   overallStrengthIndex,
   overallStrengthPerformanceIndex,
+  routineStrengthIndex,
   ALL_MOVEMENT_CATEGORIES,
 } from '../strength';
 import { MRV } from '../volume';
@@ -459,5 +460,41 @@ describe('exerciseBestStats — loaded timed/hold sets (e.g. a farmer\'s carry)'
     expect(stats.bestWeightKg).toBe(100);
     expect(stats.bestWeightReps).toBe(5);
     expect(stats.bestLoadedWeightKg).toBeUndefined();
+  });
+});
+
+describe('routineStrengthIndex (ADR-0137)', () => {
+  it('averages ratios across exactly the given exercise ids, ignoring everything else in history', () => {
+    const backRecord = record({
+      performed: [
+        {
+          exerciseId: 'ba-row',
+          name: 'Barbell row',
+          primaryAreas: [{ group: 'back' }],
+          sets: [completedSet({ weightKg: 60, reps: 8 })],
+        },
+      ],
+    });
+    const history = [
+      benchSession(0, 100),
+      benchSession(1, 90),
+      flySession(0, 50),
+      flySession(1, 50),
+      backRecord, // not in the routine — must not affect the index
+    ];
+    const routineIndex = routineStrengthIndex(history, ['pu-bb-bench', 'pu-db-fly']);
+    const muscleIndex = muscleGroupStrengthIndex(history, 'chest');
+    // Same exercises feed both (bench + fly are both chest-primary), so the
+    // routine-scoped rollup should match the muscle-group one exactly here.
+    expect(routineIndex?.indexPct).toBeCloseTo(muscleIndex!.indexPct!, 5);
+    expect(routineIndex?.contributingExercises).toBe(2);
+  });
+
+  it('is undefined for an empty exercise-id list', () => {
+    expect(routineStrengthIndex([benchSession(0, 100)], [])).toBeUndefined();
+  });
+
+  it('is undefined when none of the given ids have any history', () => {
+    expect(routineStrengthIndex([benchSession(0, 100)], ['never-logged'])).toBeUndefined();
   });
 });

@@ -1,5 +1,6 @@
 import { bodyProfileOf, estimateSessionCalories } from '@/domain/metrics';
 import type { AthleteProfile, Modality, SessionRecord, TrainingGoals } from '@/domain/types';
+import { familyOfWorkoutType } from './options';
 
 export interface GoalStory {
   key: Modality;
@@ -116,7 +117,7 @@ export function goalWeekPayoff(
     };
   }
 
-  const sessions = recent.filter((record) => record.workoutType === 'stretch' || record.workoutType === 'yoga').length;
+  const sessions = recent.filter((record) => familyOfWorkoutType(record.workoutType) === 'mobility').length;
   return {
     value: String(sessions),
     label: 'MOBILITY SESSIONS',

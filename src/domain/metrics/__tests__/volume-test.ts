@@ -4,6 +4,7 @@ import {
   MEV,
   MRV,
   isoWeekStart,
+  sessionCountsByModalitySince,
   volumeStatus,
   weeklyLoadByExercise,
   weeklySessionCountsByModality,
@@ -197,6 +198,42 @@ describe('weeklySessionCountsByModality', () => {
   it('ignores exercises not present in the catalog', () => {
     const out = weeklySessionCountsByModality([record()], 0, NOW);
     expect(out).toEqual({});
+  });
+});
+
+describe('sessionCountsByModalitySince — item 5: rolling-window classifier (ADR-0142 v4)', () => {
+  it('buckets by dominant modality over an arbitrary window, not just an ISO week', () => {
+    // A rolling 7-day trailing window straddling THIS_WEEK_MID, deliberately
+    // NOT aligned to an ISO week boundary — the whole point of this function
+    // over weeklySessionCountsByModality.
+    const since = THIS_WEEK_MID - 3 * 86_400_000;
+    const until = THIS_WEEK_MID + 4 * 86_400_000;
+    const strengthSession = record({
+      id: 'str-1',
+      completedAt: THIS_WEEK_MID - 1 * 86_400_000,
+      performed: [{ exerciseId: 'sq-db-front', name: 'DB front squat', primaryAreas: [{ group: 'quads' }], sets: [completedSet()] }],
+    });
+    const outOfWindowSession = record({
+      id: 'str-2',
+      completedAt: THIS_WEEK_MID - 10 * 86_400_000, // outside [since, until)
+      performed: [{ exerciseId: 'sq-db-front', name: 'DB front squat', primaryAreas: [{ group: 'quads' }], sets: [completedSet()] }],
+    });
+    const out = sessionCountsByModalitySince([strengthSession, outOfWindowSession], since, until);
+    expect(out).toEqual({ strength: 1 });
+  });
+
+  it('excludes a session at exactly `until` (half-open interval)', () => {
+    const boundarySession = record({ id: 'b1', completedAt: THIS_WEEK_MID });
+    const out = sessionCountsByModalitySince([boundarySession], THIS_WEEK_MID - 86_400_000, THIS_WEEK_MID);
+    expect(out).toEqual({});
+  });
+
+  it('weeklySessionCountsByModality is unchanged after the refactor into a thin wrapper', () => {
+    const strengthSession = record({
+      id: 'str-1',
+      performed: [{ exerciseId: 'sq-db-front', name: 'DB front squat', primaryAreas: [{ group: 'quads' }], sets: [completedSet()] }],
+    });
+    expect(weeklySessionCountsByModality([strengthSession], 0, NOW)).toEqual({ strength: 1 });
   });
 });
 

@@ -91,6 +91,12 @@ export function intensityLabel(
 
 const WORKOUT_HEADER_BACKGROUNDS: Record<WorkoutType, { label: string; image: ImageSourcePropType }> = {
   yoga: { label: 'Yoga', image: require('../../assets/images/heroes/yoga-hero.png') },
+  // No dedicated barre art yet — reuses the yoga hero as a placeholder
+  // (CLAUDE.md §11: simple placeholders now, richer later).
+  barre: { label: 'Barre', image: require('../../assets/images/heroes/yoga-hero.png') },
+  // No dedicated Pilates art yet — reuses the yoga hero as a placeholder,
+  // same spirit as Barre (CLAUDE.md §11: simple placeholders now, richer later).
+  pilates: { label: 'Pilates', image: require('../../assets/images/heroes/yoga-hero.png') },
   stretch: { label: 'Stretch', image: require('../../assets/images/heroes/stretch-hero.png') },
   cardio: { label: 'Cardio', image: require('../../assets/images/heroes/cardio-hero.png') },
   bodybuilding: { label: 'Bodybuilding', image: require('../../assets/images/heroes/bodybuilding-hero.png') },
@@ -100,7 +106,9 @@ const WORKOUT_HEADER_BACKGROUNDS: Record<WorkoutType, { label: string; image: Im
   sculpting: { label: 'Sculpting', image: require('../../assets/images/heroes/bodybuilding-hero.png') },
 };
 
-function workoutHeaderBackground(workoutType?: WorkoutType, modality?: Modality) {
+/** Exported for `app/workout-flow.tsx` — the guided-flow player's full-bleed
+ * background falls back to the same workout-style art as everywhere else. */
+export function workoutHeaderBackground(workoutType?: WorkoutType, modality?: Modality) {
   if (workoutType) return WORKOUT_HEADER_BACKGROUNDS[workoutType];
   if (modality === 'cardio') return WORKOUT_HEADER_BACKGROUNDS.cardio;
   if (modality === 'mobility') return WORKOUT_HEADER_BACKGROUNDS.stretch;

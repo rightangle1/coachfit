@@ -13,7 +13,7 @@ import type { Modality } from './goals';
  * ADR-0302: only license types we've verified how to attribute correctly.
  * Stills only — clips are attribution-based, not license-gated (ADR-0303).
  */
-export type MediaLicense = 'public-domain' | 'cc0' | 'cc-by' | 'cc-by-sa';
+export type MediaLicense = 'public-domain' | 'cc0' | 'cc-by' | 'cc-by-sa' | 'app-original';
 
 interface MediaProvenance {
   license: MediaLicense;
@@ -26,6 +26,8 @@ interface MediaProvenance {
 /** Bundled local image — offline by construction (ADR-0302). */
 export interface StillAsset extends MediaProvenance {
   file: ImageSourcePropType;
+  /** A taller, uncropped visual guide with key alignment annotations. */
+  role?: 'form-guide';
 }
 
 /**
@@ -57,8 +59,33 @@ export type MovementPattern =
   | 'core'
   | 'steady_cardio'
   | 'interval'
+  | 'aerobics'
   | 'stretch'
-  | 'yoga_flow';
+  | 'yoga_flow'
+  | 'barre_flow'
+  | 'pilates_flow';
+
+/**
+ * Movement family for cardio exercises (ADR-0139) — orthogonal to
+ * `movementPattern`, which stays the intensity-structure axis (steady vs.
+ * interval vs. aerobics-cadence circuit). Not to be confused with `Modality`
+ * (strength/cardio/mobility/general), a broader axis one level up. Populated
+ * only when `modality === 'cardio'`.
+ */
+export type CardioModality =
+  | 'running_walking'
+  | 'machine_cardio'
+  | 'combat'
+  | 'jump_rope'
+  /**
+   * The step-touch/dance movement family — shares its name with
+   * `MovementPattern`'s `'aerobics'` value (ADR-0138), which means something
+   * different (circuit-cadence pacing, an intensity-structure concept). The
+   * two are independent axes that happen to reuse the same word.
+   */
+  | 'aerobics'
+  | 'bodyweight'
+  | 'loaded_cardio';
 
 /** How load advances over time (drives ADR-0103 progressive overload). */
 export type Progression = 'weight' | 'reps' | 'time' | 'hold';
@@ -81,15 +108,18 @@ export type MovementSlot =
   | 'trunk_extension'
   | 'steady_cardio'
   | 'intervals'
+  | 'aerobics'
   | 'mobility'
   | 'balance'
   | 'power';
 
 /**
- * Ordered position within a 'stretch'/'yoga_flow' session (ADR-0114) — lets the
- * engine sequence a flow like a real class (open, warm up, standing work,
- * balance, backbend/seated, close) instead of picking arbitrarily. Unset
- * entries default to 'standing' — a safe mid-flow bucket.
+ * Ordered position within a 'stretch'/'yoga_flow'/'barre_flow' session
+ * (ADR-0114, ADR-0404) — lets the engine sequence a flow like a real class
+ * (open, warm up, standing work, balance, backbend/seated, close) instead of
+ * picking arbitrarily. Unset entries default to 'standing' — a safe mid-flow
+ * bucket. 'thighs'/'seat'/'core'/'arms' are barre-specific stages (ADR-0404);
+ * yoga never uses them.
  */
 export type FlowStage =
   | 'center'
@@ -98,13 +128,19 @@ export type FlowStage =
   | 'balance'
   | 'backbend'
   | 'seated'
-  | 'cooldown';
+  | 'cooldown'
+  | 'thighs'
+  | 'seat'
+  | 'core'
+  | 'arms';
 
 export interface Exercise {
   id: string;
   name: string;
   modality: Modality;
   movementPattern: MovementPattern;
+  /** Cardio movement family (ADR-0139). Undefined for non-cardio exercises. */
+  cardioModality?: CardioModality;
   /** Muscle groups primarily trained. */
   primaryAreas: MuscleGroup[];
   /** Muscle groups assisting (count toward fatigue at reduced weight — ADR-0102). */
@@ -185,7 +221,7 @@ export interface Exercise {
   cues?: string;
   /** Enriched media (ADR-0302); falls back to MovementIllustration when unset. */
   media?: ExerciseMedia;
-  /** Sequencing hint for 'stretch'/'yoga_flow' patterns (ADR-0114). */
+  /** Sequencing hint for 'stretch'/'yoga_flow'/'barre_flow' patterns (ADR-0114, ADR-0404). */
   flowStage?: FlowStage;
 }
 

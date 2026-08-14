@@ -40,39 +40,41 @@ export function ExerciseInfoView({
   }, [exercise, initialHowTo]);
 
   return (
-    <>
-      <Modal visible={exercise != null} animationType="slide" onRequestClose={onClose}>
-        <SafeAreaView style={{ flex: 1, backgroundColor: colors.bg }} edges={['top']}>
-          {exercise && (
-            <ScrollView contentContainerStyle={{ padding: spacing.xl, gap: spacing.lg, paddingBottom: spacing.xxxl }}>
-              <ExerciseHero
-                name={exercise.name}
-                exercise={exercise}
-                exerciseId={exercise.id}
-                modality={exercise.modality}
-                eyebrow={`${MODALITY_LABELS[exercise.modality]} · ${MOVEMENT_PATTERN_LABELS[exercise.movementPattern]}`}
-                variant="info"
-                onHowTo={() => setHowToOpen(true)}
-                onHistory={() => setHistoryOpen(true)}
-                onOverview={onClose}
-              />
-              <ExerciseBestStatsRow exerciseId={exercise.id} weightUnit={weightUnit} />
-              <Card>
-                <Text variant="heading" italic>About this exercise</Text>
-                <Text variant="body" color="textMuted" style={{ marginTop: spacing.sm }}>{exercise.description}</Text>
-                <Text variant="caption" color="textFaint" style={{ marginTop: spacing.md }}>
-                  {exercise.primaryAreas.map((group) => MUSCLE_GROUP_LABELS[group]).join(' · ')}
-                  {intensityLabel(exercise) ? ` · ${intensityLabel(exercise)}` : ''}
-                </Text>
-              </Card>
-            </ScrollView>
-          )}
-        </SafeAreaView>
-      </Modal>
-      <HowToSheet visible={howToOpen} onClose={() => setHowToOpen(false)} name={exercise?.name ?? ''} exercise={exercise} />
-      {historyOpen && exercise && (
-        <ExerciseHistorySheet exerciseId={exercise.id} exerciseName={exercise.name} weightUnit={weightUnit} onClose={() => setHistoryOpen(false)} />
-      )}
-    </>
+    <Modal visible={exercise != null} animationType="slide" onRequestClose={onClose}>
+      <SafeAreaView style={{ flex: 1, backgroundColor: colors.bg }} edges={['top']}>
+        {exercise && (
+          <ScrollView contentContainerStyle={{ padding: spacing.xl, gap: spacing.lg, paddingBottom: spacing.xxxl }}>
+            <ExerciseHero
+              name={exercise.name}
+              exercise={exercise}
+              exerciseId={exercise.id}
+              modality={exercise.modality}
+              eyebrow={`${MODALITY_LABELS[exercise.modality]} · ${MOVEMENT_PATTERN_LABELS[exercise.movementPattern]}`}
+              variant="info"
+              onHowTo={() => setHowToOpen(true)}
+              onHistory={() => setHistoryOpen(true)}
+              onOverview={onClose}
+            />
+            <ExerciseBestStatsRow exerciseId={exercise.id} weightUnit={weightUnit} />
+            <Card>
+              <Text variant="heading" italic>About this exercise</Text>
+              <Text variant="body" color="textMuted" style={{ marginTop: spacing.sm }}>{exercise.description}</Text>
+              <Text variant="caption" color="textFaint" style={{ marginTop: spacing.md }}>
+                {exercise.primaryAreas.map((group) => MUSCLE_GROUP_LABELS[group]).join(' · ')}
+                {intensityLabel(exercise) ? ` · ${intensityLabel(exercise)}` : ''}
+              </Text>
+            </Card>
+          </ScrollView>
+        )}
+        {/* Nested inside the outer Modal's own subtree (not a sibling) so iOS
+         * presents these on top of it instead of racing to present on the
+         * already-presented root — a sibling Modal here silently fails to
+         * show on native. */}
+        <HowToSheet visible={howToOpen} onClose={() => setHowToOpen(false)} name={exercise?.name ?? ''} exercise={exercise} />
+        {historyOpen && exercise && (
+          <ExerciseHistorySheet exerciseId={exercise.id} exerciseName={exercise.name} weightUnit={weightUnit} onClose={() => setHistoryOpen(false)} />
+        )}
+      </SafeAreaView>
+    </Modal>
   );
 }

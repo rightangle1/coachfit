@@ -8,6 +8,7 @@ import {
   overallEndurancePerformanceIndex,
   recentEnduranceTrend,
   recentTrainingLoadTrend,
+  routineEnduranceIndex,
   sessionDurationMinutes,
   sessionRpe,
   sessionTrainingLoad,
@@ -64,6 +65,23 @@ function intervalSession(dayOffset: number, seconds: number): SessionRecord {
       {
         exerciseId: 'ca-intervals-bw',
         name: 'Bodyweight interval circuit',
+        primaryAreas: [],
+        sets: [completedSet({ durationSec: seconds })],
+      },
+    ],
+  });
+}
+
+// 'ca-aero-step-touch' is 'aerobics' in the real catalog (ADR-0138).
+function aerobicsSession(dayOffset: number, seconds: number): SessionRecord {
+  const completedAt = NOW + dayOffset * DAY_MS;
+  return record({
+    completedAt,
+    plannedFor: completedAt,
+    performed: [
+      {
+        exerciseId: 'ca-aero-step-touch',
+        name: 'Step-touch',
         primaryAreas: [],
         sets: [completedSet({ durationSec: seconds })],
       },
@@ -418,6 +436,29 @@ describe('cardioCategoryEnduranceIndex', () => {
     expect(steady?.anchorMinutes).toBe(10);
     expect(steady?.anchorPreviousMinutes).toBeUndefined();
   });
+
+  it('isolates aerobics from steady and interval via the catalog movementPattern join (ADR-0138)', () => {
+    const history = [cardioSession(0, 600), intervalSession(0, 300), aerobicsSession(0, 900), aerobicsSession(1, 720)];
+    const aerobics = cardioCategoryEnduranceIndex(history, 'aerobics');
+    expect(aerobics?.anchorExerciseId).toBe('ca-aero-step-touch');
+    expect(cardioCategoryEnduranceIndex(history, 'steady')?.anchorExerciseId).toBe('ca-machine-steady');
+    expect(cardioCategoryEnduranceIndex(history, 'interval')?.anchorExerciseId).toBe('ca-intervals-bw');
+  });
+});
+
+describe('routineEnduranceIndex (ADR-0137)', () => {
+  it('averages ratios across exactly the given exercise ids, ignoring everything else in history', () => {
+    const history = [cardioSession(0, 600), cardioSession(1, 300), intervalSession(0, 300), intervalSession(1, 300)];
+    const routineIndex = routineEnduranceIndex(history, ['ca-machine-steady']);
+    const steady = cardioCategoryEnduranceIndex(history, 'steady');
+    expect(routineIndex?.indexPct).toBeCloseTo(steady!.indexPct as number, 6);
+    expect(routineIndex?.contributingExercises).toBe(1);
+    expect(routineIndex?.anchorExerciseId).toBe('ca-machine-steady');
+  });
+
+  it('is undefined for an empty exercise-id list', () => {
+    expect(routineEnduranceIndex([cardioSession(0, 600)], [])).toBeUndefined();
+  });
 });
 
 describe('overallEnduranceIndex', () => {
@@ -452,6 +493,13 @@ describe('weeklyCardioMinutesByCategory', () => {
     const history = [cardioSession(0, 600), cardioSession(-14, 600)]; // 2 weeks before NOW
     expect(weeklyCardioMinutesByCategory(history, 'steady', 0, NOW)).toBe(10);
   });
+
+  it('isolates aerobics minutes from steady and interval (ADR-0138)', () => {
+    const history = [cardioSession(0, 600), intervalSession(0, 300), aerobicsSession(0, 480)];
+    expect(weeklyCardioMinutesByCategory(history, 'aerobics', 0, NOW)).toBe(8);
+    expect(weeklyCardioMinutesByCategory(history, 'steady', 0, NOW)).toBe(10);
+    expect(weeklyCardioMinutesByCategory(history, 'interval', 0, NOW)).toBe(5);
+  });
 });
 
 describe('overallEndurancePerformanceIndex', () => {
@@ -473,5 +521,12 @@ describe('overallEndurancePerformanceIndex', () => {
     const result = overallEndurancePerformanceIndex(history, NOW);
     expect(result.minutes).toBe(300);
     expect(result.pct).toBe(100);
+  });
+
+  it('weights aerobics at the same 1x as steady, not interval\'s 2x (ADR-0138)', () => {
+    const history = [aerobicsSession(0, 45 * 60)]; // 45 min aerobics -> 45 moderate-equivalent min, not 90
+    const result = overallEndurancePerformanceIndex(history, NOW);
+    expect(result.minutes).toBe(45);
+    expect(result.pct).toBeCloseTo((45 / WHO_WEEKLY_MODERATE_EQUIVALENT_MINUTES) * 100, 6);
   });
 });

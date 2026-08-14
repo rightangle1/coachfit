@@ -5,6 +5,7 @@ import { Pressable, View, type ImageSourcePropType, type ViewStyle } from 'react
 import { GOAL_STORIES } from '@/app-lib/personalization';
 import type { Modality } from '@/domain/types';
 import { useTheme } from '../theme';
+import { toneForModality } from '../context-tone';
 import { HeroScrim } from './hero-surface';
 import { Icon } from './icon';
 import { Text } from './text';
@@ -133,6 +134,7 @@ export function GoalChoiceCard({
 }) {
   const { colors, radii, spacing } = useTheme();
   const story = GOAL_STORIES[goal];
+  const contextual = colors.tones[toneForModality(goal)];
   return (
     <Pressable
       onPress={onPress}
@@ -144,7 +146,7 @@ export function GoalChoiceCard({
         borderRadius: radii.xl,
         overflow: 'hidden',
         borderWidth: selected ? 3 : 1,
-        borderColor: selected ? colors.primary : colors.heroBorder,
+        borderColor: selected ? contextual.border : colors.heroBorder,
         opacity: pressed ? 0.82 : 1,
       })}
     >
@@ -156,8 +158,8 @@ export function GoalChoiceCard({
             <Text variant="subtitle" color="heroText">{story.label}</Text>
             <Text variant="caption" color="heroMuted" style={{ marginTop: 2 }}>{story.promise}</Text>
           </View>
-          <View style={{ width: 32, height: 32, borderRadius: radii.pill, backgroundColor: selected ? colors.primary : colors.heroPill, alignItems: 'center', justifyContent: 'center' }}>
-            <Icon name={selected ? 'selected' : GOAL_ICONS[goal]} size={17} color="heroText" />
+          <View style={{ width: 32, height: 32, borderRadius: radii.pill, backgroundColor: selected ? contextual.surface : colors.heroPill, borderWidth: selected ? 1 : 0, borderColor: contextual.border, alignItems: 'center', justifyContent: 'center' }}>
+            <Icon name={selected ? 'selected' : GOAL_ICONS[goal]} size={17} color="heroText" tint={selected ? contextual.text : undefined} />
           </View>
         </View>
       </ImageBackground>

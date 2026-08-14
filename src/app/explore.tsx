@@ -1,18 +1,23 @@
 /** Visual exercise discovery — the everyday home for CoachFit's catalog. */
 
-import { useMemo, useState } from 'react';
+import { useCallback, useMemo, useState } from 'react';
+import { useFocusEffect, useLocalSearchParams, useRouter } from 'expo-router';
 import { ImageBackground, Pressable, View, type ImageSourcePropType } from 'react-native';
 
-import { Button, Card, Chip, HeroScrim, Icon, MuscleLogo, MuscleTargetMap, Row, Screen, SheetModal, TabBar, Text, TextField, useTheme } from '@/design';
+import { Button, Card, Chip, HeroScrim, Icon, MuscleLogo, MuscleTargetMap, Row, Screen, SheetModal, TabBar, Text, TextField, toneForModality, useTheme } from '@/design';
 import { EXERCISES } from '@/domain/catalog';
 import { getAthleteProfile } from '@/services/athlete';
 import { getEquipmentInventory } from '@/services/equipment';
 import { getExercisePreferences, setExerciseFavorite } from '@/services/exercise-preferences';
+import { listRoutines } from '@/services/routines';
 import { ExerciseInfoView } from '@/features/exercise-info-view';
-import { EQUIPMENT_OPTIONS, MODALITY_LABELS, MOVEMENT_PATTERN_LABELS, MUSCLE_GROUP_LABELS } from '@/app-lib/options';
-import { ALL_MUSCLE_GROUPS, GROUP_TO_REGION, type EquipmentType, type Modality, type MovementPattern, type MuscleGroup } from '@/domain/types';
+import { ExerciseHistorySheet } from '@/features/exercise-history-sheet';
+import { RoutineBuilderSheet } from '@/features/routine-builder-sheet';
+import { RoutineDetailSheet } from '@/features/routine-detail-sheet';
+import { CARDIO_MODALITIES, CARDIO_MODALITY_LABELS, EQUIPMENT_OPTIONS, MODALITY_LABELS, MOVEMENT_PATTERN_LABELS, MUSCLE_GROUP_LABELS, WORKOUT_TYPE_OPTIONS } from '@/app-lib/options';
+import { ALL_MUSCLE_GROUPS, GROUP_TO_REGION, type CardioModality, type EquipmentType, type Modality, type MovementPattern, type MuscleGroup, type Routine } from '@/domain/types';
 
-type ExploreTab = 'discover' | 'saved';
+type ExploreTab = 'discover' | 'saved' | 'routines';
 type BrowseMode = 'goal' | 'body' | 'equipment';
 type RegionFilter = 'all' | 'upper_body' | 'lower_body' | 'core';
 
@@ -45,7 +50,7 @@ const GOAL_COLLECTIONS: {
   { title: 'Move well today', caption: 'Simple full-body options', image: require('../../assets/images/editorial/explore-general-v1.png'), collection: 'everyday' },
 ];
 
-const MOVEMENT_PATTERNS: MovementPattern[] = ['squat', 'hinge', 'lunge', 'push', 'pull', 'carry', 'core', 'steady_cardio', 'interval', 'stretch', 'yoga_flow'];
+const MOVEMENT_PATTERNS: MovementPattern[] = ['squat', 'hinge', 'lunge', 'push', 'pull', 'carry', 'core', 'stretch', 'yoga_flow'];
 
 const EVERYDAY_EXERCISE_IDS = new Set([
   'sq-bw',
@@ -56,6 +61,11 @@ const EVERYDAY_EXERCISE_IDS = new Set([
   'ca-brisk-walk-bw',
   'mob-active-hamstring-stretch',
 ]);
+
+// ADR-0137 v2: style is a routine's topline field — surfaced on its card.
+function routineStyleLabel(workoutType: Routine['workoutType']): string {
+  return WORKOUT_TYPE_OPTIONS.find((option) => option.value === workoutType)?.label ?? 'Balanced';
+}
 
 function ExerciseTile({
   exercise,
@@ -68,7 +78,8 @@ function ExerciseTile({
   onPress: () => void;
   onFavorite: () => void;
 }) {
-  const { spacing } = useTheme();
+  const { colors, spacing } = useTheme();
+  const tone = toneForModality(exercise.modality);
   const targets = exercise.primaryAreas
     .map((group) => MUSCLE_GROUP_LABELS[group])
     .slice(0, 2);
@@ -81,7 +92,7 @@ function ExerciseTile({
       <MuscleLogo groups={exercise.primaryAreas} size={82} />
       <View style={{ flex: 1, justifyContent: 'center' }}>
         <Text variant="subtitle">{exercise.name}</Text>
-        <Text variant="caption" color="primaryTextSoft" style={{ marginTop: 3 }}>
+        <Text variant="caption" tint={colors.tones[tone].text} style={{ marginTop: 3 }}>
           {MODALITY_LABELS[exercise.modality]} · {targets.join(' · ') || 'Full body'}
         </Text>
         <Text variant="caption" color="textMuted" style={{ marginTop: 3 }}>
@@ -105,27 +116,55 @@ function EditorialCollectionCard({
   title,
   caption,
   image,
+  modality,
+  selected,
   onPress,
 }: {
   title: string;
   caption: string;
   image: ImageSourcePropType;
+  modality?: Modality;
+  selected: boolean;
   onPress: () => void;
 }) {
-  const { radii, spacing } = useTheme();
+  const { colors, radii, spacing } = useTheme();
+  const tone = toneForModality(modality ?? 'general');
+  const toneColors = colors.tones[tone];
   return (
     <Pressable
       accessibilityRole="button"
+      accessibilityState={{ selected }}
       accessibilityLabel={`Explore ${title}`}
       onPress={onPress}
-      style={({ pressed }) => ({ width: '48%', minHeight: 144, borderRadius: radii.lg, overflow: 'hidden', opacity: pressed ? 0.8 : 1 })}
+      style={({ pressed }) => ({
+        width: '48%',
+        height: 144,
+        borderRadius: radii.lg,
+        overflow: 'hidden',
+        borderTopWidth: selected ? 3 : 3,
+        borderTopColor: toneColors.solid,
+        borderWidth: selected ? 2 : 0,
+        borderColor: toneColors.solid,
+        opacity: pressed ? 0.8 : 1,
+      })}
     >
       <ImageBackground source={image} style={{ width: '100%', height: '100%', justifyContent: 'flex-end' }} imageStyle={{ borderRadius: radii.lg }}>
         <HeroScrim />
+        {selected ? (
+          <View
+            pointerEvents="none"
+            style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: toneColors.solid, opacity: 0.28 }}
+          />
+        ) : null}
         <View style={{ padding: spacing.md }}>
           <Text variant="subtitle" color="heroText">{title}</Text>
           <Text variant="caption" color="heroMuted" style={{ marginTop: 2 }}>{caption}</Text>
         </View>
+        {selected ? (
+          <View style={{ position: 'absolute', top: spacing.sm, right: spacing.sm, width: 26, height: 26, borderRadius: 13, backgroundColor: toneColors.solid, alignItems: 'center', justifyContent: 'center' }}>
+            <Icon name="checkAll" color="heroText" size={16} />
+          </View>
+        ) : null}
       </ImageBackground>
     </Pressable>
   );
@@ -133,21 +172,44 @@ function EditorialCollectionCard({
 
 export default function ExploreScreen() {
   const { spacing } = useTheme();
+  const router = useRouter();
+  const params = useLocalSearchParams<{ tab?: string }>();
   const [infoExerciseId, setInfoExerciseId] = useState<string | null>(null);
   const weightUnit = getAthleteProfile()?.weightUnit ?? 'kg';
-  const [tab, setTab] = useState<ExploreTab>('discover');
+  // Deep-linked from elsewhere (e.g. "Edit" on a routine from Today) — read
+  // once on mount, same as any other initial-tab param.
+  const [tab, setTab] = useState<ExploreTab>(params.tab === 'routines' || params.tab === 'saved' ? params.tab : 'discover');
   const [browseMode, setBrowseMode] = useState<BrowseMode>('goal');
   const [query, setQuery] = useState('');
   const [region, setRegion] = useState<RegionFilter>('all');
   const [modality, setModality] = useState<Modality | undefined>();
   const [movementPattern, setMovementPattern] = useState<MovementPattern | undefined>();
+  const [cardioModality, setCardioModality] = useState<CardioModality | undefined>();
   const [selectedMuscles, setSelectedMuscles] = useState<MuscleGroup[]>([]);
   const [removedAreaMuscles, setRemovedAreaMuscles] = useState<MuscleGroup[]>([]);
   const [collection, setCollection] = useState<'everyday' | undefined>();
+  const [selectedGoalTitle, setSelectedGoalTitle] = useState<string | undefined>();
   const [equipment, setEquipment] = useState<EquipmentType | undefined>();
   const [filterOpen, setFilterOpen] = useState(false);
   const [favorites, setFavorites] = useState(() => new Set(getExercisePreferences().favoriteExerciseIds));
   const ownedEquipment = useMemo(() => new Set((getEquipmentInventory()?.items ?? []).map((item) => item.type)), []);
+
+  const [routines, setRoutines] = useState<Routine[]>([]);
+  const [builderVisible, setBuilderVisible] = useState(false);
+  const [editingRoutine, setEditingRoutine] = useState<Routine | null>(null);
+  const [detailRoutineId, setDetailRoutineId] = useState<string | null>(null);
+  const [routineExerciseHistoryId, setRoutineExerciseHistoryId] = useState<string | null>(null);
+  const detailRoutine = routines.find((r) => r.id === detailRoutineId) ?? null;
+
+  useFocusEffect(
+    useCallback(() => {
+      setRoutines(listRoutines());
+    }, []),
+  );
+
+  function refreshRoutines() {
+    setRoutines(listRoutines());
+  }
 
   const areaMuscles = useMemo(
     () => region === 'all' ? ALL_MUSCLE_GROUPS : ALL_MUSCLE_GROUPS.filter((group) => GROUP_TO_REGION[group] === region),
@@ -166,6 +228,7 @@ export default function ExploreScreen() {
       .filter((exercise) => !collection || EVERYDAY_EXERCISE_IDS.has(exercise.id))
       .filter((exercise) => !modality || exercise.modality === modality)
       .filter((exercise) => !movementPattern || exercise.movementPattern === movementPattern)
+      .filter((exercise) => !cardioModality || exercise.cardioModality === cardioModality)
       .filter((exercise) => effectiveMuscles.length === 0 || exercise.primaryAreas.some((group) => effectiveMuscles.includes(group)))
       .filter((exercise) => !equipment || exercise.equipment.includes(equipment))
       .filter((exercise) => !term || `${exercise.name} ${exercise.description}`.toLowerCase().includes(term))
@@ -174,7 +237,7 @@ export default function ExploreScreen() {
         const ownedB = b.equipment.some((item) => ownedEquipment.has(item)) ? 1 : 0;
         return ownedB - ownedA || a.name.localeCompare(b.name);
       });
-  }, [collection, effectiveMuscles, equipment, favorites, modality, movementPattern, ownedEquipment, query, tab]);
+  }, [cardioModality, collection, effectiveMuscles, equipment, favorites, modality, movementPattern, ownedEquipment, query, tab]);
 
   function toggleFavorite(id: string) {
     const next = new Set(favorites);
@@ -194,6 +257,7 @@ export default function ExploreScreen() {
     setModality(collection.modality);
     setMovementPattern(collection.pattern);
     setCollection(collection.collection);
+    setSelectedGoalTitle(collection.title);
   }
 
   function toggleMuscle(group: MuscleGroup) {
@@ -214,30 +278,42 @@ export default function ExploreScreen() {
 
   function chooseBrowseMode(next: BrowseMode) {
     setBrowseMode(next);
-    if (next !== 'goal') setCollection(undefined);
+    if (next !== 'goal') { setCollection(undefined); setSelectedGoalTitle(undefined); }
   }
 
   function chooseRegion(next: RegionFilter) {
     setCollection(undefined);
+    setSelectedGoalTitle(undefined);
     setRegion(next);
   }
 
   function chooseEquipment(next: EquipmentType) {
     setCollection(undefined);
+    setSelectedGoalTitle(undefined);
     setEquipment(equipment === next ? undefined : next);
   }
 
   function chooseModality(next: Modality) {
     setCollection(undefined);
-    setModality(modality === next ? undefined : next);
+    setSelectedGoalTitle(undefined);
+    const nextModality = modality === next ? undefined : next;
+    setModality(nextModality);
+    if (nextModality !== 'cardio') setCardioModality(undefined);
   }
 
   function chooseMovementPattern(next: MovementPattern) {
     setCollection(undefined);
+    setSelectedGoalTitle(undefined);
     setMovementPattern(movementPattern === next ? undefined : next);
   }
 
-  const activeFilters = [region !== 'all', Boolean(modality), Boolean(movementPattern), Boolean(collection), Boolean(equipment), selectedMuscles.length > 0, removedAreaMuscles.length > 0].filter(Boolean).length;
+  function chooseCardioModality(next: CardioModality) {
+    setCollection(undefined);
+    setSelectedGoalTitle(undefined);
+    setCardioModality(cardioModality === next ? undefined : next);
+  }
+
+  const activeFilters = [region !== 'all', Boolean(modality), Boolean(movementPattern), Boolean(cardioModality), Boolean(collection), Boolean(equipment), selectedMuscles.length > 0, removedAreaMuscles.length > 0].filter(Boolean).length;
 
   return (
     <Screen>
@@ -250,16 +326,82 @@ export default function ExploreScreen() {
       </View>
 
       <TabBar
-        tabs={[{ value: 'discover' as const, label: 'Discover' }, { value: 'saved' as const, label: `Saved (${favorites.size})` }]}
+        tabs={[
+          { value: 'discover' as const, label: 'Discover' },
+          { value: 'saved' as const, label: `Saved (${favorites.size})` },
+          { value: 'routines' as const, label: `Routines (${routines.length})` },
+        ]}
         value={tab}
         onChange={setTab}
       />
+
+      {tab === 'routines' ? (
+        <View style={{ gap: spacing.md }}>
+          <Row style={{ justifyContent: 'space-between', alignItems: 'center' }}>
+            <View style={{ flex: 1 }}>
+              <Text variant="heading">Your routines</Text>
+              <Text variant="body" color="textMuted" style={{ marginTop: spacing.xs }}>
+                Build a set of exercises once, then run it or let CoachFit pick one for you.
+              </Text>
+            </View>
+          </Row>
+          <Button title="New routine" onPress={() => { setEditingRoutine(null); setBuilderVisible(true); }} />
+          {routines.length === 0 ? (
+            <Card>
+              <Text variant="subtitle">No routines yet</Text>
+              <Text variant="body" color="textMuted" style={{ marginTop: spacing.xs }}>
+                Save a favorite mix of exercises, or turn a past workout into a routine from Progress.
+              </Text>
+            </Card>
+          ) : (
+            <View style={{ gap: spacing.sm }}>
+              {routines.map((routine) => {
+                const routineExercises = routine.exerciseIds
+                  .map((id) => EXERCISES.find((e) => e.id === id))
+                  .filter((e): e is (typeof EXERCISES)[number] => e != null);
+                const groups = Array.from(new Set(routineExercises.flatMap((e) => e.primaryAreas))).slice(0, 4);
+                return (
+                  <Pressable
+                    key={routine.id}
+                    accessibilityRole="button"
+                    accessibilityLabel={`Open ${routine.name}`}
+                    onPress={() => setDetailRoutineId(routine.id)}
+                    style={({ pressed }) => ({ opacity: pressed ? 0.76 : 1 })}
+                  >
+                    <Card>
+                      <Row style={{ justifyContent: 'space-between', alignItems: 'center' }}>
+                        <View style={{ flex: 1 }}>
+                          <Text variant="subtitle">{routine.name}</Text>
+                          <Text variant="caption" color="textMuted" style={{ marginTop: 2 }}>
+                            {routineStyleLabel(routine.workoutType)} · {routine.exerciseIds.length} exercise{routine.exerciseIds.length === 1 ? '' : 's'}
+                            {routine.recurrenceDaysOfWeek?.length ? ' · Recurring' : ''}
+                          </Text>
+                        </View>
+                        <Row gap="xs">
+                          {groups.map((group) => <MuscleLogo key={group} groups={[group]} size={32} />)}
+                        </Row>
+                      </Row>
+                    </Card>
+                  </Pressable>
+                );
+              })}
+            </View>
+          )}
+        </View>
+      ) : null}
 
       {tab === 'discover' ? <View style={{ gap: spacing.md }}>
         <Text variant="heading">Browse exercises</Text>
         <TabBar tabs={[{ value: 'goal' as const, label: 'Goal' }, { value: 'body' as const, label: 'Body area' }, { value: 'equipment' as const, label: 'Equipment' }]} value={browseMode} onChange={chooseBrowseMode} />
         {browseMode === 'goal' ? <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm }}>
-          {GOAL_COLLECTIONS.map((collection) => <EditorialCollectionCard key={collection.title} {...collection} onPress={() => selectCollection(collection)} />)}
+          {GOAL_COLLECTIONS.map((collection) => (
+            <EditorialCollectionCard
+              key={collection.title}
+              {...collection}
+              selected={selectedGoalTitle === collection.title}
+              onPress={() => selectCollection(collection)}
+            />
+          ))}
         </View> : null}
         {browseMode === 'body' ? <View>
           <Text variant="body" color="textMuted">Choose an area to highlight it, then tap the body map to refine the muscles you want to include.</Text>
@@ -276,7 +418,7 @@ export default function ExploreScreen() {
         </View> : null}
       </View> : null}
 
-      <View style={{ gap: spacing.sm }}>
+      {tab !== 'routines' ? <View style={{ gap: spacing.sm }}>
         <View style={{ position: 'relative' }}>
           <View pointerEvents="none" style={{ position: 'absolute', zIndex: 1, left: spacing.md, top: 13 }}><Icon name="search" color="textFaint" size={19} /></View>
           <TextField value={query} onChangeText={setQuery} placeholder="Search exercises" multiline={false} autoCapitalize="none" style={{ minHeight: 0, paddingLeft: 44, paddingVertical: spacing.md }} />
@@ -285,9 +427,9 @@ export default function ExploreScreen() {
           <Button title={activeFilters ? `Filters (${activeFilters})` : 'Filters'} variant="secondary" size="sm" onPress={() => setFilterOpen(true)} />
           <Text variant="caption" color="textMuted" style={{ alignSelf: 'center' }}>{exercises.length} movements</Text>
         </Row>
-      </View>
+      </View> : null}
 
-      <Card>
+      {tab !== 'routines' ? <Card>
         <Text variant="caption" color="textFaint" weight="bold">{tab === 'saved' ? 'YOUR SAVED EXERCISES' : 'MOVEMENTS FOR YOU'}</Text>
         <View style={{ marginTop: spacing.md, gap: spacing.sm }}>
           {exercises.length ? exercises.slice(0, 30).map((exercise) => (
@@ -300,12 +442,12 @@ export default function ExploreScreen() {
           )}
           {exercises.length > 30 ? <Text variant="caption" color="textMuted">Refine your search to see the rest of the catalog.</Text> : null}
         </View>
-      </Card>
+      </Card> : null}
 
       <SheetModal visible={filterOpen} onClose={() => setFilterOpen(false)} eyebrow="EXPLORE" title="Refine your search" closeLabel="Close filters">
         <Text variant="heading">Training style</Text>
         <Row gap="sm" wrap style={{ marginTop: spacing.sm }}>
-          {MODALITIES.map((option) => <Chip key={option.value} label={option.label} selected={modality === option.value} onPress={() => chooseModality(option.value)} />)}
+          {MODALITIES.map((option) => <Chip key={option.value} label={option.label} tone={toneForModality(option.value)} selected={modality === option.value} onPress={() => chooseModality(option.value)} />)}
         </Row>
         <Text variant="heading" style={{ marginTop: spacing.xl }}>Equipment</Text>
         <Text variant="body" color="textMuted" style={{ marginTop: 2 }}>Your available equipment appears first.</Text>
@@ -320,9 +462,52 @@ export default function ExploreScreen() {
             <Chip key={pattern} label={MOVEMENT_PATTERN_LABELS[pattern]} selected={movementPattern === pattern} onPress={() => chooseMovementPattern(pattern)} />
           ))}
         </Row>
+        {modality === 'cardio' ? <>
+          <Text variant="heading" style={{ marginTop: spacing.xl }}>Cardio type</Text>
+          <Row gap="sm" wrap style={{ marginTop: spacing.sm }}>
+            {CARDIO_MODALITIES.map((value) => (
+              <Chip key={value} label={CARDIO_MODALITY_LABELS[value]} selected={cardioModality === value} onPress={() => chooseCardioModality(value)} />
+            ))}
+          </Row>
+        </> : null}
         <Button title="Show movements" onPress={() => setFilterOpen(false)} fullWidth style={{ marginTop: spacing.xl }} />
       </SheetModal>
       <ExerciseInfoView exerciseId={infoExerciseId} weightUnit={weightUnit} onClose={() => setInfoExerciseId(null)} />
+
+      <RoutineBuilderSheet
+        visible={builderVisible}
+        routine={editingRoutine}
+        onClose={() => setBuilderVisible(false)}
+        onSaved={(saved) => {
+          refreshRoutines();
+          setBuilderVisible(false);
+          setDetailRoutineId(saved.id);
+        }}
+      />
+      <RoutineDetailSheet
+        routine={detailRoutine}
+        weightUnit={weightUnit}
+        onClose={() => setDetailRoutineId(null)}
+        onEdit={(routine) => {
+          setDetailRoutineId(null);
+          setEditingRoutine(routine);
+          setBuilderVisible(true);
+        }}
+        onUseToday={(routine) => {
+          setDetailRoutineId(null);
+          router.push({ pathname: '/', params: { useRoutineId: routine.id } });
+        }}
+        onOpenExercise={(exerciseId) => setRoutineExerciseHistoryId(exerciseId)}
+        onDeleted={() => {
+          setDetailRoutineId(null);
+          refreshRoutines();
+        }}
+      />
+      <ExerciseHistorySheet
+        exerciseId={routineExerciseHistoryId}
+        weightUnit={weightUnit}
+        onClose={() => setRoutineExerciseHistoryId(null)}
+      />
     </Screen>
   );
 }

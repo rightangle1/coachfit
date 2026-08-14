@@ -1,12 +1,14 @@
 import { isoWeekStart } from '../../metrics';
 import type { Exercise, PerformedSet, SessionRecord } from '../../types';
 import {
+  BARBELL_BAR_WEIGHT_KG,
   SAFETY,
   aggregateExerciseSessionWork,
   recommendLoad,
   recommendPrescription,
   snapToAvailableWeight,
   snapToSensibleWeight,
+  startingWeightKgFor,
   weeklyLoadCeiling,
 } from '../progression';
 
@@ -565,5 +567,118 @@ describe('recommendPrescription — ADR-0128 test sets are measurements, not loa
   it('a strong test raises the working load above what it was', () => {
     const rec = recommendPrescription(LIFT, [testDay(100, 110, 10)], TARGET_RPE, RANGE);
     expect(rec.weightKg).toBeGreaterThan(100);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Weight defaults and floors (ADR-0144)
+// ---------------------------------------------------------------------------
+
+describe('snapToSensibleWeight — ADR-0144 floorKg', () => {
+  it('raises a snapped value up to the floor when it would otherwise land below it', () => {
+    // 17.5 sits on the 2.5 kg grid but below the ~20.41 kg empty-bar floor.
+    expect(snapToSensibleWeight(17.5, 'kg', undefined, BARBELL_BAR_WEIGHT_KG)).toBe(BARBELL_BAR_WEIGHT_KG);
+  });
+
+  it('leaves an already-above-floor value untouched', () => {
+    expect(snapToSensibleWeight(42.5, 'kg', undefined, BARBELL_BAR_WEIGHT_KG)).toBe(42.5);
+  });
+
+  it('applies the floor after snapping to an owned weight too', () => {
+    expect(snapToSensibleWeight(15, 'kg', [10, 15, 20], BARBELL_BAR_WEIGHT_KG)).toBe(BARBELL_BAR_WEIGHT_KG);
+  });
+
+  it('is a no-op — byte-identical to the pre-ADR-0144 signature — when floorKg is omitted', () => {
+    expect(snapToSensibleWeight(2.5, 'kg')).toBe(2.5);
+    expect(snapToSensibleWeight(42.5, 'kg', [20, 30, 42, 50])).toBe(42);
+  });
+
+  it('never takes a positive input down to zero or below, with or without a floor', () => {
+    expect(snapToSensibleWeight(1, 'kg')).toBeGreaterThan(0);
+    expect(snapToSensibleWeight(0.1, 'kg')).toBeGreaterThan(0);
+    expect(snapToSensibleWeight(1, 'lb')).toBeGreaterThan(0);
+    expect(snapToSensibleWeight(1, 'kg', undefined, BARBELL_BAR_WEIGHT_KG)).toBeGreaterThanOrEqual(BARBELL_BAR_WEIGHT_KG);
+    expect(snapToSensibleWeight(0.1, 'lb', undefined, BARBELL_BAR_WEIGHT_KG)).toBeGreaterThanOrEqual(BARBELL_BAR_WEIGHT_KG);
+  });
+});
+
+describe('startingWeightKgFor — ADR-0144 starting-weight suggestion', () => {
+  it('floors a barbell exercise at the empty bar', () => {
+    expect(startingWeightKgFor(EX)).toBe(BARBELL_BAR_WEIGHT_KG); // EX.equipment = ['barbell']
+  });
+
+  it('prefers the lightest weight the athlete actually owns, even a very light one', () => {
+    const dumbbell: Exercise = { ...EX, id: 'db-starting', equipment: ['dumbbells'] };
+    expect(startingWeightKgFor(dumbbell, [1.5, 2.5, 4])).toBe(1.5);
+  });
+
+  it('never forces a light owned weight up to the generic floor', () => {
+    const dumbbell: Exercise = { ...EX, id: 'db-starting-2', equipment: ['dumbbells'] };
+    expect(startingWeightKgFor(dumbbell, [1])).toBe(1);
+  });
+
+  it('falls back to the generic smallest-increment floor with no owned weights on file', () => {
+    const dumbbell: Exercise = { ...EX, id: 'db-starting-3', equipment: ['dumbbells'] };
+    expect(startingWeightKgFor(dumbbell, undefined, 'kg')).toBe(2.5);
+    expect(startingWeightKgFor(dumbbell, [], 'kg')).toBe(2.5);
+  });
+
+  it('returns undefined for a bodyweight-implement exercise even when nominally loaded — nothing sensible to suggest', () => {
+    const loadedBodyweight: Exercise = { ...EX, id: 'bw-loaded', equipment: ['bodyweight'], progression: 'weight' };
+    expect(startingWeightKgFor(loadedBodyweight)).toBeUndefined();
+  });
+
+  it('returns undefined for a plain non-loaded exercise regardless of equipment', () => {
+    const reps: Exercise = { ...EX, id: 'reps-only', equipment: ['dumbbells'], progression: 'reps' };
+    expect(startingWeightKgFor(reps)).toBeUndefined();
+  });
+});
+
+describe('recommendLoad — ADR-0144 barbell bar-weight floor', () => {
+  it('floors a ground-out deload back to the empty bar rather than continuing to snap below it', () => {
+    // 22 * 0.9 = 19.8 kg, which unfloored would snap down to 17.5 kg on the
+    // 2.5 kg grid — below the ~20.41 kg bar.
+    const rec = recommendLoad(EX, [sessionAt(WEEK0, 22, TARGET_RPE + 3)], TARGET_RPE);
+    expect(rec?.weightKg).toBeGreaterThanOrEqual(BARBELL_BAR_WEIGHT_KG);
+  });
+});
+
+describe('recommendPrescription — ADR-0144 barbell bar-weight floor', () => {
+  const RANGE = { min: 8, max: 12 };
+
+  function performedAt(exercise: Exercise, sets: PerformedSet[]): SessionRecord {
+    const at = WEEK0 + MID;
+    return {
+      id: `floor-${exercise.id}-${at}`,
+      planId: 'plan-1',
+      plannedFor: at,
+      completedAt: at,
+      performed: [{ exerciseId: exercise.id, name: exercise.name, primaryAreas: [{ group: 'chest' }], sets }],
+    };
+  }
+
+  it('floors a ground-out deload back to the empty bar', () => {
+    const rec = recommendPrescription(EX, [performedAt(EX, [
+      { reps: 10, weightKg: 22, rpe: TARGET_RPE + 3, prescribedReps: 10, prescribedRpe: TARGET_RPE, completed: true },
+    ])], TARGET_RPE, RANGE);
+    expect(rec.weightKg).toBeGreaterThanOrEqual(BARBELL_BAR_WEIGHT_KG);
+  });
+
+  it('floors an e1RM rep-band reconciliation that would otherwise land below the bar', () => {
+    // A big band jump (4 -> 15 reps) at a light bar weight reconciles the load
+    // sharply downward — the floor must still hold.
+    const rec = recommendPrescription(EX, [performedAt(EX, [
+      { reps: 4, weightKg: 22, rpe: TARGET_RPE, prescribedReps: 4, prescribedRpe: TARGET_RPE, completed: true },
+    ])], TARGET_RPE, { min: 15, max: 20 });
+    expect(rec.weightKg).toBeGreaterThanOrEqual(BARBELL_BAR_WEIGHT_KG);
+  });
+
+  it('never prescribes a fresh barbell exercise below the bar even with no history', () => {
+    // recommendPrescription itself leaves weight unset with no history (ADR-0103,
+    // unchanged) — this pins that startingWeightKgFor is the correct caller-side
+    // fallback rather than recommendPrescription inventing a value itself.
+    const rec = recommendPrescription(EX, [], TARGET_RPE, RANGE);
+    expect(rec.weightKg).toBeUndefined();
+    expect(startingWeightKgFor(EX)).toBe(BARBELL_BAR_WEIGHT_KG);
   });
 });

@@ -4,6 +4,8 @@ import { forwardRef, type ReactNode } from 'react';
 import { ScrollView, View, type ViewStyle } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useTheme } from '../theme';
+import { Icon, type IconName } from './icon';
+import type { ContextTone } from '../tokens';
 
 export const Screen = forwardRef<ScrollView, {
   children: ReactNode;
@@ -62,22 +64,26 @@ export function Card({
   elevated,
   padded = true,
   tone = 'surface',
+  contextTone,
 }: {
   children: ReactNode;
   style?: ViewStyle;
   elevated?: boolean;
   padded?: boolean;
   tone?: 'surface' | 'primarySoft' | 'surfaceAlt';
+  /** A restrained semantic wash for summaries that have a training context. */
+  contextTone?: ContextTone;
 }) {
   const { colors, radii, spacing, shadows } = useTheme();
+  const contextual = contextTone ? colors.tones[contextTone] : null;
   return (
     <View
       style={[
         {
-          backgroundColor: colors[tone],
+          backgroundColor: contextual?.surface ?? colors[tone],
           borderRadius: radii.xl,
           borderWidth: 1,
-          borderColor: tone === 'primarySoft' ? colors.primary : colors.border,
+          borderColor: contextual?.border ?? (tone === 'primarySoft' ? colors.primary : colors.border),
           padding: padded ? spacing.lg : 0,
         },
         elevated && shadows.md,
@@ -85,6 +91,44 @@ export function Card({
       ]}
     >
       {children}
+    </View>
+  );
+}
+
+/** A compact, non-interactive landmark for a card or action row. */
+export function ToneIconTile({
+  name,
+  tone = 'primary',
+  size = 36,
+  iconSize = 18,
+  style,
+}: {
+  name: IconName;
+  tone?: ContextTone;
+  size?: number;
+  iconSize?: number;
+  style?: ViewStyle;
+}) {
+  const { colors, radii } = useTheme();
+  const contextual = colors.tones[tone];
+  return (
+    <View
+      pointerEvents="none"
+      style={[
+        {
+          width: size,
+          height: size,
+          borderRadius: radii.md,
+          alignItems: 'center',
+          justifyContent: 'center',
+          backgroundColor: contextual.surface,
+          borderWidth: 1,
+          borderColor: contextual.border,
+        },
+        style,
+      ]}
+    >
+      <Icon name={name} size={iconSize} tint={contextual.text} />
     </View>
   );
 }

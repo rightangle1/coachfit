@@ -10,7 +10,7 @@ import { View } from 'react-native';
 
 import Animated, { FadeInLeft, FadeInRight } from 'react-native-reanimated';
 
-import { Button, Card, CheckToggle, Chip, GoalChoiceCard, GoalHero, Meter, Row, Stepper, Text, Toggle, useTheme } from '@/design';
+import { Button, Card, CheckToggle, Chip, GoalChoiceCard, GoalHero, Meter, Row, Stepper, Text, Toggle, toneForWorkoutType, useTheme } from '@/design';
 import { TermsSheet } from '@/features/terms-sheet';
 import { TERMS_VERSION } from '@/app-lib/terms';
 import { PrivacySheet } from '@/features/privacy-sheet';
@@ -437,6 +437,7 @@ export function OnboardingForm({ onSaved }: { onSaved: () => void }) {
               <Chip
                 key={o.label}
                 label={o.label}
+                tone={toneForWorkoutType(o.value)}
                 selected={preferredWorkoutType === o.value}
                 onPress={() => setPreferredWorkoutType(o.value)}
               />

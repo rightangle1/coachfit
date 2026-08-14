@@ -29,13 +29,6 @@ export interface LiveWorkoutActivityContent {
   setsSummaryExpanded: string;
   /** e.g. "14" — Dynamic Island minimal slot. */
   setsRemainingLabel: string;
-  /**
-   * `file://` URI to a locally-cached copy of the app icon, shared via the
-   * app-group `widgetsDirectory` so the widget extension process can read it.
-   * Absent until the first-run copy (kicked off at app start) resolves; the
-   * layout falls back gracefully when unset.
-   */
-  appIconUri?: string;
 }
 
 export interface LiveActivityPort {

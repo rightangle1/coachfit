@@ -237,6 +237,18 @@ function relativeStrengthIndexForExercises(
   };
 }
 
+/** Relative-strength index + anchor lift for one routine's exercises
+ * (ADR-0137) — same self-relative-%-of-best formula as
+ * `muscleGroupStrengthIndex`/`movementCategoryStrengthIndex`, applied to an
+ * arbitrary, user-curated exercise-id list instead of a muscle group or
+ * movement-pattern category. */
+export function routineStrengthIndex(
+  history: SessionRecord[],
+  exerciseIds: string[],
+): MuscleGroupStrengthIndex | undefined {
+  return relativeStrengthIndexForExercises(history, exerciseIds);
+}
+
 /** Relative-strength index + anchor lift for one muscle group (ADR-0202 v2).
  * Replaces the removed `latestStrengthByGroup`, which mixed incompatible
  * absolute e1RM numbers across different lifts touching the same group. */

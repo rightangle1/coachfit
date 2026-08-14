@@ -29,9 +29,9 @@ export function ExerciseMediaCard({
   const { colors, radii, spacing } = useTheme();
   const still = media?.stills?.[0];
   const clip = media?.clips?.[0];
-  // A clip is the richer form guide. Showing the still above it makes the
-  // guide feel repetitive and pushes the actual instruction out of view.
-  const showStill = Boolean(still && !clip);
+  // Form-guide stills complement clips: they give the athlete a quick,
+  // scannable alignment reference before the fuller video explanation.
+  const showStill = Boolean(still && (!clip || still.role === 'form-guide'));
 
   return (
     <View style={{ gap: spacing.xs }}>
@@ -40,11 +40,12 @@ export function ExerciseMediaCard({
           source={still.file}
           style={{
             width: '100%',
-            height: 180,
+            height: still.role === 'form-guide' ? 360 : 180,
             borderRadius: radii.lg,
             backgroundColor: colors.surfaceAlt,
           }}
-          contentFit="cover"
+          contentFit={still.role === 'form-guide' ? 'contain' : 'cover'}
+          accessibilityLabel={still.role === 'form-guide' ? 'Yoga pose alignment guide' : undefined}
         />
       ) : !clip ? (
         <MovementIllustration pattern={pattern} size={88} />

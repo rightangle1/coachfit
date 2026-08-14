@@ -6,7 +6,7 @@
  * advisor) happens here, invisibly to the UI (CLAUDE.md §5).
  */
 
-import { RulesEngine, type ProgrammingEngine } from '../domain/engine';
+import { RulesEngine, auditSessionShape, type ProgrammingEngine } from '../domain/engine';
 import type {
   SessionContext,
   SessionPlan,
@@ -22,6 +22,15 @@ const engine: ProgrammingEngine = new RulesEngine();
 
 export async function generateSession(input: SessionContext): Promise<SessionPlan> {
   const output = await engine.generateSession(input);
+  // ADR-0143: a post-hoc, read-only sanity pass over the finished plan —
+  // never mutates `output`, never blocks the response. Findings always reach
+  // the decision log via `drivers` below; only `warn`-severity ones would
+  // ever be worth surfacing to the athlete, and none of today's findings
+  // rise to that (a passing session logs an empty array).
+  const shapeFindings = auditSessionShape(output.blocks, {
+    cardioIntent: output.workoutOptions?.cardioIntent,
+    hasRoutine: output.routineId != null,
+  });
   logDecision({
     call: 'generateSession',
     engineId: engine.id,
@@ -34,6 +43,10 @@ export async function generateSession(input: SessionContext): Promise<SessionPla
         input.avoidToday.flags.length ? 'athlete_avoidance' : 'no_daily_avoidance',
         input.goals.resistanceFocus ? `resistance_focus:${input.goals.resistanceFocus}` : 'resistance_focus:general',
         input.trainingIntent ? `training_intent:${input.trainingIntent}` : 'training_intent:balanced',
+        // ADR-0137: which structured input drove Main selection today.
+        ...(input.routine ? [`routine:${input.routine.id}`] : []),
+        // ADR-0140: which cardio modality preference (if any) narrowed Main.
+        ...(input.workoutOptions?.cardioModalities?.length ? [`cardio_modality:${input.workoutOptions.cardioModalities.join(',')}`] : []),
       ],
       emphasize: input.targeting.emphasize,
       avoidToday: input.avoidToday.flags,
@@ -41,6 +54,9 @@ export async function generateSession(input: SessionContext): Promise<SessionPla
       // ADR-0122: per-muscle fatigue feeds load finalization; the exact
       // per-exercise load adjustments are captured in output.adjustments.
       fatigueByGroup: input.fatigue.byGroup,
+      // ADR-0143: cross-workout-type shape sanity — empty when the session
+      // passes both invariants.
+      shapeFindings,
     },
     sessionId: output.id,
   });

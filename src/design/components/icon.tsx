@@ -46,6 +46,18 @@ const ICONS = {
   trash: { ios: 'trash.fill', android: 'delete', web: 'delete' },
   checkAll: { ios: 'checkmark.circle.fill', android: 'check_circle', web: 'check_circle' },
   privacy: { ios: 'lock.shield.fill', android: 'privacy_tip', web: 'privacy_tip' },
+  warning: { ios: 'exclamationmark.triangle.fill', android: 'warning', web: 'warning' },
+  add: { ios: 'plus.circle', android: 'add_circle_outline', web: 'add_circle_outline' },
+  // Cardio modality tiles (ADR-0141) — Android/web Material equivalents are
+  // best-effort approximations; several `figure.*` activity glyphs have no
+  // 1:1 Material match.
+  cardioRunning: { ios: 'figure.run', android: 'directions_run', web: 'directions_run' },
+  cardioMachine: { ios: 'figure.elliptical', android: 'directions_bike', web: 'directions_bike' },
+  cardioCombat: { ios: 'figure.boxing', android: 'sports_mma', web: 'sports_mma' },
+  cardioJumpRope: { ios: 'figure.jumprope', android: 'sports_gymnastics', web: 'sports_gymnastics' },
+  cardioAerobics: { ios: 'figure.step.training', android: 'directions_walk', web: 'directions_walk' },
+  cardioBodyweight: { ios: 'figure.highintensity.intervaltraining', android: 'exercise', web: 'exercise' },
+  cardioLoaded: { ios: 'figure.strengthtraining.functional', android: 'fitness_center', web: 'fitness_center' },
 } as const satisfies Record<string, SymbolViewProps['name']>;
 
 export type IconName = keyof typeof ICONS;
@@ -54,11 +66,14 @@ export function Icon({
   name,
   size = 18,
   color = 'textMuted',
+  tint,
 }: {
   name: IconName;
   size?: number;
   color?: ColorToken;
+  /** Raw themed tint for shared contextual-tone primitives. */
+  tint?: string;
 }) {
   const { colors } = useTheme();
-  return <SymbolView name={ICONS[name]} size={size} tintColor={colors[color]} type="hierarchical" />;
+  return <SymbolView name={ICONS[name]} size={size} tintColor={tint ?? colors[color]} type="hierarchical" />;
 }

@@ -1,4 +1,5 @@
 import { finalizeLoad } from '../load-finalization';
+import { BARBELL_BAR_WEIGHT_KG, barbellFloorKg, snapToSensibleWeight } from '../progression';
 import type { Exercise, FatigueState, SessionRecord } from '../../types';
 
 const NOW = Date.UTC(2026, 6, 22, 12, 0, 0);
@@ -89,5 +90,27 @@ describe('finalizeLoad — reductions only, within the cap', () => {
       details: { quads: { score: 0.1, status: 'good', completedSets: 5, lastWorkoutWasMax: true, lastTrainedAt: NOW - 10 * 86_400_000 } },
     };
     expect(run({ fatigue }).drivers.maxTaxFactor).toBe(1);
+  });
+});
+
+describe('finalizeLoad — ADR-0144 combined with the barbell bar-weight floor', () => {
+  it('worst-case combined reduction can drop a light barbell weight below the bar; the caller-side floor-aware snap restores it', () => {
+    // finalizeLoad itself has no floor by design (reductions only, implement-
+    // unaware) — the empty-bar floor is applied by the caller's subsequent
+    // snapToSensibleWeight(..., floorKg) call, exactly as rules-engine.ts does.
+    const fatigue: FatigueState = {
+      byGroup: { quads: 0.8 },
+      updatedAt: NOW,
+      details: { quads: { score: 0.8, status: 'fatigued', completedSets: 5, lastWorkoutWasMax: true, lastTrainedAt: NOW - 86_400_000 } },
+    };
+    const r = run({
+      baseWeightKg: 22, // just above the ~20.41 kg bar
+      readiness: { energy: 1, soreness: 5, sleepQuality: 1 },
+      fatigue,
+    });
+    expect(r.weightKg).toBeLessThan(BARBELL_BAR_WEIGHT_KG);
+
+    const floored = snapToSensibleWeight(r.weightKg, 'kg', undefined, barbellFloorKg(SQUAT));
+    expect(floored).toBeGreaterThanOrEqual(BARBELL_BAR_WEIGHT_KG);
   });
 });

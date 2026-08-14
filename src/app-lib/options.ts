@@ -4,8 +4,10 @@
  * chip pickers. Not domain logic; purely which options we surface as chips.
  */
 
+import type { IconName } from '@/design';
 import type {
   BodyArea,
+  CardioModality,
   EquipmentType,
   ExperienceLevel,
   Modality,
@@ -13,9 +15,33 @@ import type {
   MuscleGroup,
   WeightedEquipmentType,
   WeightUnit,
+  WorkoutFamily,
   WorkoutType,
 } from '@/domain/types';
 import { lbToKg } from './units';
+
+/**
+ * The single source of truth for which family (ADR-0407) each `WorkoutType`
+ * belongs to — the "Kind of session" picker's two-step structure, and
+ * `toneForWorkoutType`'s visual bucketing, both derive from this rather than
+ * keeping their own hardcoded lists.
+ */
+export const WORKOUT_TYPE_FAMILY: Record<WorkoutType, WorkoutFamily> = {
+  bodybuilding: 'strength',
+  sculpting: 'strength',
+  bodyweight: 'strength',
+  cardio: 'cardio',
+  stretch: 'mobility',
+  yoga: 'mobility',
+  barre: 'mobility',
+  pilates: 'mobility',
+};
+
+/** Unset `WorkoutType` (Balanced) resolves to Strength — a mixed-modality
+ * session still reads closest to a strength-anchored default. */
+export function familyOfWorkoutType(type: WorkoutType | undefined): WorkoutFamily {
+  return type ? WORKOUT_TYPE_FAMILY[type] : 'strength';
+}
 
 export const EMPHASIS_OPTIONS: { label: string; area: BodyArea }[] = [
   { label: 'Back', area: { group: 'back' } },
@@ -34,12 +60,29 @@ export const FULL_BODY_EMPHASIS_OPTION: { label: string; area: BodyArea } = {
   area: { region: 'full_body' },
 };
 
+/**
+ * Simplified "Target area" options for cardio (ADR-0141) — region-level
+ * rather than the muscle-group-level `EMPHASIS_OPTIONS` strength uses,
+ * since cardio exercises don't have the same granular muscle-group variety.
+ * Only shown for the cardio types where target areas actually differ
+ * (Aerobics/Bodyweight/Loaded — see `index.tsx`'s gating). Rendered
+ * alongside `FULL_BODY_EMPHASIS_OPTION` for "Full body", which is already
+ * region-based and needs no cardio-specific entry.
+ */
+export const CARDIO_TARGET_AREA_OPTIONS: { label: string; area: BodyArea }[] = [
+  { label: 'Upper body', area: { region: 'upper_body' } },
+  { label: 'Lower body', area: { region: 'lower_body' } },
+  { label: 'Core', area: { region: 'core' } },
+];
+
 export const WORKOUT_TYPE_OPTIONS: { label: string; value: WorkoutType | undefined; caption?: string }[] = [
   { label: 'Balanced', value: undefined },
   { label: 'Bodybuilding', value: 'bodybuilding', caption: 'Hypertrophy-focused work with optional exercise rotations' },
   { label: 'Sculpting', value: 'sculpting', caption: 'Full-body toning across every major muscle group' },
   { label: 'Stretch', value: 'stretch', caption: 'A full mobility flow, nothing else' },
   { label: 'Yoga', value: 'yoga', caption: 'A held-pose yoga flow' },
+  { label: 'Barre', value: 'barre', caption: 'A barre-style strength & flow class' },
+  { label: 'Pilates', value: 'pilates', caption: 'A mat Pilates flow — control, core, and breath' },
   { label: 'Bodyweight', value: 'bodyweight', caption: 'No equipment, anywhere' },
   { label: 'Cardio', value: 'cardio', caption: 'A full cardio-focused session' },
 ];
@@ -94,6 +137,7 @@ export const EQUIPMENT_OPTIONS: { label: string; value: EquipmentType }[] = [
   { label: 'Other cardio machine', value: 'cardio_machine' },
   { label: 'Yoga mat', value: 'yoga_mat' },
   { label: 'Foam roller', value: 'foam_roller' },
+  { label: 'Barre', value: 'barre' },
   { label: 'Suspension cables (TRX)', value: 'suspension_trainer' },
 ];
 
@@ -206,8 +250,43 @@ export const MOVEMENT_PATTERN_LABELS: Record<MovementPattern, string> = {
   core: 'Core',
   steady_cardio: 'Steady cardio',
   interval: 'Intervals',
+  aerobics: 'Aerobics',
   stretch: 'Stretch',
   yoga_flow: 'Yoga flow',
+  barre_flow: 'Barre flow',
+  pilates_flow: 'Pilates flow',
+};
+
+/** Canonical display order for the cardio movement-family taxonomy
+ * (ADR-0139) — shared by the exercise catalog browser's "Cardio type" filter
+ * and the Today builder's "CARDIO TYPE" picker (ADR-0140) so both surfaces
+ * present the same order. */
+export const CARDIO_MODALITIES: CardioModality[] = ['running_walking', 'machine_cardio', 'combat', 'jump_rope', 'aerobics', 'bodyweight', 'loaded_cardio'];
+
+/** Friendly display labels for the cardio movement-family taxonomy (ADR-0139)
+ * — used by the exercise catalog browser's "Cardio type" filter. Orthogonal
+ * to `MOVEMENT_PATTERN_LABELS`, which carries cardio's intensity-structure
+ * values (steady/interval/aerobics-cadence), not modality. */
+export const CARDIO_MODALITY_LABELS: Record<CardioModality, string> = {
+  running_walking: 'Running & walking',
+  machine_cardio: 'Machines',
+  combat: 'Combat',
+  jump_rope: 'Jump rope',
+  aerobics: 'Aerobics',
+  bodyweight: 'Bodyweight',
+  loaded_cardio: 'Loaded cardio',
+};
+
+/** Icon for each cardio movement family (ADR-0141) — used by the "Workout
+ * Focus" builder's visual `ChoiceTile` cards for cardio types. */
+export const CARDIO_MODALITY_ICONS: Record<CardioModality, IconName> = {
+  running_walking: 'cardioRunning',
+  machine_cardio: 'cardioMachine',
+  combat: 'cardioCombat',
+  jump_rope: 'cardioJumpRope',
+  aerobics: 'cardioAerobics',
+  bodyweight: 'cardioBodyweight',
+  loaded_cardio: 'cardioLoaded',
 };
 
 /** Friendly display labels for derived exercise intensity (ADR-0123) — used by

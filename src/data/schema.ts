@@ -45,6 +45,17 @@ export const exercisePreferences = sqliteTable('exercise_preferences', {
   updatedAt: integer('updated_at').notNull(),
 });
 
+/** User-curated, reusable exercise lists (ADR-0137). List table, JSON-blob
+ * payload — same shape as `equipmentProfiles`, no active-pointer table
+ * needed since a routine is picked per-session, not globally active. */
+export const routines = sqliteTable('routines', {
+  id: text('id').primaryKey(),
+  name: text('name').notNull(),
+  routineJson: text('routine_json').notNull(),
+  createdAt: integer('created_at').notNull(),
+  updatedAt: integer('updated_at').notNull(),
+});
+
 export const sessionPlans = sqliteTable('session_plans', {
   id: text('id').primaryKey(),
   plannedFor: integer('planned_for').notNull(),
@@ -79,6 +90,7 @@ export type EquipmentInventoryRow = typeof equipmentInventories.$inferSelect;
 export type EquipmentProfileRow = typeof equipmentProfiles.$inferSelect;
 export type EquipmentProfileStateRow = typeof equipmentProfileState.$inferSelect;
 export type ExercisePreferencesRow = typeof exercisePreferences.$inferSelect;
+export type RoutineRow = typeof routines.$inferSelect;
 export type SessionPlanRow = typeof sessionPlans.$inferSelect;
 export type SessionRecordRow = typeof sessionRecords.$inferSelect;
 export type DecisionLogRow = typeof decisionLog.$inferSelect;

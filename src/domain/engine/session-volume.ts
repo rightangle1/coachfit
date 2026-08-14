@@ -36,10 +36,11 @@ import type { VolumeLandmarks } from '../metrics';
  *
  * Deliberately NOT `mrv / sessionsPerWeek`: training frequency is not reliably
  * known today. `goals.weeklyTargets` is usually unset, and the fallback
- * schedule in weekly-program.ts can hand a strength-focused athlete a single
- * strength session per week — which would derive a *higher* daily ceiling than
- * MRV itself. A fixed share of MRV degrades sanely with no frequency data and
- * is the more conservative reading, which is the one safety rules should take.
+ * schedule in rolling-plan.ts's `modalitySchedule` can hand a strength-focused
+ * athlete a single strength session per week — which would derive a *higher*
+ * daily ceiling than MRV itself. A fixed share of MRV degrades sanely with no
+ * frequency data and is the more conservative reading, which is the one
+ * safety rules should take.
  */
 const DAILY_SHARE_OF_MRV = 0.55;
 

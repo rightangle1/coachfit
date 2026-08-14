@@ -18,6 +18,7 @@ import {
   equipmentProfiles,
   equipmentProfileState,
   exercisePreferences,
+  routines,
   sessionPlans,
   sessionRecords,
 } from './schema';
@@ -29,6 +30,7 @@ import type {
   EquipmentProfileStateRow,
   ExercisePreferencesRow,
   PlanRow,
+  RoutineRow,
   SessionRecordRow,
   StorageApi,
 } from './persistence-types';
@@ -75,6 +77,15 @@ export function initStorage(): void {
     CREATE TABLE IF NOT EXISTS exercise_preferences (
       id TEXT PRIMARY KEY NOT NULL,
       excluded_json TEXT NOT NULL,
+      updated_at INTEGER NOT NULL
+    );
+  `);
+  db.run(sql`
+    CREATE TABLE IF NOT EXISTS routines (
+      id TEXT PRIMARY KEY NOT NULL,
+      name TEXT NOT NULL,
+      routine_json TEXT NOT NULL,
+      created_at INTEGER NOT NULL,
       updated_at INTEGER NOT NULL
     );
   `);
@@ -231,6 +242,30 @@ export function saveExercisePreferences(row: ExercisePreferencesRow): void {
     .run();
 }
 
+// -- routines -------------------------------------------------------------
+
+export function listRoutines(): RoutineRow[] {
+  return db.select().from(routines).orderBy(routines.createdAt).all();
+}
+
+export function getRoutine(id: string): RoutineRow | undefined {
+  return db.select().from(routines).where(eq(routines.id, id)).get();
+}
+
+export function saveRoutine(row: RoutineRow): void {
+  db.insert(routines)
+    .values(row)
+    .onConflictDoUpdate({
+      target: routines.id,
+      set: { name: row.name, routineJson: row.routineJson, updatedAt: row.updatedAt },
+    })
+    .run();
+}
+
+export function deleteRoutineRow(id: string): void {
+  db.delete(routines).where(eq(routines.id, id)).run();
+}
+
 // -- plans --------------------------------------------------------------
 
 export function savePlan(row: PlanRow): void {
@@ -293,6 +328,10 @@ const _impl: StorageApi = {
   saveEquipmentProfileState,
   getExercisePreferences,
   saveExercisePreferences,
+  listRoutines,
+  getRoutine,
+  saveRoutine,
+  deleteRoutineRow,
   savePlan,
   getPlan,
   saveSessionRecord,

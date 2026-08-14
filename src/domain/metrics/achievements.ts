@@ -307,13 +307,15 @@ function evaluateKeyedFamily<K extends string>(
   return { unlocked, locked };
 }
 
-export const WORKOUT_STYLE_KEYS = ['bodybuilding', 'sculpting', 'cardio', 'yoga', 'stretch', 'bodyweight'] as const satisfies readonly WorkoutType[];
+export const WORKOUT_STYLE_KEYS = ['bodybuilding', 'sculpting', 'cardio', 'yoga', 'barre', 'pilates', 'stretch', 'bodyweight'] as const satisfies readonly WorkoutType[];
 
 export const WORKOUT_STYLE_LABELS: Record<(typeof WORKOUT_STYLE_KEYS)[number], string> = {
   bodybuilding: 'Bodybuilding',
   sculpting: 'Sculpting',
   cardio: 'Cardio',
   yoga: 'Yoga',
+  barre: 'Barre',
+  pilates: 'Pilates',
   stretch: 'Stretch',
   bodyweight: 'Bodyweight',
 };

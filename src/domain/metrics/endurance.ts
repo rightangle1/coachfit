@@ -212,21 +212,23 @@ export function recentTrainingLoadTrend(history: SessionRecord[], n = 5): Traini
 // ---------------------------------------------------------------------------
 
 /** The only complete, typed axis available for bucketing cardio work without
- * new catalog tagging: `movementPattern` is `'steady_cardio'` or `'interval'`
- * for every cardio exercise. A by-machine breakdown (Treadmill/Bike/Row) was
+ * new catalog tagging: `movementPattern` is `'steady_cardio'`, `'interval'`,
+ * or `'aerobics'` (ADR-0138) for every cardio exercise. A by-machine breakdown
+ * (Treadmill/Bike/Row) was
  * investigated and rejected when `EquipmentType` had one flat `'cardio_machine'`
  * value for all machine exercises — a by-machine bucket would have left the
  * bodyweight-only third of the cardio catalog in a fabricated "Other" category.
  * `EquipmentType` now has specific treadmill/bike/elliptical/stair_climber/
  * rowing_machine values (equipment.ts), so a by-machine breakdown is possible
  * again — it just hasn't been built. Revisit this doc comment if it is. */
-export type CardioCategory = 'steady' | 'interval';
+export type CardioCategory = 'steady' | 'interval' | 'aerobics';
 
-export const ALL_CARDIO_CATEGORIES: CardioCategory[] = ['steady', 'interval'];
+export const ALL_CARDIO_CATEGORIES: CardioCategory[] = ['steady', 'interval', 'aerobics'];
 
 const CARDIO_CATEGORY_PATTERNS: Record<CardioCategory, MovementPattern[]> = {
   steady: ['steady_cardio'],
   interval: ['interval'],
+  aerobics: ['aerobics'],
 };
 
 /** Exercise ids whose catalog `movementPattern` falls in `category`, in
@@ -269,26 +271,27 @@ export interface CardioCategoryEnduranceIndex {
   anchorPreviousMinutes?: number;
 }
 
-/** Relative-endurance index + anchor exercise for one cardio category
- * (steady/interval) — the endurance counterpart to
- * `movementCategoryStrengthIndex` (ADR-0205). */
-export function cardioCategoryEnduranceIndex(
+/** Shared core behind every "relative-%-of-personal-best" endurance rollup —
+ * `strength.ts`'s `relativeStrengthIndexForExercises` counterpart, generalized
+ * to an arbitrary exercise-id list so a routine's cardio exercises (ADR-0137)
+ * can reuse the exact same averaging/anchor logic as the cardio-category
+ * rollup below, instead of a second, cosmetically-similar implementation. */
+function relativeEnduranceIndexForExercises(
   history: SessionRecord[],
-  category: CardioCategory,
+  exerciseIds: string[],
 ): CardioCategoryEnduranceIndex | undefined {
-  const ids = exerciseIdsForCardioCategory(history, category);
-  if (ids.length === 0) return undefined;
+  if (exerciseIds.length === 0) return undefined;
 
   const names = new Map<string, string>();
   for (const rec of history) {
-    for (const ex of rec.performed) if (ids.includes(ex.exerciseId)) names.set(ex.exerciseId, ex.name);
+    for (const ex of rec.performed) if (exerciseIds.includes(ex.exerciseId)) names.set(ex.exerciseId, ex.name);
   }
 
   let anchor: { id: string; points: EndurancePoint[] } | undefined;
   const latestRatios: number[] = [];
   const previousRatios: number[] = [];
 
-  for (const id of [...ids].sort()) {
+  for (const id of [...exerciseIds].sort()) {
     const points = exerciseCardioMinutes(history, id);
     if (points.length === 0) continue;
     if (!anchor || points.length > anchor.points.length) anchor = { id, points };
@@ -316,6 +319,27 @@ export function cardioCategoryEnduranceIndex(
     anchorMinutes: anchorLast.minutes,
     anchorPreviousMinutes: anchorPrev?.minutes,
   };
+}
+
+/** Relative-endurance index + anchor exercise for one cardio category
+ * (steady/interval) — the endurance counterpart to
+ * `movementCategoryStrengthIndex` (ADR-0205). */
+export function cardioCategoryEnduranceIndex(
+  history: SessionRecord[],
+  category: CardioCategory,
+): CardioCategoryEnduranceIndex | undefined {
+  return relativeEnduranceIndexForExercises(history, exerciseIdsForCardioCategory(history, category));
+}
+
+/** Relative-endurance index + anchor exercise for one routine's cardio
+ * exercises (ADR-0137) — the endurance counterpart to
+ * `strength.ts`'s `routineStrengthIndex`. Only relevant for routines that
+ * include cardio exercises; callers filter `exerciseIds` to cardio ones. */
+export function routineEnduranceIndex(
+  history: SessionRecord[],
+  exerciseIds: string[],
+): CardioCategoryEnduranceIndex | undefined {
+  return relativeEnduranceIndexForExercises(history, exerciseIds);
 }
 
 /** Ascending series of the category's mean relative-endurance ratio over
@@ -412,14 +436,18 @@ export function weeklyCardioMinutesByCategory(
  * moderate-intensity aerobic activity, or an equivalent combination with
  * vigorous-intensity work (standard convention: 1 vigorous minute counts as
  * 2 moderate-equivalent minutes). Steady-state cardio maps to "moderate,"
- * interval/HIIT work maps to "vigorous." */
+ * interval/HIIT work maps to "vigorous." Aerobics (ADR-0138) is continuous,
+ * moderate-RPE circuit work, not all-out effort — it counts at the same 1x
+ * weight as steady rather than interval's 2x, the conservative read when the
+ * true intensity of a given circuit isn't measured. */
 export const WHO_WEEKLY_MODERATE_EQUIVALENT_MINUTES = 150;
 const VIGOROUS_EQUIVALENCE_MULTIPLIER = 2;
 
 function moderateEquivalentMinutes(history: SessionRecord[], weekOffset: number, now: number): number {
   const steady = weeklyCardioMinutesByCategory(history, 'steady', weekOffset, now);
   const interval = weeklyCardioMinutesByCategory(history, 'interval', weekOffset, now);
-  return steady + interval * VIGOROUS_EQUIVALENCE_MULTIPLIER;
+  const aerobics = weeklyCardioMinutesByCategory(history, 'aerobics', weekOffset, now);
+  return steady + aerobics + interval * VIGOROUS_EQUIVALENCE_MULTIPLIER;
 }
 
 export interface EndurancePerformance {

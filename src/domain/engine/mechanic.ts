@@ -1,14 +1,19 @@
 /**
- * Compound vs. isolation classification (ADR-0120, ADR-0123). Extracted from
- * timing.ts into its own leaf module so intensity.ts (which needs
- * `mechanicOf`) and timing.ts (which needs intensity.ts for graded rest) can
- * both depend on this without depending on each other.
+ * Compound vs. isolation classification (ADR-0120, ADR-0123), plus the
+ * "what actually supplies the resistance" classification (`implementFor`,
+ * ADR-0134/ADR-0144) — both pure per-exercise classifiers, so they share this
+ * leaf module. Extracted from timing.ts into its own leaf module so
+ * intensity.ts (which needs `mechanicOf`) and timing.ts (which needs
+ * intensity.ts for graded rest) can both depend on this without depending on
+ * each other; `implementFor` moved here from `catalog/index.ts` (ADR-0144) so
+ * `progression.ts` can resolve an exercise's load-bearing equipment without a
+ * catalog dependency.
  *
  * Kept free of catalog/data imports (ADR-0003): callers pass the resolved
  * `Exercise`, so this stays trivially unit-testable.
  */
 
-import type { Exercise, MuscleGroup } from '../types';
+import type { Exercise, EquipmentType, MuscleGroup } from '../types';
 
 export type Mechanic = 'compound' | 'isolation';
 
@@ -43,4 +48,18 @@ export function mechanicOf(exercise: Exercise): Mechanic {
     default:
       return 'isolation';
   }
+}
+
+/**
+ * Equipment that positions the body rather than supplying the resistance. A
+ * push-up and a decline push-up are the same movement whether or not a bench
+ * is involved, so these must not split a variant family (ADR-0134).
+ */
+const POSITIONING_EQUIPMENT = new Set<EquipmentType>(['bench', 'squat_rack', 'yoga_mat', 'foam_roller', 'barre']);
+
+/** What actually supplies the resistance — the family's defining implement,
+ * and (ADR-0144) what determines a weight floor (e.g. barbell → bar weight). */
+export function implementFor(exercise: Exercise): EquipmentType {
+  return exercise.equipment.find((type) => !POSITIONING_EQUIPMENT.has(type) && type !== 'bodyweight')
+    ?? 'bodyweight';
 }

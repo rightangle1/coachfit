@@ -17,6 +17,8 @@ const ACTIVITY_TYPE_MAP: Record<HealthActivityType, WorkoutActivityType> = {
   strength: WorkoutActivityType.traditionalStrengthTraining,
   cardio: WorkoutActivityType.mixedCardio,
   yoga: WorkoutActivityType.yoga,
+  barre: WorkoutActivityType.barre,
+  pilates: WorkoutActivityType.pilates,
   flexibility: WorkoutActivityType.flexibility,
   functional: WorkoutActivityType.functionalStrengthTraining,
 };

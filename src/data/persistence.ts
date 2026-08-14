@@ -15,6 +15,7 @@ import type {
   EquipmentProfileStateRow,
   ExercisePreferencesRow,
   PlanRow,
+  RoutineRow,
   SessionRecordRow,
   StorageApi,
 } from './persistence-types';
@@ -26,6 +27,7 @@ const KEYS = {
   equipmentProfiles: 'ft_equipment_profiles',
   equipmentProfileState: 'ft_equipment_profile_state',
   exercisePreferences: 'ft_exercise_preferences',
+  routines: 'ft_routines',
   plans: 'ft_plans',
   records: 'ft_session_records',
 } as const;
@@ -207,6 +209,26 @@ export function saveExercisePreferences(row: ExercisePreferencesRow): void {
   upsertById(KEYS.exercisePreferences, row);
 }
 
+// -- routines -------------------------------------------------------------
+
+export function listRoutines(): RoutineRow[] {
+  return readList<RoutineRow>(KEYS.routines)
+    .slice()
+    .sort((a, b) => a.createdAt - b.createdAt);
+}
+
+export function getRoutine(id: string): RoutineRow | undefined {
+  return getById<RoutineRow>(KEYS.routines, id);
+}
+
+export function saveRoutine(row: RoutineRow): void {
+  upsertById(KEYS.routines, row);
+}
+
+export function deleteRoutineRow(id: string): void {
+  writeList(KEYS.routines, readList<RoutineRow>(KEYS.routines).filter((row) => row.id !== id));
+}
+
 // -- plans --------------------------------------------------------------
 
 export function savePlan(row: PlanRow): void {
@@ -256,6 +278,10 @@ const _impl: StorageApi = {
   saveEquipmentProfileState,
   getExercisePreferences,
   saveExercisePreferences,
+  listRoutines,
+  getRoutine,
+  saveRoutine,
+  deleteRoutineRow,
   savePlan,
   getPlan,
   saveSessionRecord,

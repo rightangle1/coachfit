@@ -91,7 +91,7 @@ const BASE_CADENCE: Partial<Record<ExperienceLevel, BaseCadence>> = {
 };
 
 /** Styles where an all-out strength attempt makes no sense. */
-const NO_STRENGTH_TEST_STYLES = new Set<WorkoutType>(['cardio', 'stretch', 'yoga']);
+const NO_STRENGTH_TEST_STYLES = new Set<WorkoutType>(['cardio', 'stretch', 'yoga', 'barre', 'pilates']);
 
 /**
  * Style bias on the exposure counts (`<1` = test sooner). Bodyweight leans away

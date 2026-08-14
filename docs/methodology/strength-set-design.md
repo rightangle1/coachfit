@@ -42,6 +42,7 @@ ranges we program to:
 | Core / mobility hold | timed | **20–30 s** | Low systemic cost; brief reset between holds. |
 | Cardio steady | continuous | **~0 s** | Rest is intrinsic to the bout. |
 | Cardio intervals | work/recovery | built-in | The recovery phase *is* the rest; modeled as explicit `phase: 'recovery'` sets. |
+| Aerobics circuit (ADR-0138) | continuous, rotating stations | **~10 s** | Not zero like steady, not a recovery phase like intervals — a brief move-to-the-next-station transition, modeled as `REST.AEROBICS_TRANSITION`. |
 
 **Supersets change the accounting.** In an antagonist or unrelated pairing, one
 station rests while the other works, so the *shared* rest is paid roughly once per

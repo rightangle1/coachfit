@@ -8,6 +8,24 @@
 
 export type ColorScheme = 'light' | 'dark';
 
+/**
+ * Contextual color is deliberately separate from status color. A strength
+ * session is an emphasis, not an error; `danger` remains available only for
+ * something that needs attention.
+ */
+export type ContextTone = 'primary' | 'strength' | 'endurance' | 'mobility' | 'accent';
+
+export interface ContextToneStyle {
+  /** Restrained fill for a summary, selected control, or compact icon tile. */
+  surface: string;
+  /** Definition for a tinted surface without making it feel boxed-in. */
+  border: string;
+  /** Readable icon/text color on the soft surface. */
+  text: string;
+  /** The hue for meters, chart series, and small emphasis marks. */
+  solid: string;
+}
+
 export interface Palette {
   bg: string; // app background
   surface: string; // cards / raised content
@@ -53,6 +71,7 @@ export interface Palette {
   tierBronze: string; // achievement trophy-case tiers
   tierSilver: string;
   tierGold: string;
+  tones: Record<ContextTone, ContextToneStyle>;
 }
 
 export const palettes: Record<ColorScheme, Palette> = {
@@ -79,8 +98,8 @@ export const palettes: Record<ColorScheme, Palette> = {
     warning: '#B08346',
   danger: '#A95245',
   dangerSoft: '#F3DFDA',
-    zoneStrength: '#A6402F',
-    zoneStrengthSoft: '#F6DED8',
+    zoneStrength: '#4B5D78',
+    zoneStrengthSoft: '#E3E8F0',
     zoneEndurance: '#3D6382',
     zoneEnduranceSoft: '#DCE6EF',
     overlay: 'rgba(40,36,32,0.45)',
@@ -94,6 +113,16 @@ export const palettes: Record<ColorScheme, Palette> = {
     tierBronze: '#B08159',
     tierSilver: '#9AA0AA',
     tierGold: '#C9A227',
+    tones: {
+      primary: { surface: '#E1ECE3', border: '#345C47', text: '#294A38', solid: '#345C47' },
+      // Strength uses a grounded slate-blue. It feels composed beside the
+      // sage brand hue, stays distinct from cardio's ocean tone, and never
+      // reads like danger or a warm terracotta callout.
+      strength: { surface: '#E3E8F0', border: '#4B5D78', text: '#36465E', solid: '#4B5D78' },
+      endurance: { surface: '#DCE6EF', border: '#3D6382', text: '#294F6A', solid: '#3D6382' },
+      mobility: { surface: '#E8E7F2', border: '#6B6E9B', text: '#50527C', solid: '#6B6E9B' },
+      accent: { surface: '#F4E2D5', border: '#B9764D', text: '#874D2A', solid: '#B9764D' },
+    },
   },
   dark: {
     bg: '#12131C',
@@ -121,8 +150,8 @@ export const palettes: Record<ColorScheme, Palette> = {
     warning: '#E9C66C',
   danger: '#DE8378',
   dangerSoft: '#472B2A',
-    zoneStrength: '#F0917E',
-    zoneStrengthSoft: '#462723',
+    zoneStrength: '#A8BAD2',
+    zoneStrengthSoft: '#283240',
     zoneEndurance: '#8FB6D6',
     zoneEnduranceSoft: '#22323F',
     overlay: 'rgba(5,6,12,0.7)',
@@ -136,6 +165,13 @@ export const palettes: Record<ColorScheme, Palette> = {
     tierBronze: '#D9A377',
     tierSilver: '#C7CBD4',
     tierGold: '#E8C766',
+    tones: {
+      primary: { surface: '#23372B', border: '#8DBFA0', text: '#C4DEC9', solid: '#8DBFA0' },
+      strength: { surface: '#283240', border: '#A8BAD2', text: '#D2DDED', solid: '#A8BAD2' },
+      endurance: { surface: '#22323F', border: '#8FB6D6', text: '#B8D5EA', solid: '#8FB6D6' },
+      mobility: { surface: '#35334D', border: '#B5B3E1', text: '#D0CFF2', solid: '#B5B3E1' },
+      accent: { surface: '#473228', border: '#D99A70', text: '#F0BE9C', solid: '#D99A70' },
+    },
   },
 };
 
@@ -316,5 +352,6 @@ export const gradients: Record<ColorScheme, GradientScale> = {
   },
 };
 
-export type ColorToken = keyof Palette;
+/** Scalar palette keys accepted by text, icon, chart, and meter primitives. */
+export type ColorToken = Exclude<keyof Palette, 'tones'>;
 export type SpacingToken = keyof typeof spacing;

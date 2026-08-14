@@ -32,10 +32,13 @@ import {
   type TrainingZone,
   type WorkoutType,
   type CardioIntent,
+  type CardioModality,
   type BodyRegion,
+  type EquipmentType,
   DEFAULT_WARMUP_PREFERENCES,
   DEFAULT_COOLDOWN_PREFERENCES,
   GROUP_TO_REGION,
+  normalizeCardioIntent,
 } from '../types';
 import { EXERCISES } from '../catalog';
 import {
@@ -49,10 +52,12 @@ import {
 import {
   type ExercisePrescription,
   type RepRange,
+  barbellFloorKg,
   formatSuggestedWeight,
   recommendLoad,
   recommendPrescription,
   snapToSensibleWeight,
+  startingWeightKgFor,
 } from './progression';
 import { ageYearsOf } from '../types';
 import { layoffState } from './layoff';
@@ -74,14 +79,16 @@ import {
 } from './selection-score';
 
 import { fatigueAreas } from './fatigue';
-import { durationCalibrationFactor, estimateBlocksSeconds, restSecondsFor, roundToNearest10 } from './timing';
+import { durationCalibrationFactor, estimateBlocksSeconds, REST, restSecondsFor, roundToNearest10 } from './timing';
 import { cardioRestRatio, cardioWorkRpe, metForExercise } from './intensity';
 import { applySupersets } from './supersets';
+import { applyAerobicsCircuit } from './cardio-circuit';
 import { mechanicOf } from './mechanic';
-import { buildWeeklyProgram } from './weekly-program';
+import { slotsFor, stableAnchorExerciseIds } from './anchors';
 import { finalizeLoad } from './load-finalization';
 import { readinessFactor, readinessSuggestsRecovery } from './readiness';
 import {
+  isoWeekStart,
   rollingSevenDayVolumeByGroup,
   volumeLandmarksFor,
   volumeStatus,
@@ -108,6 +115,21 @@ const TEST_RPE = 9;
 
 /** Resolve a planned exercise's id back to its catalog entry (for timing). */
 const resolveExercise = (id: string): Exercise | undefined => EXERCISES.find((e) => e.id === id);
+
+/** Majority-vote cardio vs. everything-else across a routine's exercises
+ * (ADR-0137) — mirrors the engine's existing Main-block binary split
+ * (cardio vs. strength-shaped), so a routine drives which branch runs. */
+function routineSkewsCardio(exerciseIds: string[]): boolean {
+  let cardio = 0;
+  let other = 0;
+  for (const id of exerciseIds) {
+    const exercise = resolveExercise(id);
+    if (!exercise) continue;
+    if (exercise.modality === 'cardio') cardio++;
+    else other++;
+  }
+  return cardio > other;
+}
 
 interface AvoidanceModel {
   /** Injury/pain-based — severe today-flags, 'avoid' constraints, explicit
@@ -200,7 +222,6 @@ export class RulesEngine implements ProgrammingEngine {
       ) * layoff.volumeFactor * systemic.volumeFactor;
 
     const workoutType = input.workoutType;
-    const weeklyProgram = buildWeeklyProgram(input);
     const excluded = new Set(input.excludedExerciseIds ?? []);
     const favorites = new Set(input.favoriteExerciseIds ?? []);
     let available = EXERCISES.filter(
@@ -214,74 +235,142 @@ export class RulesEngine implements ProgrammingEngine {
     const swaps: string[] = [];
     const emphasize = input.targeting.emphasize;
 
-    // 'stretch'/'yoga' replace the usual warmup/main/conditioning shape entirely
-    // with a single flow block — the whole session IS the mobility work, so a
-    // separate dynamic warmup would be redundant. The two use deliberately
-    // different mechanisms (ADR-0114 v3): Yoga is a muscle-agnostic sequence —
-    // one pose per stage, the whole sequence repeated together for whole
-    // natural-time rounds; Stretch rotates through a capped set of targeted
-    // muscles for whole rounds too, extending hold length before adding
-    // rounds, so a real duration (e.g. 20 min) is actually achievable.
-    if (workoutType === 'stretch' || workoutType === 'yoga') {
+    // ADR-0105 v2: explicit weekly cadence targets, if set, can override the
+    // naive weight-based pick — populated below when that fires. Resolved
+    // before the Stretch/Yoga/Barre/Pilates check below (ADR-0145) so an
+    // implicit (no explicit workoutType) mobility-dominant day can be routed
+    // into the same flow builder an explicit style choice gets.
+    let cadenceNote: string | undefined;
+    let mainModality: Modality;
+    if (workoutType === 'cardio') {
+      mainModality = 'cardio';
+    } else if (input.routine) {
+      // ADR-0137: a routine's own exercises decide which Main shape runs —
+      // the weight/cadence-derived pick would otherwise ignore an all-cardio
+      // routine on a day the athlete's goals lean strength.
+      mainModality = routineSkewsCardio(input.routine.exerciseIds) ? 'cardio' : 'strength';
+    } else {
+      // ADR-0142: the weekly plan's proposed modality is a DEFAULT for the
+      // naive pick, never a mandate — applyCadenceOverride (and, ultimately,
+      // today's actual readiness/history) can still move off it exactly like
+      // it already moves off dominantMainModality's own naive weight-based
+      // pick. Absent input.weeklyPlan (the byte-identical legacy case), this
+      // is exactly today's behavior.
+      const naiveModality = input.weeklyPlan?.modality ?? dominantMainModality(weights);
+      const cadence = applyCadenceOverride(
+        naiveModality,
+        input.goals.weeklyTargets,
+        input.history,
+        input.plannedFor,
+      );
+      mainModality = cadence.modality;
+      cadenceNote = cadence.note;
+    }
+
+    // 'stretch'/'yoga'/'barre'/'pilates' replace the usual warmup/main/
+    // conditioning shape entirely with a single flow block — the whole
+    // session IS the mobility work, so a separate dynamic warmup would be
+    // redundant. Yoga, Barre, and Pilates use the same stage-ordered
+    // mechanism (ADR-0114 v3, ADR-0404, ADR-0407) with different stage
+    // orders/hold specs — one exercise per stage, the whole sequence
+    // repeated together for whole natural-time rounds; Stretch instead
+    // rotates through a capped set of targeted muscles for whole rounds,
+    // extending hold length before adding rounds, so a real duration (e.g.
+    // 20 min) is actually achievable.
+    // ADR-0145: an implicit day (no explicit workoutType) whose goal
+    // weighting resolves to a mobility-dominant main modality is routed here
+    // too — the generic Main-block pipeline below is strength-shaped
+    // throughout (training zones, rep ranges, RPE-based loading) and has no
+    // sensible way to build a mobility-catalog session, so a mobility day can
+    // only ever come from this flow. Never reachable for a routine session
+    // (routineSkewsCardio makes mainModality strictly cardio/strength above).
+    const implicitMobilityDay = workoutType == null && mainModality === 'mobility';
+    if (workoutType === 'stretch' || workoutType === 'yoga' || workoutType === 'barre' || workoutType === 'pilates' || implicitMobilityDay) {
+      const flowType: 'stretch' | 'yoga' | 'barre' | 'pilates' =
+        workoutType === 'yoga' || workoutType === 'barre' || workoutType === 'pilates' ? workoutType : 'stretch';
       const requestedMinutes = options?.flow?.durationMin;
       // Pace (gentle → longer) and readiness fold into hold length, within each
       // hold's clinically bounded min/max — never into how many activities fit.
       const paceScale = (options?.flow?.pace === 'gentle' ? 1.2 : 1) * volumeScale;
 
       let flow: PlannedExercise[];
-      let yogaRounds: number | undefined;
-      if (workoutType === 'yoga') {
-        // A mat is the one piece of "equipment" nearly every pose lists, but
-        // it's a nice-to-have surface, not a hard requirement — an athlete
-        // without one still gets the full flow on a bare floor/carpet rather
-        // than a pool gutted down to the couple of poses that don't list it.
-        const yogaPool = EXERCISES.filter(
-          (e) => e.movementPattern === 'yoga_flow' && !excluded.has(e.id) && equipmentSatisfied(e, input.equipment, ['yoga_mat']),
+      let stageRounds: number | undefined;
+      if (flowType === 'yoga' || flowType === 'barre' || flowType === 'pilates') {
+        // A mat (yoga/pilates) or a literal barre (barre) is the one piece of
+        // "equipment" nearly every entry lists, but it's a nice-to-have
+        // surface/prop, not a hard requirement — an athlete without one
+        // still gets the full flow (bare floor/carpet, or a sturdy chair/
+        // countertop standing in for a barre) rather than a pool gutted down
+        // to the couple of entries that don't list it. ADR-0137 v2: a
+        // routine restricts the stage-ordered pick to only its own entries —
+        // buildStageFlow itself is unchanged, it just naturally produces a
+        // routine-scoped sequence (skipping any stage the routine has no
+        // entry for) from a smaller candidate pool.
+        const movementPattern = flowType === 'yoga' ? 'yoga_flow' : flowType === 'barre' ? 'barre_flow' : 'pilates_flow';
+        const optionalEquipment: EquipmentType[] = flowType === 'barre' ? ['barre'] : ['yoga_mat'];
+        const stageOrder = flowType === 'yoga' ? YOGA_STAGE_ORDER : flowType === 'barre' ? BARRE_STAGE_ORDER : PILATES_STAGE_ORDER;
+        const holdSpec = flowType === 'yoga' ? MOBILITY_HOLD.yoga : flowType === 'barre' ? MOBILITY_HOLD.barre : MOBILITY_HOLD.pilates;
+        const flowCandidates = input.routine
+          ? EXERCISES.filter((e) => input.routine!.exerciseIds.includes(e.id))
+          : EXERCISES;
+        const flowPool = flowCandidates.filter(
+          (e) => e.movementPattern === movementPattern && !excluded.has(e.id) && equipmentSatisfied(e, input.equipment, optionalEquipment),
         );
-        const built = buildYogaFlow(yogaPool, requestedMinutes, avoid, swaps, favorites, paceScale);
+        const built = buildStageFlow(flowPool, stageOrder, holdSpec, requestedMinutes, avoid, swaps, favorites, paceScale, input.routine?.exerciseIds);
         flow = built.exercises;
-        yogaRounds = built.rounds;
+        stageRounds = built.rounds;
       } else {
         // Static/dynamic stretches only (excludes 'time'-progression entries —
         // those are dynamic movement-prep drills, Warmup's territory, not
         // deliberate stretch work) — plus individual yoga poses that primary-
         // match a targeted area, used standalone rather than as part of a
         // sequence (emphasizesArea is trivially false with no targeting, so
-        // this pool stays stretch-only when nothing is targeted).
-        const stretchPool = available.filter(
+        // this pool stays stretch-only when nothing is targeted). ADR-0137 v2:
+        // a routine's own list is unconditionally in-pool (and drives the
+        // rotation directly below) rather than needing to match targeting.
+        const stretchCandidates = input.routine
+          ? available.filter((e) => input.routine!.exerciseIds.includes(e.id))
+          : available;
+        const stretchPool = stretchCandidates.filter(
           (e) =>
             (e.movementPattern === 'stretch' && (e.progression === 'hold' || e.progression === 'reps')) ||
-            (e.movementPattern === 'yoga_flow' && emphasizesArea(emphasize, e)),
+            (e.movementPattern === 'yoga_flow' && (input.routine ? true : emphasizesArea(emphasize, e))),
         );
-        flow = buildStretchFlow(stretchPool, emphasize, avoid, swaps, favorites, paceScale, requestedMinutes);
+        flow = buildStretchFlow(stretchPool, emphasize, avoid, swaps, favorites, paceScale, requestedMinutes, input.routine?.exerciseIds);
       }
 
+      const flowLabel = flowType === 'yoga' ? 'Yoga flow' : flowType === 'barre' ? 'Barre flow' : flowType === 'pilates' ? 'Pilates flow' : 'Stretch flow';
       const blocks: SessionBlock[] = flow.length
         ? [
             {
               modality: 'mobility',
-              label: workoutType === 'yoga' ? 'Yoga flow' : 'Stretch flow',
+              label: flowLabel,
               exercises: flow,
             },
           ]
         : [];
       // No fitDurationToBudget pass here, deliberately: both builders above
       // already derive their structure directly from the time budget using
-      // fixed, clinically/naturally-correct hold lengths — round count (yoga)
-      // or targeted-area count (stretch) is the only lever. Running the generic
-      // budget-fitter afterward would compress holds toward its 20s filler
-      // floor, undoing exactly that.
+      // fixed, clinically/naturally-correct hold lengths — round count
+      // (yoga/barre) or targeted-area count (stretch) is the only lever.
+      // Running the generic budget-fitter afterward would compress holds
+      // toward its 20s filler floor, undoing exactly that.
       annotateRest(blocks);
       roundPlanTimes(blocks);
+
+      const flowRationale = buildFlowRationale(flowType, emphasize, avoid, volumeScale, flow.length > 0, stageRounds);
 
       return {
         id: `plan-${input.plannedFor}`,
         plannedFor: input.plannedFor,
         estimatedDurationMin: Math.round(estimateDuration(blocks) * durationCalibrationFactor(input.history)),
-        rationale: buildFlowRationale(workoutType, emphasize, avoid, volumeScale, flow.length > 0, yogaRounds),
+        // ADR-0137 v2: same "which routine drove this" lead-in the strength/
+        // cardio path already uses.
+        rationale: input.routine ? `Following your "${input.routine.name}" routine. ${flowRationale}` : flowRationale,
         adjustments: swaps.length ? swaps : undefined,
         workoutType,
         workoutOptions: options,
+        routineId: input.routine?.id,
         blocks,
       };
     }
@@ -326,22 +415,12 @@ export class RulesEngine implements ProgrammingEngine {
     // read by fitDurationToBudget below to protect the region spread from
     // being trimmed all the way down to the generic 2-exercise floor.
     let mainIsFullBody = false;
-    // ADR-0105 v2: explicit weekly cadence targets, if set, can override the
-    // naive weight-based pick — populated below when that fires.
-    let cadenceNote: string | undefined;
-    let mainModality: Modality;
-    if (workoutType === 'cardio') {
-      mainModality = 'cardio';
-    } else {
-      const cadence = applyCadenceOverride(
-        dominantMainModality(weights),
-        input.goals.weeklyTargets,
-        input.history,
-        input.plannedFor,
-      );
-      mainModality = cadence.modality;
-      cadenceNote = cadence.note;
-    }
+    // ADR-0137: how many of a routine's exercises actually survived into Main
+    // (after equipment/safety/volume-ceiling trimming) — read by
+    // fitDurationToBudget below so a duration budget can still compress sets
+    // or drop non-routine filler, but never silently drops a routine
+    // exercise the athlete deliberately chose to run today.
+    let routineMainExerciseCount: number | undefined;
     // A skipped Conditioning block's seconds fold into Main the same way a
     // skipped Warmup/Cool down do — only relevant when Conditioning would
     // otherwise have been built at all (step 3 below).
@@ -349,25 +428,114 @@ export class RulesEngine implements ProgrammingEngine {
     const freedSeconds =
       skippedFixedBlockSeconds + (conditioningWouldApply && !includeConditioning ? baseRx.cardioSeconds + 30 : 0);
     if (mainModality === 'cardio') {
-      const cardioIntent: CardioIntent = options?.cardioIntent ?? 'base';
-      const baseCount = workoutType === 'cardio' && cardioIntent !== 'base' ? 1 : workoutType === 'cardio' ? cardioFocusCount(experience, targetDurationMin) : 1;
+      // ADR-0142: an explicit workoutOptions.cardioIntent always wins; the
+      // weekly plan's proposed format is only a default for a day the
+      // athlete didn't pick one, same "default, not a mandate" treatment as
+      // mainModality above (harmless no-op for a routine session, whose own
+      // effectiveCardioIntent already overrides this per-exercise).
+      const cardioIntent: CardioIntent = normalizeCardioIntent(options?.cardioIntent ?? input.weeklyPlan?.cardioIntent);
+      // ADR-0137: a routine fixes WHICH cardio exercises Main draws from —
+      // equipment/exclusions are already applied via `available`; a hard-
+      // safety/fatigue conflict is skipped by `pick()` itself (never
+      // substituted with something outside the routine).
+      const routinePool = input.routine
+        ? available.filter((e) => e.modality === 'cardio' && input.routine!.exerciseIds.includes(e.id))
+        : undefined;
+      // ADR-0143: count is driven by the session's declared cardioIntent
+      // alone, never by whether `workoutType` happened to be explicitly
+      // 'cardio' — an implicit cardio day (mainModality derived purely from
+      // goal weights) deserves the same exercise-count scaling an explicit
+      // choice gets, instead of silently collapsing to a single exercise.
+      const baseCount = routinePool
+        ? routinePool.length
+        : cardioIntent === 'circuit'
+          ? aerobicsStationCount(experience, targetDurationMin)
+          : cardioIntent === 'interval'
+            ? intervalStationCount(experience, targetDurationMin)
+            : cardioFocusCount(experience, targetDurationMin);
       // A single cardio Main exercise's estimate — used to convert freed seconds
       // from a skipped block into additional exercises (approximate for intervals).
       const perExerciseSeconds = rx.cardioSeconds + 30;
-      const count = baseCount + (freedSeconds > 0 ? Math.round(freedSeconds / perExerciseSeconds) : 0);
-      const pool = workoutType === 'cardio'
-        ? available.filter((exercise) => cardioIntent === 'base' || cardioIntent === 'benchmark'
+      let count = routinePool ? routinePool.length : baseCount + (freedSeconds > 0 ? Math.round(freedSeconds / perExerciseSeconds) : 0);
+      const matchesIntent = (exercise: Exercise) => cardioIntent === 'circuit'
+        ? exercise.movementPattern === 'aerobics'
+        : cardioIntent === 'basic'
           ? exercise.movementPattern === 'steady_cardio'
-          : exercise.movementPattern === 'interval')
-        : available;
-      let main = pick(pool, 'cardio', count, emphasize, avoid, swaps, { requireDistinctPattern: workoutType !== 'cardio', history: input.history, now: input.plannedFor, favorites, experience });
+          : exercise.movementPattern === 'interval';
+      // ADR-0143: same reasoning as baseCount above — the pattern filter that
+      // keeps a slot's candidates coherent with the declared shape must apply
+      // whenever Main is cardio, not only when workoutType was explicitly
+      // 'cardio'. Without this, an implicit cardio day's single slot was
+      // scored across the ENTIRE cardio pool (steady/interval/aerobics mixed)
+      // with nothing steering it toward the shape that intent implies.
+      const intentPool = available.filter(matchesIntent);
+      // An intent filter that excludes every candidate (e.g. no
+      // steady_cardio-tagged exercise survived equipment/avoidance
+      // filtering) must never produce an empty Main block — fall back to the
+      // unfiltered cardio pool rather than the requested shape.
+      const basePool = intentPool.length > 0 ? intentPool : available;
+      if (!routinePool && intentPool.length === 0) {
+        swaps.push(`No ${cardioIntent} cardio exercises available today — using the closest match instead`);
+      }
+      // ADR-0140: which cardio movement families (running, combat, ...) Main
+      // may draw from today. Empty/unset = no preference (prior behavior).
+      const cardioModalities = options?.cardioModalities?.length ? options.cardioModalities : undefined;
+      let pool =
+        routinePool ??
+        (cardioModalities
+          ? basePool.filter((exercise) => exercise.cardioModality && cardioModalities.includes(exercise.cardioModality))
+          : basePool);
+      if (!routinePool && cardioModalities && pool.length === 0) {
+        // The chosen cardio type has no exercises matching today's format
+        // (e.g. Aerobics format + Loaded cardio type) — drop the preference
+        // rather than generate an empty Main block (CLAUDE.md §7: safety and
+        // a complete session always win over honoring a preference exactly).
+        pool = basePool;
+        swaps.push("Cardio type preference skipped — no matching exercises for today's format");
+      }
+      // Running/walking and cardio-machine intervals (sprint/recovery cycles
+      // on one treadmill or track) are naturally single-exercise — unlike a
+      // mixed bodyweight/aerobics interval session, there's no real "second
+      // station" to rotate to without switching equipment mid-interval. Only
+      // overrides when EVERY matched candidate is single-focus; a pool mixing
+      // running with other interval work keeps its normal scaled count.
+      if (!routinePool && cardioIntent === 'interval' && isSingleFocusCardioPool(pool)) {
+        count = 1;
+      }
+      let main = pick(pool, 'cardio', count, emphasize, avoid, swaps, {
+        // ADR-0143: the pool is now always intent-filtered (basePool above),
+        // whether cardio was explicit or implicit — every candidate already
+        // shares one movementPattern by construction of that filter, so
+        // requiring pattern-distinct picks would make it impossible to
+        // select more than one exercise. This was already correctly false
+        // for explicit cardio; it must be false for implicit cardio too, now
+        // that both paths share the same intent-filtered pool.
+        requireDistinctPattern: false,
+        history: input.history,
+        now: input.plannedFor,
+        favorites,
+        experience,
+        profile: routinePool ? 'anchor' : 'neutral',
+        anchorCount: routinePool ? routinePool.length : 0,
+      });
       // The candidate pool (e.g. distinct cardio patterns) can run out before
       // `count` is met — prefer another distinct cardio exercise (even one
       // repeating a movement pattern) over stretching a single bout very long.
-      if (main.length < count) {
+      // Never applies to a routine: a shortfall there means some of the
+      // routine's own exercises were unsafe today, not that more variety is
+      // needed — backfilling from outside the routine would silently change it.
+      if (!routinePool && main.length < count) {
         const remainingPool = pool.filter((e) => e.modality === 'cardio' && !main.some((chosen) => chosen.id === e.id));
         const more = pick(remainingPool, 'cardio', count - main.length, emphasize, avoid, swaps, { requireDistinctPattern: false, history: input.history, now: input.plannedFor, favorites, experience });
         main = [...main, ...more];
+      }
+      if (routinePool) {
+        const missingEquipment = input.routine!.exerciseIds.filter(
+          (id) => resolveExercise(id)?.modality === 'cardio' && !routinePool.some((e) => e.id === id),
+        ).length;
+        if (missingEquipment > 0) {
+          swaps.push(`Routine "${input.routine!.name}": ${missingEquipment} exercise${missingEquipment === 1 ? '' : 's'} skipped — missing equipment today`);
+        }
       }
       // Only once the pool is truly exhausted does leftover time stretch the
       // exercises already picked — capped so a single bout doesn't balloon
@@ -384,16 +552,32 @@ export class RulesEngine implements ProgrammingEngine {
             }
           : rx;
       mainAreas = Array.from(new Set(main.flatMap((e) => e.primaryAreas)));
-      blocks.push({
-        modality: 'cardio',
-        label: 'Main',
-        exercises: main.map((e) => toPlanned(e, cardioSets(e, rxForMain, cardioIntent, recommendedCardioWeightKg(e, input), input.history, input.trainingIntent))),
-      });
+      const cardioStationCount = cardioIntent === 'circuit' ? main.length : 1;
+      const mainExercises = main.map((e) =>
+        toPlanned(
+          e,
+          cardioSets(
+            e,
+            rxForMain,
+            effectiveCardioIntent(e, cardioIntent, Boolean(routinePool)),
+            recommendedCardioWeightKg(e, input),
+            input.history,
+            input.trainingIntent,
+            cardioStationCount,
+            volumeScale,
+          ),
+        ),
+      );
+      if (cardioIntent === 'circuit') applyAerobicsCircuit(mainExercises);
+      blocks.push({ modality: 'cardio', label: 'Main', exercises: mainExercises });
       main.forEach((e) => sessionChosenIds.add(e.id));
     } else {
       const isBodybuilding = workoutType === 'bodybuilding';
       const isSculpting = workoutType === 'sculpting';
-      const fullBody = isFullBodyTargeting(emphasize);
+      // ADR-0137: a routine already fixes exactly which exercises to run —
+      // the full-body region spread is a selection strategy for when the
+      // engine is choosing, which it isn't here.
+      const fullBody = !input.routine && isFullBodyTargeting(emphasize);
       mainIsFullBody = fullBody;
       const baseCount = isBodybuilding
         ? bodybuildingCount(experience, targetDurationMin)
@@ -404,13 +588,24 @@ export class RulesEngine implements ProgrammingEngine {
       // values each at a flat 45+30=75s — matching that exactly here keeps the
       // extra exercises we add a reliable (not approximate) use of freed time.
       const perExerciseSeconds = rx.mainSets * 75;
-      const count = baseCount + (freedSeconds > 0 ? Math.round(freedSeconds / perExerciseSeconds) : 0);
+      // ADR-0137: a routine fixes WHICH exercises Main draws from —
+      // equipment/exclusions are already applied via `available`; a hard-
+      // safety/fatigue conflict is skipped by `pick()` itself (never
+      // substituted with something outside the routine).
+      const routinePool = input.routine
+        ? available.filter((e) => e.modality === 'strength' && input.routine!.exerciseIds.includes(e.id))
+        : undefined;
+      const count = routinePool
+        ? routinePool.length
+        : baseCount + (freedSeconds > 0 ? Math.round(freedSeconds / perExerciseSeconds) : 0);
       // ADR-0124: "Full Body" targeting forces the picks to span upper/lower/
       // core instead of letting normal emphasis-driven scoring concentrate
       // on 1-2 groups — independent of workoutType (works for Bodybuilding
       // or Balanced too, not just Sculpting).
       const emphasisMode = input.targeting.emphasisMode ?? 'balanced';
-      const quotaTarget = fullBody ? 0 : emphasisQuotaFor(count, emphasize, emphasisMode);
+      // No emphasis-quota backfill for a routine — the pool is already fixed
+      // by the athlete, not something to top up by muscle-group emphasis.
+      const quotaTarget = routinePool || fullBody ? 0 : emphasisQuotaFor(count, emphasize, emphasisMode);
       // ADR-0134: shared across every selection pass below, so the family
       // redundancy penalty accumulates over the whole Main block instead of
       // resetting each time a sub-pool is picked.
@@ -425,9 +620,10 @@ export class RulesEngine implements ProgrammingEngine {
         (e) => e.modality === 'strength' && emphasizesArea(emphasize, e),
       );
       const mainPool =
-        emphasisMode === 'priority' && emphasize.length && !fullBody && emphasisOnlyPool.length
+        routinePool ??
+        (emphasisMode === 'priority' && emphasize.length && !fullBody && emphasisOnlyPool.length
           ? emphasisOnlyPool
-          : available;
+          : available);
       let main = fullBody
         ? pickFullBodySpread(available, count, emphasize, avoid, swaps, weeklyVolume, input.history, favorites, input.plannedFor, usedFamilies, experience)
         : pick(mainPool, 'strength', count, emphasize, avoid, swaps, {
@@ -437,9 +633,21 @@ export class RulesEngine implements ProgrammingEngine {
             favorites,
             experience,
             seedUsedFamilies: usedFamilies,
-            anchorCount: MAIN_ANCHOR_COUNT,
-            profile: 'accessory',
+            // A routine repeats every time it's run — damp novelty/recency
+            // scoring for every one of its exercises, same lean as the
+            // session's stable anchor lifts (ADR-0126).
+            anchorCount: routinePool ? routinePool.length : MAIN_ANCHOR_COUNT,
+            profile: routinePool ? 'anchor' : 'accessory',
+            requireDistinctPattern: !routinePool,
           });
+      if (routinePool) {
+        const missingEquipment = input.routine!.exerciseIds.filter(
+          (id) => resolveExercise(id)?.modality === 'strength' && !routinePool.some((e) => e.id === id),
+        ).length;
+        if (missingEquipment > 0) {
+          swaps.push(`Routine "${input.routine!.name}": ${missingEquipment} exercise${missingEquipment === 1 ? '' : 's'} skipped — missing equipment today`);
+        }
+      }
 
       // ADR-0126: emphasis is a guaranteed minimum share of the block, not just
       // the heaviest ranking term. Scoring alone could still deliver a session
@@ -493,7 +701,12 @@ export class RulesEngine implements ProgrammingEngine {
       // groups the athlete had explicitly declined, and said nothing. When the
       // emphasized pool is genuinely exhausted, a shorter session is the honest
       // answer, and the rationale says so.
-      if (main.length < count) {
+      //
+      // ADR-0137: never applies to a routine — a shortfall there means some of
+      // the routine's own exercises were unsafe today, not that more variety
+      // is needed; backfilling from outside the routine would silently
+      // change a list the athlete deliberately curated.
+      if (!routinePool && main.length < count) {
         const remainingPool = available.filter(
           (e) =>
             e.modality === 'strength' &&
@@ -506,7 +719,7 @@ export class RulesEngine implements ProgrammingEngine {
       // Priority mode fills only with emphasized work, so it can legitimately end
       // up short of `count`. Surfaced in the rationale rather than silently
       // padded with unrequested muscle groups.
-      priorityBlockShortfall = emphasisMode === 'priority' && emphasize.length ? Math.max(0, count - main.length) : 0;
+      priorityBlockShortfall = !routinePool && emphasisMode === 'priority' && emphasize.length ? Math.max(0, count - main.length) : 0;
       // ADR-0126: heaviest compound work first, while the athlete is fresh;
       // isolation last. Selection order was previously whatever ranking
       // produced, so a triceps extension could precede a squat.
@@ -567,6 +780,15 @@ export class RulesEngine implements ProgrammingEngine {
           isMaxDayReady(input, avoid),
       });
       zonePlanToday = zonePlan;
+      // ADR-0142: stable anchors for THIS modality/week-position — replaces
+      // the retired weekly-program.ts's separately-recomputed hypothetical
+      // schedule, which could (and did) disagree with the modality actually
+      // being trained today.
+      const weekStart = isoWeekStart(input.plannedFor);
+      const completedThisWeek = input.history.filter(
+        (record) => record.completedAt != null && record.completedAt >= weekStart && record.completedAt <= input.plannedFor,
+      ).length;
+      const anchorExerciseIds = stableAnchorExerciseIds(input, mainModality, slotsFor(mainModality, completedThisWeek));
       // Ordered only now that zones are known — a test has to lead the session,
       // which the plain compound-first ordering cannot express on its own.
       main = orderForSession(
@@ -574,7 +796,7 @@ export class RulesEngine implements ProgrammingEngine {
         (id) => zonePlan.get(id)?.isTest ?? false,
         (exercise) =>
           emphasizesArea(emphasize, exercise) ||
-          weeklyProgram.today.anchorExerciseIds.includes(exercise.id),
+          anchorExerciseIds.includes(exercise.id),
       );
       // ADR-0134: share the day's ceiling across the block BEFORE any sets are
       // assigned, in the priority order just established. Doing this per-exercise
@@ -602,6 +824,9 @@ export class RulesEngine implements ProgrammingEngine {
       const cappedGroupsToday = new Set<MuscleGroup>(dailyAllocation.boundGroups);
       const cappedExerciseCount = dailyAllocation.dropped.length;
       main = main.filter((e) => (dailyAllocation.allowance.get(e.id) ?? 0) > 0);
+      // ADR-0137: whatever the routine actually delivered here (post safety/
+      // volume-ceiling trimming) is the floor fitDurationToBudget must respect.
+      if (input.routine) routineMainExerciseCount = main.length;
       blocks.push({
         modality: 'strength',
         label: 'Main',
@@ -648,8 +873,16 @@ export class RulesEngine implements ProgrammingEngine {
                 })
               : undefined;
           const finalizedKg = final?.weightKg ?? rec.weightKg;
+          // ADR-0144: a barbell's total (bar+plates) may never be prescribed
+          // below the empty bar, even after finalizeLoad's readiness/fatigue
+          // reduction. Deliberately still `undefined` (not a starting guess)
+          // when there's no real recommendation yet — addCompoundRampSets
+          // below must never ramp up TO a made-up number; the starting-weight
+          // fallback is applied afterward, once ramp-set building is done
+          // (see `finalSets`).
+          const floorKg = barbellFloorKg(e);
           const weightKg = finalizedKg != null
-            ? snapToSensibleWeight(finalizedKg, unit, available)
+            ? snapToSensibleWeight(finalizedKg, unit, available, floorKg)
             : finalizedKg;
           // Once fatigue/readiness or the athlete's actual rack changes the
           // final load, the preliminary progression note is no longer the
@@ -699,6 +932,20 @@ export class RulesEngine implements ProgrammingEngine {
             );
           }
           const sets = capped ? trimToWorkingSets(prescribedSets, allowedWorkSets) : prescribedSets;
+          // ADR-0144: no history yet for this exercise — give it a real,
+          // equipment-aware STARTING suggestion instead of leaving weightKg
+          // blank (which the tracker showed as a confusing em-dash that read
+          // as "0"). Applied here, after strengthSets/ramp-set building, so a
+          // made-up starting number is never itself fed into
+          // addCompoundRampSets as if it were an established load to ramp
+          // toward. No-op for anything that isn't a fresh loaded exercise.
+          const finalSets = finalizedKg == null && (e.progression === 'weight' || e.loadsWeight)
+            ? sets.map((set) =>
+                set.weightKg == null && !set.isWarmup && !set.isCalibration
+                  ? { ...set, weightKg: startingWeightKgFor(e, available, unit) }
+                  : set,
+              )
+            : sets;
           const note = joinNotes([
             fullBody
               ? "part of today's full-body spread"
@@ -724,7 +971,7 @@ export class RulesEngine implements ProgrammingEngine {
           // `capped` counts as de-loaded: the duration balancer must never pad a
           // ceiling-trimmed lift back up (CLAUDE.md §7 — nothing overrides a
           // safety decision).
-          return [toPlanned(e, sets, note, isEmphasized, deloaded || pushedThroughFatigue || capped, assignment.zone)];
+          return [toPlanned(e, finalSets, note, isEmphasized, deloaded || pushedThroughFatigue || capped, assignment.zone)];
         }),
       });
       // Typed supersets/trisets (ADR-0121) — deliberate, explainable grouping.
@@ -779,6 +1026,14 @@ export class RulesEngine implements ProgrammingEngine {
     const dominantFocusAreas: BodyArea[] =
       emphasize.length && !isFullBodyTargeting(emphasize) ? emphasize : mainAreaBodyAreas;
 
+    // ADR-0137: a routine's own mobility-modality picks — Main only ever
+    // drew from whichever modality it was built around (see routineMainExerciseCount
+    // above), so anything else the athlete added to the routine needs a
+    // different home. Warmup/Cool down below treat these as priority picks.
+    const routineMobilityIds = input.routine
+      ? input.routine.exerciseIds.filter((id) => resolveExercise(id)?.modality === 'mobility')
+      : [];
+
     // 1) Warmup — low stakes, but optional (session settings). Time/count are a
     // standing profile preference (ADR-0111); focus blends that preference with
     // today's dominant focus, so e.g. a leg day warms up legs even with no
@@ -801,6 +1056,7 @@ export class RulesEngine implements ProgrammingEngine {
         favorites,
         experience,
         sessionChosenIds,
+        routineMobilityIds,
       );
       warmup.forEach((e) => sessionChosenIds.add(e.id));
       if (warmup.length) {
@@ -826,12 +1082,49 @@ export class RulesEngine implements ProgrammingEngine {
     // 3) Conditioning — when cardio/general matter, it isn't already Main, and
     // the athlete hasn't opted out for today.
     if (includeConditioning && conditioningWouldApply) {
-      const cond = pick(available, 'cardio', 1, emphasize, avoid, swaps, { history: input.history, now: input.plannedFor, favorites, experience, seedChosenIds: sessionChosenIds });
+      // ADR-0137: a routine's own cardio pick (e.g. a treadmill finisher
+      // tacked onto a lifting day) not already claimed by Main — same
+      // priority-not-just-bias treatment as routineMobilityIds above, still
+      // behind the hard-safety/fatigue floor.
+      const routineConditioningPick = input.routine
+        ? available.find(
+            (e) =>
+              e.modality === 'cardio' &&
+              input.routine!.exerciseIds.includes(e.id) &&
+              !sessionChosenIds.has(e.id) &&
+              !anyAreaMatches(avoid.hardSafety, e) &&
+              !anyAreaMatches(avoid.hardFatigue, e),
+          )
+        : undefined;
+      // ADR-0143: Conditioning is a finisher tacked onto a lifting day, not a
+      // dedicated cardio session — it has no format control of its own, so
+      // it always draws a steady-state pick rather than risking an
+      // interval/aerobics-tagged exercise's full multi-round structure as an
+      // unplanned afterthought. Falls back to the unfiltered cardio pool if
+      // nothing steady-state survived equipment/avoidance filtering.
+      const conditioningPool = available.filter((e) => e.modality === 'cardio' && e.movementPattern === 'steady_cardio');
+      const cond = routineConditioningPick
+        ? [routineConditioningPick]
+        : pick(conditioningPool.length > 0 ? conditioningPool : available, 'cardio', 1, emphasize, avoid, swaps, { history: input.history, now: input.plannedFor, favorites, experience, seedChosenIds: sessionChosenIds });
       if (cond.length) {
         blocks.push({
           modality: 'cardio',
           label: 'Conditioning',
-          exercises: cond.map((e) => toPlanned(e, cardioSets(e, rx, undefined, recommendedCardioWeightKg(e, input), input.history, input.trainingIntent))),
+          exercises: cond.map((e) =>
+            toPlanned(
+              e,
+              cardioSets(
+                e,
+                rx,
+                effectiveCardioIntent(e, 'basic', Boolean(routineConditioningPick)),
+                recommendedCardioWeightKg(e, input),
+                input.history,
+                input.trainingIntent,
+                1,
+                volumeScale,
+              ),
+            ),
+          ),
         });
         cond.forEach((e) => sessionChosenIds.add(e.id));
       }
@@ -868,6 +1161,7 @@ export class RulesEngine implements ProgrammingEngine {
         favorites,
         experience,
         sessionChosenIds,
+        routineMobilityIds,
       );
       if (cooldown.length) {
         const actualPlan = repeatMobilityForSelection(cooldownTotalSeconds, cooldown.length, cooldownPlan, MOBILITY_HOLD.cooldown);
@@ -892,7 +1186,9 @@ export class RulesEngine implements ProgrammingEngine {
     fitDurationToBudget(
       blocks,
       targetDurationMin,
-      mainIsFullBody ? MIN_MAIN_EXERCISES_FULL_BODY : MIN_MAIN_EXERCISES,
+      routineMainExerciseCount != null
+        ? Math.max(MIN_MAIN_EXERCISES, routineMainExerciseCount)
+        : mainIsFullBody ? MIN_MAIN_EXERCISES_FULL_BODY : MIN_MAIN_EXERCISES,
       dailyCapCeiling || undefined,
     );
     // Invariant, system-wide: a superset/triset needs ≥2 members. Trimming above
@@ -902,36 +1198,41 @@ export class RulesEngine implements ProgrammingEngine {
     annotateRest(blocks);
     roundPlanTimes(blocks);
 
+    const rationale = buildRationale(
+      input,
+      mainModality,
+      emphasize,
+      avoid,
+      volumeScale,
+      warmupPrefs,
+      cooldownPrefs,
+      intent,
+      workoutType,
+      overMrvGroupsToday,
+      cadenceNote,
+      pushedThroughFatigueGroupsToday,
+      layoff.note,
+      emphasisShortfall,
+      systemic.note,
+      zoneTestNote(zonePlanToday),
+      dailyCapGroups,
+      dailyCapCeiling,
+      dailyCapDroppedExercises,
+      priorityBlockShortfall,
+    );
+
     return {
       id: `plan-${input.plannedFor}`,
       plannedFor: input.plannedFor,
       estimatedDurationMin: Math.round(estimateDuration(blocks) * durationCalibrationFactor(input.history)),
-      rationale: buildRationale(
-        input,
-        mainModality,
-        emphasize,
-        avoid,
-        volumeScale,
-        warmupPrefs,
-        cooldownPrefs,
-        intent,
-        workoutType,
-        overMrvGroupsToday,
-        cadenceNote,
-        pushedThroughFatigueGroupsToday,
-        layoff.note,
-        emphasisShortfall,
-        systemic.note,
-        zoneTestNote(zonePlanToday),
-        dailyCapGroups,
-        dailyCapCeiling,
-        dailyCapDroppedExercises,
-        priorityBlockShortfall,
-      ),
+      // ADR-0137: leads with which routine drove today's Main block, ahead
+      // of the usual generated-session explanation.
+      rationale: input.routine ? `Following your "${input.routine.name}" routine. ${rationale}` : rationale,
       adjustments: swaps.length ? swaps : undefined,
       readiness: input.readiness,
       workoutType,
       workoutOptions: options,
+      routineId: input.routine?.id,
       blocks,
     };
   }
@@ -1000,6 +1301,12 @@ export class RulesEngine implements ProgrammingEngine {
         available: availableWeights,
         zone,
       });
+      // ADR-0144: the replaced exercise's own history has no bearing on this
+      // one (methodology: "the replaced exercise's weight is never
+      // transferred"), so a replacement with no history of its own gets a
+      // real starting suggestion here too, rather than silently landing with
+      // no weightKg at all.
+      const recWeightKg = rec.weightKg ?? startingWeightKgFor(replacement, availableWeights, unit);
       const originalWorkSets = Math.max(1, workingSetCount(plannedOriginal));
       // ADR-0134: clamp the INCOMING exercise only. A swap must never re-plan the
       // session — every other exercise stays exactly as it is — so the ceiling is
@@ -1036,13 +1343,13 @@ export class RulesEngine implements ProgrammingEngine {
           return {
             durationSec: rec.durationSec ?? oldDuration ?? 30,
             targetRpe,
-            ...(replacement.loadsWeight && rec.weightKg != null ? { weightKg: rec.weightKg } : {}),
+            ...(replacement.loadsWeight && recWeightKg != null ? { weightKg: recWeightKg } : {}),
           };
         }
         return {
           reps: rec.reps ?? rangeCentreOf(range),
           targetRpe,
-          ...(replacement.progression === 'weight' && rec.weightKg != null ? { weightKg: rec.weightKg } : {}),
+          ...(replacement.progression === 'weight' && recWeightKg != null ? { weightKg: recWeightKg } : {}),
         };
       });
       const blocks = plan.blocks.map((b) => ({
@@ -1282,7 +1589,7 @@ interface PickOptions {
  */
 function pick(
   pool: Exercise[],
-  modality: Modality,
+  modality: Modality | 'any',
   count: number,
   emphasize: BodyArea[],
   avoid: AvoidanceModel,
@@ -1303,7 +1610,7 @@ function pick(
     profile = 'neutral',
   } = options;
 
-  const candidates = pool.filter((e) => e.modality === modality && !seedChosenIds.has(e.id));
+  const candidates = pool.filter((e) => (modality === 'any' || e.modality === modality) && !seedChosenIds.has(e.id));
   const { lastPerformedAt, withProgressionBasis, enjoymentByExercise } = buildHistoryIndex(history);
 
   const chosen: Exercise[] = [];
@@ -1551,10 +1858,32 @@ function pickFocusedMobility(
   favorites: Set<string>,
   experience: ExperienceLevel,
   excludeIds: Set<string> = new Set(),
+  /**
+   * ADR-0137: a routine's own mobility exercises (e.g. a lat stretch
+   * deliberately added to a "pull day") — guaranteed a slot here rather than
+   * merely biased toward one, same as Main draws only from a routine's
+   * matching-modality picks. Without this, any routine exercise whose
+   * modality doesn't match Main's (mobility, when Main is strength/cardio)
+   * would be silently dropped from the whole session. Still subject to the
+   * same hard-safety/fatigue floor as every other pick.
+   */
+  priorityIds: string[] = [],
 ): Exercise[] {
   const chosenIds = new Set<string>(excludeIds);
   const usedPatterns = new Set<string>();
-  const dominant = pick(pool, 'mobility', count, combineFocusAreas(profileFocus, dominantAreas), avoid, swaps, {
+  const priority: Exercise[] = [];
+  for (const id of priorityIds) {
+    if (priority.length >= count) break;
+    if (chosenIds.has(id)) continue;
+    const exercise = pool.find((e) => e.id === id);
+    if (!exercise) continue;
+    if (anyAreaMatches(avoid.hardSafety, exercise) || anyAreaMatches(avoid.hardFatigue, exercise)) continue;
+    priority.push(exercise);
+    chosenIds.add(exercise.id);
+    usedPatterns.add(exercise.movementPattern);
+  }
+  if (priority.length >= count) return priority;
+  const dominant = pick(pool, 'mobility', count - priority.length, combineFocusAreas(profileFocus, dominantAreas), avoid, swaps, {
     requireDistinctPattern: false,
     favorites,
     experience,
@@ -1562,15 +1891,15 @@ function pickFocusedMobility(
     seedUsedPatterns: usedPatterns,
   });
   for (const e of dominant) { chosenIds.add(e.id); usedPatterns.add(e.movementPattern); }
-  if (dominant.length >= count) return dominant;
-  const more = pick(pool, 'mobility', count - dominant.length, combineFocusAreas(profileFocus, fullAreas), avoid, swaps, {
+  if (priority.length + dominant.length >= count) return [...priority, ...dominant];
+  const more = pick(pool, 'mobility', count - priority.length - dominant.length, combineFocusAreas(profileFocus, fullAreas), avoid, swaps, {
     requireDistinctPattern: false,
     favorites,
     experience,
     seedChosenIds: chosenIds,
     seedUsedPatterns: usedPatterns,
   });
-  return [...dominant, ...more];
+  return [...priority, ...dominant, ...more];
 }
 
 /** ADR-0104: primary groups already at/above this week's maximum-recoverable volume. */
@@ -1584,7 +1913,7 @@ function exerciseOverMrv(
 
 // ADR-0114 v3: Yoga's stage order — an opening pose, muscle-agnostic work
 // through the middle stages, closing on a restorative pose. The whole
-// sequence repeats together (uniform round count, see buildYogaFlow). Stretch
+// sequence repeats together (uniform round count, see buildStageFlow). Stretch
 // doesn't use stage ordering at all (it's target-driven — see buildStretchFlow).
 const YOGA_STAGE_ORDER: FlowStage[] = [
   'center',
@@ -1596,52 +1925,117 @@ const YOGA_STAGE_ORDER: FlowStage[] = [
   'cooldown',
 ];
 
+// ADR-0404: Barre's stage order — a real class shape (open, warm up, thigh
+// work at the barre, seat/glute work, core, arms, closing stretch), the same
+// "one exercise per ordered stage" mechanism as Yoga, just with barre-specific
+// middle stages instead of yoga's balance/backbend/seated.
+const BARRE_STAGE_ORDER: FlowStage[] = [
+  'center',
+  'warmup',
+  'thighs',
+  'seat',
+  'core',
+  'arms',
+  'cooldown',
+];
+
+// ADR-0407: Pilates' stage order — a mat-Pilates class shape (open, warm up,
+// core-anchored control work, spinal articulation, standing integration,
+// closing stretch). Reuses the existing stage vocabulary entirely (no new
+// FlowStage values) — 'backbend' stands in for Pilates' spinal-articulation
+// work (roll-ups, swimming, extension) and 'standing' for its
+// standing/balance integration, rather than adding Pilates-specific stages
+// before real content has been authored to justify them.
+const PILATES_STAGE_ORDER: FlowStage[] = [
+  'center',
+  'warmup',
+  'core',
+  'backbend',
+  'standing',
+  'cooldown',
+];
+
 function stageOf(ex: Exercise): FlowStage {
   return ex.flowStage ?? 'standing';
 }
 
-interface YogaFlow {
+interface StageFlow {
   exercises: PlannedExercise[];
-  /** Number of times the whole sequence repeats (0 if no pose was found). */
+  /** Number of times the whole sequence repeats (0 if no exercise was found). */
   rounds: number;
 }
 
 /**
- * Yoga (ADR-0114 v3): one pose per stage across the full `YOGA_STAGE_ORDER`
- * (a real opening → flow → closing sequence, not picked arbitrarily), with
- * the WHOLE sequence repeated together for as many WHOLE rounds as the time
- * budget naturally allows. Every pose gets the same round count — no
- * mismatched "the last pose only gets 1 set while the rest get 2" (a real
- * bug report from v2's opening/closing-stay-singular design). Hold length is
- * fixed within its clinically safe range (MOBILITY_HOLD.yoga) — round count
+ * Yoga/Barre (ADR-0114 v3, ADR-0404): one exercise per stage across the full
+ * `stageOrder` (a real opening → flow → closing sequence, not picked
+ * arbitrarily), with the WHOLE sequence repeated together for as many WHOLE
+ * rounds as the time budget naturally allows. Every exercise gets the same
+ * round count — no mismatched "the last one only gets 1 set while the rest
+ * get 2" (a real bug report from yoga v2's opening/closing-stay-singular
+ * design). Hold length is fixed within `holdSpec`'s safe range — round count
  * is the only lever, so the sequence's natural duration is never compressed
  * to hit a target time (a 30-min sequence run at a 30-min budget yields
  * exactly one round, not two fragmented halves). `avoid` fully applies
  * (including targeting overriding severe fatigue, Part 1); `emphasize`
- * deliberately does not bias pose selection — Yoga stays muscle-agnostic by
- * design.
+ * deliberately does not bias selection — both Yoga and Barre stay
+ * muscle-agnostic-by-stage by design (the stage itself is what targets a
+ * region, not a per-athlete emphasis bias).
  */
-function buildYogaFlow(
+function buildStageFlow(
   pool: Exercise[],
+  stageOrder: FlowStage[],
+  holdSpec: { hold: number; min: number; max: number },
   requestedMinutes: number | undefined,
   avoid: AvoidanceModel,
   swaps: string[],
   favorites: Set<string>,
   paceScale: number,
-): YogaFlow {
-  const spec = MOBILITY_HOLD.yoga;
-  const holdSeconds = Math.max(spec.min, Math.min(spec.max, Math.round(spec.hold * paceScale)));
+  routineExerciseIds?: string[],
+): StageFlow {
+  const holdSeconds = Math.max(holdSpec.min, Math.min(holdSpec.max, Math.round(holdSpec.hold * paceScale)));
   const perPoseSeconds = holdSeconds + MOBILITY_ACTIVITY_OVERHEAD_SEC;
 
-  const usedIds = new Set<string>();
-  const pickStage = (stage: FlowStage): Exercise | undefined => {
-    const candidates = pool.filter((e) => stageOf(e) === stage && !usedIds.has(e.id));
-    const picked = pick(candidates, 'mobility', 1, [], avoid, swaps, { requireDistinctPattern: false, favorites })[0];
-    if (picked) usedIds.add(picked.id);
-    return picked;
-  };
-
-  const sequence = YOGA_STAGE_ORDER.map(pickStage).filter((e): e is Exercise => e != null);
+  let sequence: Exercise[];
+  if (routineExerciseIds) {
+    // ADR-0137 v2: the one-per-stage pick below silently drops a routine
+    // exercise whenever two of the athlete's own picks share a stage (e.g.
+    // two cooldown poses) — the same "never silently drop a routine
+    // exercise" rule Main and Stretch already follow means a routine's full
+    // list is the sequence, ordered by stage (ties keep the athlete's own
+    // order), not filtered down to one per stage. Skips an unsafe-today
+    // exercise rather than substituting one outside the athlete's list.
+    const stageIndex = (e: Exercise) => {
+      const index = stageOrder.indexOf(stageOf(e));
+      return index === -1 ? stageOrder.length : index;
+    };
+    const candidates = routineExerciseIds
+      .map((id) => pool.find((e) => e.id === id))
+      .filter((e): e is Exercise => {
+        if (!e) return false;
+        if (anyAreaMatches(avoid.hardSafety, e) || anyAreaMatches(avoid.hardFatigue, e)) {
+          swaps.push(`skipped ${e.name} (no safe substitute)`);
+          return false;
+        }
+        return true;
+      });
+    sequence = candidates
+      .map((e, originalIndex) => ({ e, originalIndex }))
+      .sort((a, b) => stageIndex(a.e) - stageIndex(b.e) || a.originalIndex - b.originalIndex)
+      .map(({ e }) => e);
+  } else {
+    const usedIds = new Set<string>();
+    const pickStage = (stage: FlowStage): Exercise | undefined => {
+      const candidates = pool.filter((e) => stageOf(e) === stage && !usedIds.has(e.id));
+      // 'any': the pool is already scoped to a single movementPattern (yoga_flow
+      // or barre_flow) upstream — Barre mixes 'strength' (pulse/isometric) and
+      // 'mobility' (warmup/cooldown) entries within that pattern, so filtering
+      // again by a single modality here would silently drop real candidates.
+      const picked = pick(candidates, 'any', 1, [], avoid, swaps, { requireDistinctPattern: false, favorites })[0];
+      if (picked) usedIds.add(picked.id);
+      return picked;
+    };
+    sequence = stageOrder.map(pickStage).filter((e): e is Exercise => e != null);
+  }
 
   const naturalRoundSeconds = sequence.length * perPoseSeconds;
   // No requested duration (or one too tight for even a single round) still
@@ -1661,12 +2055,14 @@ function buildYogaFlow(
 // Cap the rotation's membership — a deliberate handful of muscles, never a
 // long unfocused list ("noise"). When nothing is explicitly targeted, this
 // default set stands in as "the muscles targeted" so a stretch session is
-// always built around specific muscles, never picked arbitrarily.
+// always built around specific muscles, never picked arbitrarily. Also
+// doubles as the ceiling on total exercises once a second/third stretch per
+// muscle gets added for variety (see MAX_SINGLE_STRETCH_SEC below).
 const MAX_STRETCH_MUSCLES = 5;
 const DEFAULT_STRETCH_MUSCLES: MuscleGroup[] = ['hamstrings', 'quads', 'chest', 'shoulders', 'lower_back'];
-// Rotating through the same handful of muscles more than this starts to feel
-// repetitive — beyond this, extend hold length (still within the clinically
-// safe band) rather than adding yet another round.
+// Outer sanity ceiling on rounds — in practice MAX_SINGLE_STRETCH_SEC (a
+// stretch should never accumulate more than ~3 min of hold time) bites first
+// at any realistic hold length and keeps rounds well under this.
 const MAX_STRETCH_ROUNDS = 5;
 // Dynamic (reps-based) stretches don't have a "hold" to lengthen — a fixed,
 // stretch-science rep count instead (10-15 reps).
@@ -1678,12 +2074,14 @@ const STRETCH_DYNAMIC_ROUND_SEC = 30;
  * sequence — a capped set of targeted muscles (MAX_STRETCH_MUSCLES), each
  * represented by one exercise, **rotated together for multiple whole
  * rounds** rather than held once and stopped (v2's bug: a request for 20
- * minutes landed at ~3). Rounds are the primary lever; once rotating would
- * need more than MAX_STRETCH_ROUNDS passes to fill the budget, hold length
- * extends instead (still within the clinically safe 30-60s static-stretch
- * band) so the result actually lands close to what was requested. Dynamic
- * (reps) stretches never gain a hold — they rotate for the same round count
- * at a fixed correct rep range.
+ * minutes landed at ~3). Rounds are the primary lever, but once rotating
+ * would push a single stretch's accumulated hold time past
+ * MAX_SINGLE_STRETCH_SEC, the extra time budget buys another distinct
+ * stretch on the same muscle instead of a longer hold or more rounds on the
+ * one exercise — a hold has no added benefit past ~60s, and the catalog has
+ * enough variety per muscle for this now. Dynamic (reps) stretches never
+ * gain a hold — they rotate for the same round count at a fixed correct rep
+ * range.
  */
 function buildStretchFlow(
   pool: Exercise[],
@@ -1693,6 +2091,7 @@ function buildStretchFlow(
   favorites: Set<string>,
   paceScale: number,
   requestedMinutes: number | undefined,
+  routineExerciseIds?: string[],
 ): PlannedExercise[] {
   const spec = MOBILITY_HOLD.stretch;
   const baseHold = Math.max(spec.min, Math.min(spec.max, Math.round(spec.hold * paceScale)));
@@ -1703,38 +2102,89 @@ function buildStretchFlow(
   const groups = (explicitGroups.length ? explicitGroups : DEFAULT_STRETCH_MUSCLES).slice(0, MAX_STRETCH_MUSCLES);
 
   const usedIds = new Set<string>();
-  const chosen: Exercise[] = [];
-  for (const group of groups) {
-    const candidates = pool.filter((e) => !usedIds.has(e.id));
-    // requireDistinctPattern=false: nearly all stretches share movementPattern
-    // 'stretch' (ADR-0111's reasoning applies here too), so distinctness comes
-    // from `usedIds` instead.
-    const picked = pick(candidates, 'mobility', 1, [{ group }], avoid, swaps, { requireDistinctPattern: false, favorites })[0];
-    if (picked) {
-      chosen.push(picked);
-      usedIds.add(picked.id);
+  let chosen: Exercise[];
+  if (routineExerciseIds) {
+    // ADR-0137 v2: a routine fixes WHICH stretches rotate — its own ordered
+    // list becomes the rotation directly (not one-per-muscle-group), skipping
+    // an unsafe-today pick rather than substituting one outside the athlete's
+    // own list (mirrors the Main block's routine rule).
+    chosen = routineExerciseIds
+      .map((id) => pool.find((e) => e.id === id))
+      .filter((e): e is Exercise => {
+        if (!e) return false;
+        if (anyAreaMatches(avoid.hardSafety, e) || anyAreaMatches(avoid.hardFatigue, e)) {
+          swaps.push(`skipped ${e.name} (no safe substitute)`);
+          return false;
+        }
+        return true;
+      });
+    chosen.forEach((e) => usedIds.add(e.id));
+  } else {
+    chosen = [];
+    for (const group of groups) {
+      const candidates = pool.filter((e) => !usedIds.has(e.id));
+      // requireDistinctPattern=false: nearly all stretches share movementPattern
+      // 'stretch' (ADR-0111's reasoning applies here too), so distinctness comes
+      // from `usedIds` instead.
+      const picked = pick(candidates, 'mobility', 1, [{ group }], avoid, swaps, { requireDistinctPattern: false, favorites })[0];
+      if (picked) {
+        chosen.push(picked);
+        usedIds.add(picked.id);
+      }
     }
   }
   if (!chosen.length) return [];
 
   // 2) Rounds first (rotate through the muscles), then fine-tune hold length
   // to actually land near the requested time — "rotations and longer holds."
-  const roundSecondsAt = (hold: number) =>
-    chosen.reduce(
+  const roundSecondsAt = (list: Exercise[], hold: number) =>
+    list.reduce(
       (sum, e) => sum + MOBILITY_ACTIVITY_OVERHEAD_SEC + (e.progression === 'reps' ? STRETCH_DYNAMIC_ROUND_SEC : hold),
       0,
     );
   const requestedSeconds = requestedMinutes
     ? Math.max(60, Math.round(requestedMinutes * 60))
-    : roundSecondsAt(baseHold);
-  const rounds = Math.max(1, Math.min(MAX_STRETCH_ROUNDS, Math.round(requestedSeconds / roundSecondsAt(baseHold))));
+    : roundSecondsAt(chosen, baseHold);
 
-  const dynamicCount = chosen.filter((e) => e.progression === 'reps').length;
-  const holdCount = chosen.length - dynamicCount;
-  const overheadTotal = chosen.length * MOBILITY_ACTIVITY_OVERHEAD_SEC;
-  const dynamicTotal = dynamicCount * STRETCH_DYNAMIC_ROUND_SEC;
-  const idealHold = holdCount > 0 ? (requestedSeconds / rounds - overheadTotal - dynamicTotal) / holdCount : spec.hold;
-  const holdSeconds = Math.max(spec.min, Math.min(spec.max, Math.round(idealHold)));
+  // For a candidate rotation, what rounds/hold would this land on? Rounds is
+  // solved first (at the paceScale-scaled baseHold, just to size the
+  // rotation), then hold is fine-tuned against the ACTUAL rounds to land near
+  // requestedSeconds — the same two-step "rotations and longer holds" plan as
+  // before, just factored out so the cap check below can run it speculatively.
+  const solveFor = (list: Exercise[]) => {
+    const rounds = Math.max(1, Math.min(MAX_STRETCH_ROUNDS, Math.round(requestedSeconds / roundSecondsAt(list, baseHold))));
+    const dynamicCount = list.filter((e) => e.progression === 'reps').length;
+    const holdCount = list.length - dynamicCount;
+    const overheadTotal = list.length * MOBILITY_ACTIVITY_OVERHEAD_SEC;
+    const dynamicTotal = dynamicCount * STRETCH_DYNAMIC_ROUND_SEC;
+    const idealHold = holdCount > 0 ? (requestedSeconds / rounds - overheadTotal - dynamicTotal) / holdCount : spec.hold;
+    const hold = Math.max(spec.min, Math.min(spec.max, Math.round(idealHold)));
+    return { rounds, hold };
+  };
+
+  let { rounds, hold } = solveFor(chosen);
+  // Piling more rounds/hold onto the same handful of stretches to fill a big
+  // time budget just means holding one stretch for minutes on end. Once the
+  // naive fill would push a stretch past MAX_SINGLE_STRETCH_SEC, reach for
+  // another distinct one targeting the same area instead — the EMPHASIS
+  // scoring term dominates (selection-score.ts), so `pick` reliably stays
+  // on-muscle when a second option exists, and the catalog has enough
+  // variety per muscle for this now.
+  while (!routineExerciseIds && rounds * hold > MAX_SINGLE_STRETCH_SEC && chosen.length < MAX_STRETCH_MUSCLES) {
+    const group = groups[chosen.length % groups.length];
+    const extra = pick(pool.filter((e) => !usedIds.has(e.id)), 'mobility', 1, [{ group }], avoid, swaps, {
+      requireDistinctPattern: false,
+      favorites,
+    })[0];
+    if (!extra) break;
+    chosen.push(extra);
+    usedIds.add(extra.id);
+    ({ rounds, hold } = solveFor(chosen));
+  }
+
+  // Safety net: if the pool/ceiling ran out before the cap was satisfied,
+  // trim hold rather than exceed it.
+  const holdSeconds = Math.min(hold, Math.max(spec.min, Math.floor(MAX_SINGLE_STRETCH_SEC / rounds)));
 
   return chosen.map((e) => {
     const note = emphasizesArea(targetAreas, e) ? 'targets your emphasis' : undefined;
@@ -1982,6 +2432,41 @@ function cardioFocusCount(exp: ExperienceLevel, targetDurationMin?: number): num
   return Math.max(1, Math.min(6, Math.round(base * durationScale(targetDurationMin))));
 }
 
+/** An aerobics circuit rotates through several distinct stations at once
+ * (ADR-0138) rather than repeating one exercise like base/interval cardio —
+ * more stations than a single-exercise pick, capped so no station's turn
+ * gets too short to be meaningful. */
+function aerobicsStationCount(exp: ExperienceLevel, targetDurationMin?: number): number {
+  const base = exp === 'beginner' ? 4 : exp === 'intermediate' ? 5 : 6;
+  return Math.max(3, Math.min(6, Math.round(base * durationScale(targetDurationMin))));
+}
+
+/**
+ * Interval Main can legitimately be a single repeated exercise (e.g. bike or
+ * track sprints) — unlike a circuit, which is inherently multi-station — but
+ * locking EVERY interval session to exactly one exercise regardless of
+ * length or experience (ADR-0143) is what produced a single exercise
+ * carrying the whole session's rounds. Scales the same way the other cardio
+ * counts do; the floor of 1 keeps a short/beginner session's genuinely
+ * single-movement interval structure legitimate.
+ */
+function intervalStationCount(exp: ExperienceLevel, targetDurationMin?: number): number {
+  const base = exp === 'beginner' ? 1 : exp === 'intermediate' ? 2 : 3;
+  return Math.max(1, Math.min(4, Math.round(base * durationScale(targetDurationMin))));
+}
+
+/** Modalities with no real "second station" to rotate to — a treadmill or a
+ * bike IS the workout, so an interval session drawing only from these stays
+ * a single repeated exercise regardless of `intervalStationCount`'s scaling. */
+const SINGLE_FOCUS_CARDIO_MODALITIES = new Set<CardioModality>(['running_walking', 'machine_cardio']);
+
+/** True only when EVERY candidate in the matched pool is single-focus — a
+ * pool mixing running with, say, bodyweight interval work is not single-
+ * focus, and keeps the normal scaled station count. */
+function isSingleFocusCardioPool(pool: Exercise[]): boolean {
+  return pool.length > 0 && pool.every((exercise) => exercise.cardioModality != null && SINGLE_FOCUS_CARDIO_MODALITIES.has(exercise.cardioModality));
+}
+
 /**
  * Effective rules for TIMED MOBILITY work (warmup drills, cool-down stretches,
  * yoga poses) — methodology §7. A hold is a short, sensible duration; you never
@@ -1994,7 +2479,33 @@ const MOBILITY_HOLD = {
   cooldown: { hold: 45, min: 30, max: 75 },
   stretch: { hold: 45, min: 30, max: 60 },
   yoga: { hold: 55, min: 30, max: 90 },
+  // ADR-0404: barre holds/pulses run at a brisker tempo than yoga's static
+  // holds — shorter default, narrower range.
+  barre: { hold: 40, min: 20, max: 60 },
+  // ADR-0407: Pilates control work (roll-ups, leg circles, plank holds) sits
+  // between barre's brisk pulses and yoga's long static holds.
+  pilates: { hold: 45, min: 25, max: 70 },
 } as const;
+
+/**
+ * No single stretch should ever accumulate more than this much total hold
+ * time (rounds × hold) before the circuit moves to a different one — a
+ * single hold has no added flexibility benefit past ~60s, so repeating it
+ * back-to-back to fill a time budget is wasted rounds, not extra stretch. Once
+ * a circuit would need more than this on one stretch, add another distinct
+ * stretch instead (the catalog has enough variety per muscle for this now).
+ * This is inherently a PER-SIDE cap: a `unilateral` stretch is prescribed and
+ * logged per side, so its real both-sides time can run up to double this —
+ * that's the "unless it's for 2 legs or 2 arms" exception, and it falls out
+ * of the existing per-side convention (see `workSecondsFor` in timing.ts)
+ * rather than needing special-casing here.
+ */
+const MAX_SINGLE_STRETCH_SEC = 180;
+/** Ceiling on how many distinct stretches a warmup/cooldown circuit grows to
+ * when filling a long time budget without breaching MAX_SINGLE_STRETCH_SEC —
+ * matches MAX_STRETCH_MUSCLES's "a deliberate handful, never a long
+ * unfocused list" reasoning for the dedicated Stretch flow. */
+const MAX_MOBILITY_EXERCISES = 5;
 // Approx wall-clock a timed mobility activity adds beyond its hold (transition in,
 // brief reset) — used to translate a time budget into an activity count.
 const MOBILITY_ACTIVITY_OVERHEAD_SEC = 25;
@@ -2035,7 +2546,10 @@ const MOBILITY_REST_SEC = 15;
 /**
  * Turn a mobility time budget into a compact repeated circuit. The previous
  * activity math still informs total work, but it is distributed across fewer
- * movements so the athlete can settle into each drill or stretch.
+ * movements so the athlete can settle into each drill or stretch — capped at
+ * a compact 3 by default, but a long enough time budget grows past that
+ * (up to MAX_MOBILITY_EXERCISES) rather than piling more sets onto the same
+ * few stretches (see MAX_SINGLE_STRETCH_SEC on repeatedMobilityPlanFor).
  */
 function planRepeatedMobility(
   totalSeconds: number,
@@ -2043,8 +2557,18 @@ function planRepeatedMobility(
   spec: { hold: number; min: number; max: number },
 ): RepeatedMobilityPlan {
   const equivalentActivities = planMobilityHolds(totalSeconds, 1, spec).count;
-  const exerciseCount = Math.max(2, Math.min(3, Math.min(activityPreference || 2, Math.ceil(equivalentActivities / 2))));
-  const setsPerExercise = Math.max(2, Math.min(4, Math.ceil(equivalentActivities / exerciseCount)));
+  let exerciseCount = Math.max(2, Math.min(3, Math.min(activityPreference || 2, Math.ceil(equivalentActivities / 2))));
+  let setsPerExercise = Math.max(2, Math.min(4, Math.ceil(equivalentActivities / exerciseCount)));
+  let raw = rawMobilityHold(totalSeconds, exerciseCount, setsPerExercise, spec);
+  // Checked against the UNCAPPED hold — repeatedMobilityPlanFor's own safety
+  // net would otherwise silently absorb the overage by trimming sets before
+  // this loop ever saw a violation, leaving the time budget under-filled
+  // instead of adding the extra stretch it was actually asking for.
+  while (setsPerExercise * raw > MAX_SINGLE_STRETCH_SEC && exerciseCount < MAX_MOBILITY_EXERCISES) {
+    exerciseCount += 1;
+    setsPerExercise = Math.max(2, Math.min(4, Math.ceil(equivalentActivities / exerciseCount)));
+    raw = rawMobilityHold(totalSeconds, exerciseCount, setsPerExercise, spec);
+  }
   return repeatedMobilityPlanFor(totalSeconds, exerciseCount, setsPerExercise, spec);
 }
 
@@ -2060,18 +2584,33 @@ function repeatMobilityForSelection(
   return repeatedMobilityPlanFor(totalSeconds, exerciseCount, setsPerExercise, spec);
 }
 
+/** The hold length a circuit's numbers imply, before clamping to [min, max]. */
+function rawMobilityHold(
+  totalSeconds: number,
+  exerciseCount: number,
+  setsPerExercise: number,
+  spec: { hold: number; min: number; max: number },
+): number {
+  const totalSets = exerciseCount * setsPerExercise;
+  // Match the timing model: mobility transitions take 10 s, and each round has
+  // a 15 s reset.
+  const rawHold = (totalSeconds - exerciseCount * MOBILITY_TRANSITION_SEC) / totalSets - MOBILITY_REST_SEC;
+  return Math.max(spec.min, Math.min(spec.max, Math.round(rawHold)));
+}
+
 function repeatedMobilityPlanFor(
   totalSeconds: number,
   exerciseCount: number,
   setsPerExercise: number,
   spec: { hold: number; min: number; max: number },
 ): RepeatedMobilityPlan {
-  const totalSets = exerciseCount * setsPerExercise;
-  // Match the timing model: mobility transitions take 10 s, and each round has
-  // a 15 s reset. Holds remain inside their established safe range.
-  const rawHold = (totalSeconds - exerciseCount * MOBILITY_TRANSITION_SEC) / totalSets - MOBILITY_REST_SEC;
-  const holdSeconds = Math.max(spec.min, Math.min(spec.max, Math.round(rawHold)));
-  return { exerciseCount, setsPerExercise, totalSets, holdSeconds };
+  const holdSeconds = rawMobilityHold(totalSeconds, exerciseCount, setsPerExercise, spec);
+  // Safety net: whatever the caller asked for (or couldn't grow past, e.g.
+  // repeatMobilityForSelection when fewer exercises were actually available),
+  // never let one stretch accumulate more than MAX_SINGLE_STRETCH_SEC of hold
+  // time — trim sets rather than exceed it.
+  const cappedSets = Math.max(1, Math.min(setsPerExercise, Math.floor(MAX_SINGLE_STRETCH_SEC / holdSeconds)));
+  return { exerciseCount, setsPerExercise: cappedSets, totalSets: exerciseCount * cappedSets, holdSeconds };
 }
 
 /**
@@ -2188,13 +2727,61 @@ function sensibleFinalizationNote(
   return `eased ${easedPct}% to ${formatSuggestedWeight(finalWeightKg, unit)} — ${reason}`;
 }
 
+/**
+ * Hard ceiling on any single cardio exercise's round/interval count
+ * (ADR-0143) — independent of the exercise-count/pool fixes above, this caps
+ * the STRUCTURE itself so one exercise can never carry an unbounded number of
+ * sets. Applied to the BASE value, not just its progression-growth step:
+ * `Math.min(8, x + 1)` only ever bounded growth, never the base `x` itself,
+ * which is exactly what let a time-budget-derived base land around 22 rounds
+ * (1200s / 1 station / 55s ≈ 22, with `stationCount` defaulting to 1
+ * everywhere outside an explicit circuit).
+ */
+const MAX_CARDIO_ROUNDS = 8;
+const MIN_CARDIO_ROUNDS = 2;
+/** A steady-state cardio bout scaled down by a poor-readiness/recovery day
+ * still has to be a real bout, not a token gesture. */
+const MIN_CARDIO_DURATION_SEC = 180;
+
+function clampRounds(rounds: number): number {
+  return Math.max(MIN_CARDIO_ROUNDS, Math.min(MAX_CARDIO_ROUNDS, rounds));
+}
+
+/**
+ * Which structural shape (ADR-0143) a cardio exercise's sets take — the
+ * session's declared intent is authoritative, with exactly one named
+ * exception: a routine (ADR-0137) already fixes which exercise runs, so its
+ * own catalog shape is trusted outright rather than reconciled against the
+ * session's cardioIntent toggle (which a routine session doesn't even
+ * surface). Every other path — implicit cardio, explicit basic/circuit/
+ * interval, Conditioning — is governed strictly by the declared intent; an
+ * exercise's own movementPattern tag is never consulted outside this one case.
+ */
+function effectiveCardioIntent(ex: Exercise, sessionIntent: CardioIntent, isRoutinePick: boolean): CardioIntent {
+  if (!isRoutinePick) return sessionIntent;
+  if (ex.movementPattern === 'aerobics') return 'circuit';
+  if (ex.movementPattern === 'interval') return 'interval';
+  return 'basic';
+}
+
 export function cardioSets(
   ex: Exercise,
   rx: Prescription,
-  intent: CardioIntent = 'base',
+  intent: CardioIntent = 'basic',
   weightKg?: number,
   history: SessionContext['history'] = [],
   trainingIntent: SessionContext['trainingIntent'] = 'balanced',
+  /** How many stations share this aerobics circuit's Main block (ADR-0138) —
+   * unused outside the aerobics branch. Every station is called with the
+   * same value so they land on identical round counts without a separate
+   * equalize pass. */
+  stationCount = 1,
+  /** Readiness/trainingIntent/layoff/systemic volume multiplier (ADR-0143) —
+   * same signal strengthSets() already uses. Downward-only, applied to the
+   * capped BASE rounds/duration before any progression growth, so a poor-
+   * readiness or recovery-intent day actually reduces cardio volume instead
+   * of only blocking further growth. */
+  volumeScale = 1,
 ): PlannedSet[] {
   const met = metForExercise(ex);
   const rpe = cardioWorkRpe(met);
@@ -2221,9 +2808,47 @@ export function cardioSets(
     );
   }).length;
   const progressionCycle = Math.max(0, successfulExposureCount - 1) % 4;
-  if (intent === 'intervals' || ex.movementPattern === 'interval') {
-    const priorRounds = priorWork.length || 5;
-    const rounds = mayProgress && progressionCycle === 0 ? Math.min(8, priorRounds + 1) : priorRounds;
+  if (intent === 'circuit') {
+    // Continuous circuit, not max-effort work/rest — stations rotate on a
+    // short, fixed transition (REST.AEROBICS_TRANSITION, applied uniformly by
+    // annotateRest()) rather than a per-round recovery set or a progressable
+    // rest ratio, so aerobics only has 3 progression axes, not intervals' 4.
+    // Rounds come from the time budget split across stations (not this one
+    // exercise's own history, which drifts per-station) — applyAerobicsCircuit
+    // trims every station to the shortest round count afterward, the same
+    // safety-first equalize `supersets.ts` already uses for real supersets.
+    const totalStations = Math.max(1, stationCount);
+    const priorWorkSec = priorWork[0]?.prescribedDurationSec ?? priorWork[0]?.durationSec;
+    const baseWork = Math.max(20, priorWorkSec ?? 45);
+    const aerobicsCycle = progressionCycle % 3;
+    const work = mayProgress && aerobicsCycle === 1 ? baseWork + 5 : baseWork;
+    // ADR-0143: capped at the source (not just the growth step below) and
+    // scaled downward by today's readiness/intent before any progression
+    // runs — this is exactly the arithmetic that used to reach ~22 rounds
+    // (1200s / 1 station / 55s) whenever stationCount defaulted to 1.
+    const priorRounds = clampRounds(Math.round(rx.cardioSeconds / totalStations / (work + REST.AEROBICS_TRANSITION)));
+    const scaledRounds = Math.max(MIN_CARDIO_ROUNDS, Math.round(priorRounds * Math.min(1, volumeScale)));
+    const rounds = mayProgress && aerobicsCycle === 0 ? clampRounds(scaledRounds + 1) : scaledRounds;
+    const workRpe = mayProgress && aerobicsCycle === 2 ? Math.min(7, rpe + 1) : rpe;
+    const progressionVariable: PlannedSet['progressionVariable'] | undefined = mayProgress
+      ? (['rounds', 'duration', 'perceived_intensity'] as const)[aerobicsCycle]
+      : undefined;
+    return Array.from({ length: rounds }, () => ({
+      durationSec: work,
+      targetRpe: workRpe,
+      phase: 'work' as const,
+      progressionVariable,
+      ...load,
+    }));
+  }
+  if (intent === 'interval') {
+    // ADR-0143: capped at the source and scaled by today's readiness/intent
+    // before any progression runs — the uncapped, unscaled base
+    // (`priorWork.length || 5`) is exactly what produced 5 rounds x
+    // work+recovery = 10 sets on a single exercise's very first exposure.
+    const priorRounds = clampRounds(priorWork.length || 5);
+    const scaledRounds = Math.max(MIN_CARDIO_ROUNDS, Math.round(priorRounds * Math.min(1, volumeScale)));
+    const rounds = mayProgress && progressionCycle === 0 ? clampRounds(scaledRounds + 1) : scaledRounds;
     const priorWorkSec = priorWork[0]?.prescribedDurationSec ?? priorWork[0]?.durationSec;
     const baseWork = Math.max(20, Math.round(priorWorkSec ?? rx.cardioSeconds / (rounds * 3)));
     const work = mayProgress && progressionCycle === 1 ? baseWork + 5 : baseWork;
@@ -2246,16 +2871,20 @@ export function cardioSets(
   const priorDistance = priorWork[0]?.prescribedDistanceM ?? priorWork[0]?.distanceM;
   const distanceCapable = priorDistance != null && priorDistance > 0;
   const effectiveCycle = distanceCapable ? progressionCycle : progressionCycle === 3 ? 3 : 0;
-  const durationSec = mayProgress && effectiveCycle === 0 && priorDuration != null
+  const rawDurationSec = mayProgress && effectiveCycle === 0 && priorDuration != null
     ? Math.min(priorDuration + 30, Math.round(priorDuration * 1.1))
     : priorDuration ?? rx.cardioSeconds;
-  const distanceM = distanceCapable
+  // ADR-0143: same downward-only readiness/intent scale strengthSets() and
+  // the interval/circuit branches above already apply — steady-state cardio
+  // had no equivalent, so a recovery day's bout stayed full-length.
+  const durationSec = Math.max(MIN_CARDIO_DURATION_SEC, Math.round(rawDurationSec * Math.min(1, volumeScale)));
+  const rawDistanceM = distanceCapable
     ? mayProgress && (effectiveCycle === 1 || effectiveCycle === 2)
       ? Math.round(priorDistance * (effectiveCycle === 1 ? 1.05 : 1.03))
       : priorDistance
     : undefined;
-  const baseRpe = intent === 'benchmark' ? 7 : rpe;
-  const targetRpe = mayProgress && effectiveCycle === 3 ? Math.min(8, baseRpe + 1) : baseRpe;
+  const distanceM = rawDistanceM != null ? Math.round(rawDistanceM * Math.min(1, volumeScale)) : undefined;
+  const targetRpe = mayProgress && effectiveCycle === 3 ? Math.min(8, rpe + 1) : rpe;
   const progressionVariable: PlannedSet['progressionVariable'] | undefined = mayProgress
     ? effectiveCycle === 0 ? 'duration' : effectiveCycle === 1 ? 'distance' : effectiveCycle === 2 ? 'pace' : 'perceived_intensity'
     : undefined;
@@ -2269,8 +2898,10 @@ export function cardioSets(
 function recommendedCardioWeightKg(ex: Exercise, input: SessionContext): number | undefined {
   if (!ex.loadsWeight) return undefined;
   const unit = input.athlete.weightUnit ?? 'kg';
+  const available = availableWeightsForExercise(ex, input.equipment);
   const rec = recommendLoad(ex, input.history, 7, unit);
-  if (rec?.weightKg == null) return undefined;
+  // ADR-0144: no history yet — a real starting suggestion, not a blank.
+  if (rec?.weightKg == null) return startingWeightKgFor(ex, available, unit);
   const final = finalizeLoad({
     baseWeightKg: rec.weightKg,
     exercise: ex,
@@ -2280,8 +2911,7 @@ function recommendedCardioWeightKg(ex: Exercise, input: SessionContext): number 
     now: input.plannedFor,
   });
   const finalizedKg = final?.weightKg ?? rec.weightKg;
-  const available = availableWeightsForExercise(ex, input.equipment);
-  return snapToSensibleWeight(finalizedKg, unit, available);
+  return snapToSensibleWeight(finalizedKg, unit, available, barbellFloorKg(ex));
 }
 
 // ADR-0107 v2: graded volume multiplier — same per-signal bands as the load
@@ -2750,22 +3380,25 @@ function zoneTestNote(zonePlan: Map<string, ZoneAssignment>): string | undefined
 }
 
 function buildFlowRationale(
-  workoutType: 'stretch' | 'yoga',
+  workoutType: 'stretch' | 'yoga' | 'barre' | 'pilates',
   emphasize: BodyArea[],
   avoid: AvoidanceModel,
   volumeScale: number,
   hasExercises: boolean,
-  yogaRounds?: number,
+  stageRounds?: number,
 ): string {
-  const label = workoutType === 'yoga' ? 'a yoga flow' : 'a stretch flow';
+  const label = workoutType === 'yoga' ? 'a yoga flow' : workoutType === 'barre' ? 'a barre flow' : workoutType === 'pilates' ? 'a pilates flow' : 'a stretch flow';
   if (!hasExercises) {
-    return `Today's focus: ${label}, but nothing in the catalog matched your equipment — add a yoga mat or adjust today's constraints.`;
+    const gearHint = workoutType === 'yoga' ? 'a yoga mat' : workoutType === 'barre' ? 'a barre (or a sturdy chair/counter)' : workoutType === 'pilates' ? 'a yoga/pilates mat' : 'the right equipment';
+    return `Today's focus: ${label}, but nothing in the catalog matched your equipment — add ${gearHint} or adjust today's constraints.`;
   }
   const parts: string[] = [`Today's focus: ${label}.`];
-  // Yoga is deliberately muscle-agnostic (targeting doesn't bias pose
-  // selection there — Part 3B), so only Stretch's rationale claims targeting.
+  // Yoga, Barre, and Pilates are deliberately muscle-agnostic-by-stage
+  // (targeting doesn't bias selection there — Part 3B), so only Stretch's
+  // rationale claims targeting.
   if (workoutType === 'stretch' && emphasize.length) parts.push(`Targeting ${describeAreasUnique(emphasize)}.`);
-  if (workoutType === 'yoga' && yogaRounds && yogaRounds > 1) parts.push(`Your flow repeats for ${yogaRounds} rounds.`);
+  if ((workoutType === 'yoga' || workoutType === 'barre' || workoutType === 'pilates') && stageRounds && stageRounds > 1)
+    parts.push(`Your flow repeats for ${stageRounds} rounds.`);
   const flagged = [...avoid.hardSafety, ...avoid.hardFatigue, ...avoid.limit];
   if (flagged.length) parts.push(`Working around ${describeAreasUnique(flagged)}.`);
   if (avoid.recovery.length)

@@ -14,7 +14,7 @@ import { useRouter } from 'expo-router';
 import Animated, { FadeIn } from 'react-native-reanimated';
 
 import { Button, Card, Chip, Divider, GoalHero, Icon, IconButton, Meter, PressScale, Row, Screen, Stepper, Text, TrendChart, useTheme } from '@/design';
-import type { ColorToken } from '@/design';
+import type { ColorToken, ContextTone } from '@/design';
 import { AchievementsSheet } from '@/features/achievements-sheet';
 import { WorkoutDetailSheet } from '@/features/workout-detail-sheet';
 import { getAthleteProfile, recordBodyweight } from '@/services/athlete';
@@ -75,6 +75,13 @@ const PROGRESS_METRIC_LABELS: Record<ProgressMetric, string> = {
   workouts: 'Workouts',
 };
 
+const PROGRESS_METRIC_TONES: Record<ProgressMetric, ContextTone> = {
+  strength: 'strength',
+  endurance: 'endurance',
+  calories: 'accent',
+  workouts: 'primary',
+};
+
 /** Push/Pull/Legs/Core — the Progress-screen "Overall Strength" overview
  * categories (ADR-0205). */
 const MOVEMENT_CATEGORY_LABELS: Record<MovementCategory, string> = {
@@ -84,11 +91,12 @@ const MOVEMENT_CATEGORY_LABELS: Record<MovementCategory, string> = {
   core: 'Core',
 };
 
-/** Steady/Interval — the Progress-screen "Overall Endurance" overview
- * categories (ADR-0205). */
+/** Steady/Interval/Aerobics — the Progress-screen "Overall Endurance" overview
+ * categories (ADR-0205, ADR-0138). */
 const CARDIO_CATEGORY_LABELS: Record<CardioCategory, string> = {
   steady: 'Steady',
   interval: 'Interval',
+  aerobics: 'Aerobics',
 };
 
 /** The one trend-direction vocabulary for the whole screen — strength index,
@@ -405,24 +413,22 @@ function WeeklyVolumeCard({ history, now }: { history: SessionRecord[]; now: num
 
   return (
     <Card>
-      <Row style={{ justifyContent: 'space-between', alignItems: 'center' }}>
-        <Text variant="heading">Weekly volume</Text>
-        <Row gap="sm" style={{ alignItems: 'center' }}>
-          <IconButton
-            label="Show previous week"
-            icon={<Icon name="chevronLeft" size={16} color="primaryTextSoft" />}
-            onPress={() => setWeekOffset(weekOffset + 1)}
-          />
-          <Text variant="caption" color="textMuted">
-            {weekLabel} · {weekDateLabel}
-          </Text>
-          <IconButton
-            label="Show next week"
-            icon={<Icon name="chevronRight" size={16} color={weekOffset === 0 ? 'textFaint' : 'primaryTextSoft'} />}
-            onPress={() => setWeekOffset(Math.max(0, weekOffset - 1))}
-            disabled={weekOffset === 0}
-          />
-        </Row>
+      <Text variant="heading">Weekly volume</Text>
+      <Row style={{ justifyContent: 'space-between', alignItems: 'center', marginTop: spacing.sm }}>
+        <IconButton
+          label="Show previous week"
+          icon={<Icon name="chevronLeft" size={16} color="primaryTextSoft" />}
+          onPress={() => setWeekOffset(weekOffset + 1)}
+        />
+        <Text variant="caption" color="textMuted">
+          {weekLabel} · {weekDateLabel}
+        </Text>
+        <IconButton
+          label="Show next week"
+          icon={<Icon name="chevronRight" size={16} color={weekOffset === 0 ? 'textFaint' : 'primaryTextSoft'} />}
+          onPress={() => setWeekOffset(Math.max(0, weekOffset - 1))}
+          disabled={weekOffset === 0}
+        />
       </Row>
       <Text variant="caption" color="textFaint" style={{ marginTop: spacing.xs }}>
         Completed sets per muscle group vs. this week&apos;s effective range ({MEV}–{MRV - 1}).
@@ -599,6 +605,7 @@ function OverviewCard<C extends string>({
   categoryLabels,
   overall,
   hasData,
+  tone,
 }: {
   title: string;
   caption: string;
@@ -612,6 +619,7 @@ function OverviewCard<C extends string>({
    *  — even 0% is a real answer — so they key it off whether ANY history
    *  exists at all instead. */
   hasData: boolean;
+  tone: ContextTone;
 }) {
   const { spacing } = useTheme();
   const overallDelta =
@@ -621,7 +629,7 @@ function OverviewCard<C extends string>({
   const overallDirection = directionFromDelta(overallDelta);
 
   return (
-    <Card>
+    <Card contextTone={tone}>
       <Text variant="heading">{title}</Text>
       <Text variant="caption" color="textFaint" style={{ marginTop: spacing.xs }}>
         {caption}
@@ -643,7 +651,7 @@ function OverviewCard<C extends string>({
               )}
             </Row>
             <View style={{ marginTop: spacing.xs }}>
-              <Meter value={overall.indexPct ?? 0} max={100} color="primary" />
+              <Meter value={overall.indexPct ?? 0} max={100} tone={tone} />
             </View>
           </View>
           <View style={{ marginTop: spacing.lg, gap: spacing.sm }}>
@@ -703,7 +711,7 @@ function EnduranceByTypeCard({
   );
 
   return (
-    <Card>
+    <Card contextTone="endurance">
       <Text variant="heading">Endurance by type</Text>
       <Text variant="caption" color="textFaint" style={{ marginTop: spacing.xs }}>
         The detail behind Overall Endurance above — how close you are to your own best right now, for
@@ -769,7 +777,7 @@ function EnduranceByTypeCard({
                   <View style={{ marginTop: spacing.sm }}>
                     <TrendChart
                       type="line"
-                      color="accent"
+                      tone="endurance"
                       height={64}
                       points={indexSeries.map((p) => ({ label: shortDate(p.date), value: Math.round(p.indexPct) }))}
                     />
@@ -927,6 +935,8 @@ export default function ProgressScreen() {
                 <Row key={start} gap="sm">
                   {(['strength', 'endurance', 'calories', 'workouts'] as ProgressMetric[]).slice(start, start + 2).map((metric) => {
                     const selected = selectedMetric === metric;
+                    const tone = PROGRESS_METRIC_TONES[metric];
+                    const contextual = colors.tones[tone];
                     return (
                       <PressScale
                         key={metric}
@@ -940,15 +950,13 @@ export default function ProgressScreen() {
                           minHeight: 58,
                           padding: spacing.sm,
                           borderRadius: radii.md,
-                          backgroundColor: selected ? colors.primary : colors.heroPill,
+                          backgroundColor: selected ? contextual.surface : colors.heroPill,
                           borderWidth: selected ? 1 : 0,
-                          borderColor: colors.heroText,
+                          borderColor: selected ? contextual.border : colors.heroText,
                         }}
                       >
-                        {/* See the matching tile on Home: on-primary text, not
-                            hero-white, because `primary` is light in dark mode. */}
-                        <Text variant="caption" color={selected ? 'primaryText' : 'heroMuted'} weight="bold" style={selected ? { opacity: 0.75 } : undefined}>{PROGRESS_METRIC_LABELS[metric].toUpperCase()}</Text>
-                        <Text variant="subtitle" color={selected ? 'primaryText' : 'heroText'} style={{ marginTop: 2 }}>{metricValue(metric)}</Text>
+                        <Text variant="caption" color={selected ? 'primaryTextSoft' : 'heroMuted'} tint={selected ? contextual.text : undefined} weight="bold" style={selected ? { opacity: 0.75 } : undefined}>{PROGRESS_METRIC_LABELS[metric].toUpperCase()}</Text>
+                        <Text variant="subtitle" color={selected ? 'primaryTextSoft' : 'heroText'} tint={selected ? contextual.text : undefined} style={{ marginTop: 2 }}>{metricValue(metric)}</Text>
                       </PressScale>
                     );
                   })}
@@ -966,18 +974,19 @@ export default function ProgressScreen() {
       >
 
       {selectedMetric !== 'workouts' && (
-        <Card>
+        <Card contextTone={PROGRESS_METRIC_TONES[selectedMetric]}>
           <Row style={{ justifyContent: 'space-between', alignItems: 'flex-end' }}>
             <View>
               <Text variant="caption" color="textFaint" weight="bold">LAST 7 DAYS</Text>
               <Text variant="heading" style={{ marginTop: 2 }}>{PROGRESS_METRIC_LABELS[selectedMetric]}</Text>
             </View>
-            <Text variant="label" color="primaryTextSoft">{metricValue(selectedMetric)}</Text>
+            <Text variant="label" tint={colors.tones[PROGRESS_METRIC_TONES[selectedMetric]].text}>{metricValue(selectedMetric)}</Text>
           </Row>
           <View style={{ marginTop: spacing.md }}>
             <TrendChart
               points={weeklyPerformance.days.map((day, index) => ({ label: day.label, value: weeklyPerformance.values[selectedMetric][index] }))}
               type={selectedMetric === 'calories' ? 'bar' : 'line'}
+              tone={PROGRESS_METRIC_TONES[selectedMetric]}
               valueFormatter={(value) => selectedMetric === 'endurance' ? `${Math.round(value)}m` : Math.round(value).toLocaleString()}
             />
           </View>
@@ -993,6 +1002,7 @@ export default function ProgressScreen() {
         categoryLabels={MOVEMENT_CATEGORY_LABELS}
         overall={strengthPerformanceOverview}
         hasData={history.length > 0}
+        tone="strength"
       />
 
       <OverviewCard
@@ -1003,9 +1013,10 @@ export default function ProgressScreen() {
         categoryLabels={MOVEMENT_CATEGORY_LABELS}
         overall={strengthOverview}
         hasData={ALL_MOVEMENT_CATEGORIES.some((c) => strengthOverview.categories[c] != null)}
+        tone="strength"
       />
 
-      <Card>
+      <Card contextTone="strength">
         <Row style={{ justifyContent: 'space-between' }}>
           <Text variant="heading">Weekly volume trend</Text>
           {weeklyTrendDelta != null && (
@@ -1025,7 +1036,7 @@ export default function ProgressScreen() {
           <View style={{ marginTop: spacing.md }}>
             <TrendChart
               type="bar"
-              color="primary"
+              tone="strength"
               points={weeklyTrend.map((p) => ({ label: shortDate(p.weekStart), value: p.totalVolumeLoad }))}
             />
           </View>
@@ -1034,7 +1045,7 @@ export default function ProgressScreen() {
 
       <WeeklyVolumeCard history={history} now={now} />
 
-      <Card>
+      <Card contextTone="strength">
         <Text variant="heading">Strength by muscle group</Text>
         <Text variant="caption" color="textFaint" style={{ marginTop: spacing.xs }}>
           The detail behind Overall Strength above — how close you are to your own best right now,
@@ -1163,7 +1174,7 @@ export default function ProgressScreen() {
       </>}
 
       {selectedMetric === 'endurance' && <>
-      <Card>
+      <Card contextTone="endurance">
         <Text variant="heading">Endurance Index</Text>
         <Text variant="caption" color="textFaint" style={{ marginTop: spacing.xs }}>
           This week&apos;s cardio vs. the WHO/ACSM public-health target: {WHO_WEEKLY_MODERATE_EQUIVALENT_MINUTES} min/week
@@ -1189,7 +1200,7 @@ export default function ProgressScreen() {
               })()}
             </Row>
             <View style={{ marginTop: spacing.xs }}>
-              <Meter value={endurancePerformance.pct} max={100} color="primary" />
+              <Meter value={endurancePerformance.pct} max={100} tone="endurance" />
             </View>
             <Text variant="caption" color="textMuted" style={{ marginTop: spacing.sm }}>
               {Math.round(endurancePerformance.minutes)} of {WHO_WEEKLY_MODERATE_EQUIVALENT_MINUTES} moderate-equivalent min this week
@@ -1206,14 +1217,15 @@ export default function ProgressScreen() {
         categoryLabels={CARDIO_CATEGORY_LABELS}
         overall={enduranceOverview}
         hasData={ALL_CARDIO_CATEGORIES.some((c) => enduranceOverview.categories[c] != null)}
+        tone="endurance"
       />
-      <Card>
+      <Card contextTone="endurance">
         <Row style={{ justifyContent: 'space-between' }}>
           <Text variant="heading">Endurance trend</Text>
           <Text variant="label" color={trendColor(endurance.direction)} weight="semibold">{trendArrow(endurance.direction)} {trendLabel(endurance.direction)}</Text>
         </Row>
         <Text variant="caption" color="textFaint" style={{ marginTop: spacing.xs }}>Minutes spent on cardio-modality work, per completed session.</Text>
-        {endurance.points.length ? <View style={{ marginTop: spacing.md }}><TrendChart type="line" color="primary" points={endurance.points.map((p) => ({ label: shortDate(p.date), value: p.minutes }))} valueFormatter={(v) => `${Math.round(v)} min`} /></View> : <Text variant="body" color="textMuted" style={{ marginTop: spacing.md }}>Complete a cardio workout to see your endurance trend.</Text>}
+        {endurance.points.length ? <View style={{ marginTop: spacing.md }}><TrendChart type="line" color="zoneEndurance" points={endurance.points.map((p) => ({ label: shortDate(p.date), value: p.minutes }))} valueFormatter={(v) => `${Math.round(v)} min`} /></View> : <Text variant="body" color="textMuted" style={{ marginTop: spacing.md }}>Complete a cardio workout to see your endurance trend.</Text>}
       </Card>
       <Card>
         <Row style={{ justifyContent: 'space-between' }}><Text variant="heading">Training load</Text><Text variant="label" color={trendColor(trainingLoad.direction)}>{trendArrow(trainingLoad.direction)} {trendLabel(trainingLoad.direction)}</Text></Row>
@@ -1252,7 +1264,7 @@ export default function ProgressScreen() {
                       </Text>
                     </Row>
                     <View style={{ marginTop: spacing.xs }}>
-                      <Meter value={s.minutes} max={maxCardioMinutes} color="primary" />
+                      <Meter value={s.minutes} max={maxCardioMinutes} tone="endurance" />
                     </View>
                   </Pressable>
                 </View>
@@ -1274,21 +1286,21 @@ export default function ProgressScreen() {
           })}
         </View>
       </Card>
-      <Card tone="primarySoft">
+      <Card contextTone="accent">
         <Row style={{ justifyContent: 'space-between', alignItems: 'flex-start' }}>
           <View>
-            <Text variant="caption" color="primaryTextSoft" weight="bold">BODYWEIGHT</Text>
-            <Text variant="display" color="primaryTextSoft" style={{ marginTop: 2 }}>{currentWeight != null ? formatWeight(currentWeight, weightUnit) : '—'}</Text>
-            <Text variant="caption" color="primaryTextSoft">{weightDelta == null ? 'Add a second weigh-in to see your change.' : `${weightDelta > 0 ? '+' : ''}${formatWeight(Math.abs(weightDelta), weightUnit)} in this period`}</Text>
+            <Text variant="caption" tint={colors.tones.accent.text} weight="bold">BODYWEIGHT</Text>
+            <Text variant="display" tint={colors.tones.accent.text} style={{ marginTop: 2 }}>{currentWeight != null ? formatWeight(currentWeight, weightUnit) : '—'}</Text>
+            <Text variant="caption" tint={colors.tones.accent.text}>{weightDelta == null ? 'Add a second weigh-in to see your change.' : `${weightDelta > 0 ? '+' : ''}${formatWeight(Math.abs(weightDelta), weightUnit)} in this period`}</Text>
           </View>
-          <Icon name="checkin" size={24} color="primaryTextSoft" />
+          <Icon name="checkin" size={24} tint={colors.tones.accent.text} />
         </Row>
         <Row gap="sm" wrap style={{ marginTop: spacing.md }}>
           {([{ days: 7, label: '7 days' }, { days: 30, label: '30 days' }, { days: 90, label: '3 months' }] as const).map((range) => <Chip key={range.days} label={range.label} selected={bodyweightRange === range.days} onPress={() => setBodyweightRange(range.days)} />)}
         </Row>
-        {visibleBodyweightPoints.length > 1 ? <View style={{ marginTop: spacing.md }}><TrendChart type="line" color="primary" points={visibleBodyweightPoints.slice(-12).map((point) => ({ label: shortDate(point.at), value: kgToDisplayWeight(point.kg, weightUnit) }))} valueFormatter={(value) => `${Math.round(value * 10) / 10} ${weightUnit}`} /></View> : null}
-        <View style={{ marginTop: spacing.lg, paddingTop: spacing.md, borderTopWidth: 1, borderTopColor: colors.primary }}>
-          <Text variant="label" color="primaryTextSoft" weight="semibold">Update weight</Text>
+        {visibleBodyweightPoints.length > 1 ? <View style={{ marginTop: spacing.md }}><TrendChart type="line" color="accent" points={visibleBodyweightPoints.slice(-12).map((point) => ({ label: shortDate(point.at), value: kgToDisplayWeight(point.kg, weightUnit) }))} valueFormatter={(value) => `${Math.round(value * 10) / 10} ${weightUnit}`} /></View> : null}
+        <View style={{ marginTop: spacing.lg, paddingTop: spacing.md, borderTopWidth: 1, borderTopColor: colors.tones.accent.border }}>
+          <Text variant="label" tint={colors.tones.accent.text} weight="semibold">Update weight</Text>
           <Stepper value={kgToDisplayWeight(weightDraftKg, weightUnit)} onChange={(value) => setWeightDraftKg(displayWeightToKg(value, weightUnit))} min={weightUnit === 'lb' ? 60 : 25} max={weightUnit === 'lb' ? 600 : 275} step={weightUnit === 'lb' ? 0.5 : 0.1} unit={weightUnit} style={{ marginTop: spacing.sm }} />
           <Button title="Save weight" variant="secondary" size="sm" onPress={saveWeight} style={{ marginTop: spacing.md }} />
         </View>
