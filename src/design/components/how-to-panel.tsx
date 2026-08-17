@@ -16,6 +16,67 @@ import type { Exercise, ExerciseMedia, MovementPattern } from '@/domain/types';
 
 const TWO_COLUMN_MIN_WIDTH = 480;
 
+/** Media on one side, numbered steps on the other — the shared layout for
+ * "how to perform this" content, side by side once there's room, stacked
+ * below a phone-width breakpoint (CLAUDE.md §9). */
+export function ExerciseStepsMedia({
+  pattern,
+  media,
+  steps,
+  showClip = true,
+  requireImage = false,
+}: {
+  pattern: MovementPattern;
+  media?: ExerciseMedia;
+  steps: string[];
+  /** Forwarded to `ExerciseMediaCard` — false keeps this to a still/
+   *  illustration, reserving the video for the dedicated "How To" preview. */
+  showClip?: boolean;
+  /** When true, skip the media column entirely (steps take the full width)
+   *  unless a curated still actually exists — no generic illustration
+   *  filler. */
+  requireImage?: boolean;
+}) {
+  const { spacing } = useTheme();
+  const { width } = useWindowDimensions();
+  const twoColumn = width >= TWO_COLUMN_MIN_WIDTH;
+  const hasStill = Boolean(media?.stills?.length);
+  const showMedia = !requireImage || hasStill;
+
+  if (!showMedia) {
+    return (
+      <View style={{ gap: spacing.xs }}>
+        {steps.map((step, i) => (
+          <Text key={i} variant="body">
+            {i + 1}. {step}
+          </Text>
+        ))}
+      </View>
+    );
+  }
+
+  return (
+    <View
+      style={
+        twoColumn
+          ? { flexDirection: 'row', gap: spacing.md, alignItems: 'flex-start' }
+          : { gap: spacing.md }
+      }
+    >
+      <View style={twoColumn ? { flex: 1 } : undefined}>
+        <ExerciseMediaCard pattern={pattern} media={media} showClip={showClip} />
+      </View>
+      <View style={[{ gap: spacing.xs }, twoColumn ? { flex: 1 } : undefined]}>
+        {steps.map((step, i) => (
+          <Text key={i} variant="body">
+            {i + 1}. {step}
+          </Text>
+        ))}
+      </View>
+    </View>
+  );
+}
+
 export function HowToPanel({
   pattern,
   media,
@@ -28,32 +89,13 @@ export function HowToPanel({
   steps: string[];
 }) {
   const { spacing } = useTheme();
-  const { width } = useWindowDimensions();
-  const twoColumn = width >= TWO_COLUMN_MIN_WIDTH;
 
   return (
     <View style={{ gap: spacing.sm }}>
       <Text variant="body" color="textMuted">
         {description}
       </Text>
-      <View
-        style={
-          twoColumn
-            ? { flexDirection: 'row', gap: spacing.md, alignItems: 'flex-start' }
-            : { gap: spacing.md }
-        }
-      >
-        <View style={twoColumn ? { flex: 1 } : undefined}>
-          <ExerciseMediaCard pattern={pattern} media={media} />
-        </View>
-        <View style={[{ gap: spacing.xs }, twoColumn ? { flex: 1 } : undefined]}>
-          {steps.map((step, i) => (
-            <Text key={i} variant="body">
-              {i + 1}. {step}
-            </Text>
-          ))}
-        </View>
-      </View>
+      <ExerciseStepsMedia pattern={pattern} media={media} steps={steps} />
     </View>
   );
 }
@@ -78,6 +120,32 @@ export function HowToSheet({
     <SheetModal visible={visible} onClose={onClose} eyebrow="FORM GUIDE" title={name} closeLabel="Close form guide">
       {exercise && (
         <HowToPanel pattern={exercise.movementPattern} media={exercise.media} description={exercise.description} steps={exercise.steps} />
+      )}
+    </SheetModal>
+  );
+}
+
+/**
+ * A lightweight video-first preview — opened from the catalog's "How To"
+ * action so browsing an exercise leads with just its demo clip, no still
+ * shown above it and no step-by-step detail. In-workout/preview flows skip
+ * this and open `HowToSheet` directly.
+ */
+export function ExerciseVideoPreviewSheet({
+  visible,
+  onClose,
+  name,
+  exercise,
+}: {
+  visible: boolean;
+  onClose: () => void;
+  name: string;
+  exercise?: Pick<Exercise, 'movementPattern' | 'media'>;
+}) {
+  return (
+    <SheetModal visible={visible} onClose={onClose} eyebrow="PREVIEW" title={name} closeLabel="Close video preview">
+      {exercise && (
+        <ExerciseMediaCard pattern={exercise.movementPattern} media={exercise.media} showStillWithClip={false} />
       )}
     </SheetModal>
   );

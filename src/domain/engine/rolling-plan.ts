@@ -143,19 +143,19 @@ function owedCatchUpBias(
 /** Local duplicate of rules-engine.ts's `dominantMainModality` — kept
  * separate rather than imported so this catalog-free module doesn't take on
  * the daily engine's much larger surface for one self-contained calculation.
- * 'general' trains via resistance, so it folds into strength here too. */
+ * 'general' is now a real, catalog-backed modality in its own right, so this
+ * is a plain 4-way argmax, same tie-break order as rules-engine.ts's copy. */
+const MODALITY_PRIORITY: Modality[] = ['cardio', 'mobility', 'general', 'strength'];
 function dominantModalityOf(weights: ModalityWeights): Modality {
-  const strengthish = weights.strength + weights.general;
-  if (weights.cardio > strengthish && weights.cardio >= weights.mobility) return 'cardio';
-  if (weights.mobility > strengthish && weights.mobility > weights.cardio) return 'mobility';
-  return 'strength';
+  const best = Math.max(weights.strength, weights.cardio, weights.mobility, weights.general);
+  return MODALITY_PRIORITY.find((m) => weights[m] === best) ?? 'strength';
 }
 
 /**
- * Default weekly session count when the athlete hasn't set explicit
- * `weeklyTargets` (onboarding's steppers default to 0, and the copy invites
- * leaving them there — "Set 0 for any supporting goal you want us to balance
- * automatically," with no validation against an all-zero submission).
+ * Default weekly session count when the athlete hasn't set an explicit
+ * `weeklyTotalTarget` (onboarding's stepper defaults to 0, and the copy
+ * invites leaving it there — "Set 0 to let your coach balance this
+ * automatically" — with no validation against a zero submission).
  * Replaces a flat `3` for everyone with a small table keyed by experience x
  * dominant goal modality, matching `volumeLandmarksFor`'s
  * experienceBase/focusShift pattern (domain/metrics/volume.ts). Grounded in
@@ -295,13 +295,38 @@ function priorityMusclesFor(
  * far in the same forward walk `decay()` already does; the caller resets it
  * to `undefined` after a fixed/routine day whose real format isn't known
  * here (see `FixedForecastDay`), so the rotation conservatively restarts
- * from 'basic' rather than guessing through an unknown.
+ * from 'basic' rather than guessing through an unknown — NOTE: with a
+ * standing `preferred` lean set, that reset now re-proposes `preferred`
+ * immediately on the next algorithmic day rather than always falling back to
+ * 'basic' first, so a fixed interval-structured day followed by an
+ * algorithmic one can in principle land two real interval days close
+ * together — accepted trainer-nuance spacing, not one of CLAUDE.md's hard
+ * safety caps.
+ *
+ * `preferred` (a goal preset's or the athlete's own standing cardio-format
+ * lean, `AthleteProfile.preferredCardioIntent`) biases the rotation toward
+ * itself roughly every other cardio day, using the *unbiased* rotation above
+ * as its own "vary" step so the days between still rotate rather than
+ * flip-flopping between only two values. Unset `preferred` reproduces the
+ * unbiased rotation byte-for-byte. The interval no-repeat guard applies
+ * identically either way.
  */
-function cardioIntentFor(previousCardioIntent: CardioIntent | undefined): CardioIntent {
-  if (previousCardioIntent === 'interval') return 'circuit'; // never stack two interval days
-  if (previousCardioIntent === 'circuit') return 'interval';
-  if (previousCardioIntent === 'basic') return 'circuit';
-  return 'basic'; // first cardio day seen in this forecast (or after an unknown-format day)
+function cardioIntentFor(
+  previousCardioIntent: CardioIntent | undefined,
+  preferred?: CardioIntent,
+): CardioIntent {
+  const unbiasedNext = (previous: CardioIntent | undefined): CardioIntent => {
+    if (previous === 'interval') return 'circuit'; // never stack two interval days
+    if (previous === 'circuit') return 'interval';
+    if (previous === 'basic') return 'circuit';
+    return 'basic'; // first cardio day seen in this forecast (or after an unknown-format day)
+  };
+  const clampInterval = (candidate: CardioIntent): CardioIntent =>
+    previousCardioIntent === 'interval' && candidate === 'interval' ? 'circuit' : candidate;
+
+  if (!preferred) return clampInterval(unbiasedNext(previousCardioIntent));
+  const candidate = previousCardioIntent === preferred ? unbiasedNext(previousCardioIntent) : preferred;
+  return clampInterval(candidate);
 }
 
 /**
@@ -358,7 +383,9 @@ export function buildRollingPlan(
 ): RollingPlan {
   const today = localDay(context.plannedFor);
   const fixedByDate = new Map((fixedDays ?? []).map((day) => [day.date, day]));
-  const explicitTotal = Object.values(context.goals.weeklyTargets ?? {}).reduce((sum, value) => sum + (value ?? 0), 0);
+  const explicitTotal =
+    context.goals.weeklyTotalTarget ||
+    Object.values(context.goals.weeklyTargets ?? {}).reduce((sum, value) => sum + (value ?? 0), 0);
   const expectedSessions = Math.max(
     1,
     Math.min(7, explicitTotal || defaultWeeklyFrequencyFor(context.athlete.experience, context.goals.weights)),
@@ -446,7 +473,9 @@ export function buildRollingPlan(
     for (const group of priorityMuscles) {
       runningFatigue.set(group, clamp((runningFatigue.get(group) ?? 0) + FORECAST_SESSION_IMPULSE, 0, 1));
     }
-    const cardioIntent = modality === 'cardio' ? cardioIntentFor(previousCardioIntent) : undefined;
+    const cardioIntent = modality === 'cardio'
+      ? cardioIntentFor(previousCardioIntent, context.athlete.preferredCardioIntent)
+      : undefined;
     if (modality === 'cardio') previousCardioIntent = cardioIntent;
     days.push({ date, kind: 'workout', modality, priorityMuscles, ...(cardioIntent ? { cardioIntent } : {}) });
   }

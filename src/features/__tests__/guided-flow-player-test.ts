@@ -17,7 +17,7 @@ jest.mock('expo-haptics', () => ({
 jest.mock('@/services/exercise-preferences', () => ({ isTimerSoundEnabled: () => false }));
 
 function step(exerciseId: string, durationSec: number, round = 0, roundCount = 1): GuidedFlowStep {
-  return { exerciseId, setIndex: round, label: exerciseId, durationSec, pattern: 'stretch', round, roundCount };
+  return { exerciseId, setIndex: round, label: exerciseId, durationSec, pattern: 'stretch', round, roundCount, section: 'Flow', sectionIndex: 0 };
 }
 
 beforeEach(() => {

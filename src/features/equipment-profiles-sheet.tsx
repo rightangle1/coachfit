@@ -24,6 +24,7 @@ export function EquipmentProfilesSheet({
   onClose,
   onCreateProfile,
   onActiveChanged,
+  initialAction,
 }: {
   visible: boolean;
   onClose: () => void;
@@ -33,6 +34,9 @@ export function EquipmentProfilesSheet({
   /** Active profile (or the set of profiles) changed — parent should refresh
    * any cached "current equipment" summary it shows elsewhere. */
   onActiveChanged: () => void;
+  /** 'create' opens straight into the new-profile prompt, skipping the extra
+   * tap — used by Settings' "Add new profile" button. */
+  initialAction?: 'create';
 }) {
   return (
     <SheetModal
@@ -42,7 +46,9 @@ export function EquipmentProfilesSheet({
       title="Switch profile"
       closeLabel="Close profile switcher"
     >
-      {visible ? <ProfilesBody onCreateProfile={onCreateProfile} onActiveChanged={onActiveChanged} /> : null}
+      {visible ? (
+        <ProfilesBody onCreateProfile={onCreateProfile} onActiveChanged={onActiveChanged} initialAction={initialAction} />
+      ) : null}
     </SheetModal>
   );
 }
@@ -50,9 +56,11 @@ export function EquipmentProfilesSheet({
 function ProfilesBody({
   onCreateProfile,
   onActiveChanged,
+  initialAction,
 }: {
   onCreateProfile: (id: string) => void;
   onActiveChanged: () => void;
+  initialAction?: 'create';
 }) {
   const { spacing } = useTheme();
   const [profiles, setProfiles] = useState<EquipmentProfile[]>(() => listEquipmentProfiles());
@@ -60,7 +68,7 @@ function ProfilesBody({
   const [confirmingDeleteId, setConfirmingDeleteId] = useState<string | null>(null);
   const [renamingId, setRenamingId] = useState<string | null>(null);
   const [renameDraft, setRenameDraft] = useState('');
-  const [creating, setCreating] = useState(false);
+  const [creating, setCreating] = useState(initialAction === 'create');
   const [createDraft, setCreateDraft] = useState('');
 
   function refresh() {

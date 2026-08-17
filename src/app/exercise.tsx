@@ -5,7 +5,7 @@ import { useState } from 'react';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { View } from 'react-native';
 
-import { Button, Card, HowToSheet, Screen, Text, useTheme } from '@/design';
+import { Button, Card, ExerciseStepsMedia, ExerciseVideoPreviewSheet, Icon, Screen, Text, useTheme } from '@/design';
 import { EXERCISES } from '@/domain/catalog';
 import { getAthleteProfile } from '@/services/athlete';
 import { MODALITY_LABELS, MOVEMENT_PATTERN_LABELS, MUSCLE_GROUP_LABELS } from '@/app-lib/options';
@@ -16,7 +16,7 @@ export default function ExerciseScreen() {
   const router = useRouter();
   const { id } = useLocalSearchParams<{ id?: string }>();
   const { spacing } = useTheme();
-  const [howToOpen, setHowToOpen] = useState(false);
+  const [videoPreviewOpen, setVideoPreviewOpen] = useState(false);
   const [historyOpen, setHistoryOpen] = useState(false);
   const exercise = EXERCISES.find((entry) => entry.id === id);
   const weightUnit = getAthleteProfile()?.weightUnit ?? 'kg';
@@ -35,7 +35,7 @@ export default function ExerciseScreen() {
         eyebrow={`${MODALITY_LABELS[exercise.modality]} · ${MOVEMENT_PATTERN_LABELS[exercise.movementPattern]}`}
         variant="info"
         onOverview={() => router.back()}
-        onHowTo={() => setHowToOpen(true)}
+        onHowTo={() => setVideoPreviewOpen(true)}
         onHistory={() => setHistoryOpen(true)}
       />
       <ExerciseBestStatsRow exerciseId={exercise.id} weightUnit={weightUnit} />
@@ -47,11 +47,19 @@ export default function ExerciseScreen() {
           {intensityLabel(exercise) ? ` · ${intensityLabel(exercise)}` : ''}
         </Text>
       </Card>
+      <Card>
+        <ExerciseStepsMedia pattern={exercise.movementPattern} media={exercise.media} steps={exercise.steps} showClip={false} requireImage />
+      </Card>
       <View style={{ gap: spacing.sm }}>
-        <Button title="How to" variant="secondary" onPress={() => setHowToOpen(true)} fullWidth />
+        <Button title="How To" leadingIcon={<Icon name="play" size={16} color="text" />} variant="secondary" onPress={() => setVideoPreviewOpen(true)} fullWidth />
         <Button title="History" variant="secondary" onPress={() => setHistoryOpen(true)} fullWidth />
       </View>
-      <HowToSheet visible={howToOpen} onClose={() => setHowToOpen(false)} name={exercise.name} exercise={exercise} />
+      <ExerciseVideoPreviewSheet
+        visible={videoPreviewOpen}
+        onClose={() => setVideoPreviewOpen(false)}
+        name={exercise.name}
+        exercise={exercise}
+      />
       <ExerciseHistorySheet exerciseId={historyOpen ? exercise.id : null} exerciseName={exercise.name} weightUnit={weightUnit} onClose={() => setHistoryOpen(false)} />
     </Screen>
   );

@@ -1,8 +1,12 @@
 import {
   REST,
   SUPERSET_REST_FACTOR,
+  DENSE_PACING_COMPOUND_FACTOR,
+  DENSE_PACING_ISOLATION_FACTOR,
   mechanicOf,
   restSecondsFor,
+  densePacingFactor,
+  pacedRestSecondsFor,
   setCostSeconds,
   transitionSecondsFor,
   workSecondsFor,
@@ -105,6 +109,124 @@ describe('timing — restSecondsFor', () => {
     const wallSitRest = restSecondsFor(findExercise('sq-wall-sit'), set);
     const dynamicSquatRest = restSecondsFor(findExercise('sq-bb-box'), set);
     expect(wallSitRest).toBeLessThan(dynamicSquatRest);
+  });
+});
+
+describe('timing — dense pacing (ADR-0145)', () => {
+  it('densePacing: false reproduces restSecondsFor exactly for every existing case', () => {
+    // The rounding-trap regression pin: pacedRestSecondsFor must never
+    // re-round an already-correct value when the factor is a no-op.
+    const cases: [Exercise, PlannedSet][] = [
+      [ex({ movementPattern: 'squat' }), { reps: 5, targetRpe: 8 }],
+      [ex({ movementPattern: 'squat' }), { reps: 10, targetRpe: 7 }],
+      [ex({ movementPattern: 'pull', primaryAreas: ['biceps'] }), { reps: 12 }],
+      [ex({ modality: 'cardio', movementPattern: 'steady_cardio' }), { durationSec: 600 }],
+      [ex({ movementPattern: 'squat' }), { reps: 5, isWarmup: true }],
+      [ex({ modality: 'mobility', movementPattern: 'stretch' }), { durationSec: 30 }],
+    ];
+    for (const [exercise, set] of cases) {
+      expect(pacedRestSecondsFor(exercise, set, false)).toBe(restSecondsFor(exercise, set));
+    }
+  });
+
+  it('shrinks hypertrophy-compound and isolation rest, leaves heavy-compound untouched', () => {
+    const compound = ex({ movementPattern: 'squat' });
+    const isolation = ex({ movementPattern: 'pull', primaryAreas: ['biceps'] });
+    const hypertrophySet: PlannedSet = { reps: 10, targetRpe: 7 };
+    const isolationSet: PlannedSet = { reps: 12 };
+    const heavySet: PlannedSet = { reps: 5, targetRpe: 8 };
+
+    expect(pacedRestSecondsFor(compound, hypertrophySet, true)).toBeLessThan(restSecondsFor(compound, hypertrophySet));
+    expect(pacedRestSecondsFor(isolation, isolationSet, true)).toBeLessThan(restSecondsFor(isolation, isolationSet));
+    // A genuinely heavy set — full rest regardless of pacing goal (safety).
+    expect(pacedRestSecondsFor(compound, heavySet, true)).toBe(restSecondsFor(compound, heavySet));
+    expect(densePacingFactor(compound, heavySet, true)).toBe(1);
+  });
+
+  it('exempts a calibration/AMRAP test set regardless of rep count, even outside isHeavySet\'s window', () => {
+    // The endurance-zone max-effort test: 15 reps at RPE 9 — genuinely
+    // all-out, but not caught by isHeavySet's reps<=8 heuristic.
+    const compound = ex({ movementPattern: 'squat' });
+    const testSet: PlannedSet = { reps: 15, targetRpe: 9, isCalibration: true };
+    expect(densePacingFactor(compound, testSet, true)).toBe(1);
+    expect(pacedRestSecondsFor(compound, testSet, true)).toBe(restSecondsFor(compound, testSet));
+  });
+
+  it('never applies to cardio/mobility/aerobics — dense pacing only shapes strength-tier rest', () => {
+    const cardio = ex({ modality: 'cardio', movementPattern: 'steady_cardio' });
+    const mobility = ex({ modality: 'mobility', movementPattern: 'stretch' });
+    const aerobics = ex({ modality: 'cardio', movementPattern: 'aerobics' });
+    expect(densePacingFactor(cardio, { durationSec: 600 }, true)).toBe(1);
+    expect(densePacingFactor(mobility, { durationSec: 30 }, true)).toBe(1);
+    expect(densePacingFactor(aerobics, { durationSec: 45 }, true)).toBe(1);
+  });
+
+  it('rest tiers never invert under the density factor', () => {
+    // Worst case for dense hypertrophy (max loadDemand, gentlest compound
+    // factor) must still stay below the best case for heavy (min loadDemand,
+    // exempt from the density factor entirely).
+    const hypertrophyAtMaxDense = pacedRestSecondsFor(
+      ex({ movementPattern: 'squat', loadDemand: LOAD_DEMAND_HI }),
+      { reps: 10, targetRpe: 7 },
+      true,
+    );
+    const heavyAtMin = pacedRestSecondsFor(
+      ex({ movementPattern: 'squat', loadDemand: LOAD_DEMAND_LO }),
+      { reps: 5, targetRpe: 8 },
+      true,
+    );
+    expect(hypertrophyAtMaxDense).toBeLessThan(heavyAtMin);
+  });
+
+  it('exact discount magnitudes match the documented factors', () => {
+    expect(DENSE_PACING_COMPOUND_FACTOR).toBe(0.75);
+    expect(DENSE_PACING_ISOLATION_FACTOR).toBe(0.6);
+    // 90 (HYPERTROPHY_COMPOUND) × 1.0 (neutral loadDemand) × 0.75 → 67.5 → rounds to 70.
+    expect(pacedRestSecondsFor(ex({ movementPattern: 'squat' }), { reps: 10, targetRpe: 7 }, true)).toBe(70);
+    // 50 (ISOLATION) × 1.0 × 0.6 = 30.
+    expect(pacedRestSecondsFor(ex({ movementPattern: 'pull', primaryAreas: ['biceps'] }), { reps: 12 }, true)).toBe(30);
+  });
+
+  it('a grouped set is unaffected by densePacing in setCostSeconds — no stacking with SUPERSET_REST_FACTOR', () => {
+    const e = ex({ movementPattern: 'push', primaryAreas: ['chest'] });
+    const set: PlannedSet = { reps: 10, targetRpe: 7 };
+    const groupedStandard = setCostSeconds(e, set, true, false);
+    const groupedDense = setCostSeconds(e, set, true, true);
+    expect(groupedDense).toBe(groupedStandard);
+    // Confirms it's the superset factor alone driving it, not a compounded discount.
+    const straightRest = restSecondsFor(e, set);
+    expect(groupedStandard - workSecondsFor(set)).toBeCloseTo(straightRest * SUPERSET_REST_FACTOR);
+  });
+
+  it('an ungrouped set IS affected by densePacing in setCostSeconds', () => {
+    const e = ex({ movementPattern: 'push', primaryAreas: ['chest'] });
+    const set: PlannedSet = { reps: 10, targetRpe: 7 };
+    expect(setCostSeconds(e, set, false, true)).toBeLessThan(setCostSeconds(e, set, false, false));
+  });
+
+  it('circuit-transition dense constants preserve the 2x aerobics:loaded ratio', () => {
+    expect(REST.DENSE_AEROBICS_TRANSITION).toBe(8);
+    expect(REST.DENSE_LOADED_CIRCUIT_TRANSITION).toBe(16);
+    expect(REST.DENSE_LOADED_CIRCUIT_TRANSITION).toBe(REST.DENSE_AEROBICS_TRANSITION * 2);
+  });
+
+  it('estimateBlocksSeconds with densePacing shrinks a circuit block\'s transition cost', () => {
+    const loaded = ex({ id: 'kb', modality: 'cardio', movementPattern: 'interval', loadsWeight: true, equipment: ['kettlebell'] });
+    const block: SessionBlock = {
+      modality: 'cardio',
+      label: 'Main',
+      exercises: [{
+        exerciseId: 'kb', name: 'KB swing', primaryAreas: [{ group: 'glutes' }],
+        rotationGroup: 'rotation-1',
+        group: { id: 'rotation-1', type: 'circuit', rationale: 'test' },
+        sets: [{ durationSec: 45, targetRpe: 6 }, { durationSec: 45, targetRpe: 6 }],
+      }],
+    };
+    const standard = estimateBlocksSeconds([block], (id) => (id === 'kb' ? loaded : undefined), false);
+    const dense = estimateBlocksSeconds([block], (id) => (id === 'kb' ? loaded : undefined), true);
+    expect(dense).toBeLessThan(standard);
+    // transition(20, cardio) + 2 × (work 45 + dense loaded transition 16) = 20 + 122 = 142
+    expect(dense).toBe(20 + 2 * (45 + REST.DENSE_LOADED_CIRCUIT_TRANSITION));
   });
 });
 

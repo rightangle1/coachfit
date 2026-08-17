@@ -66,7 +66,7 @@ import {
 type TrendDirection = 'up' | 'flat' | 'down' | 'unknown';
 type ProgressMetric = 'strength' | 'endurance' | 'calories' | 'workouts';
 
-const PROGRESS_EDITORIAL_ART = require('../../assets/images/editorial/weekly-consistency-v1.png');
+const PROGRESS_EDITORIAL_ART = require('../../assets/images/editorial/weekly-consistency-v1.webp');
 
 const PROGRESS_METRIC_LABELS: Record<ProgressMetric, string> = {
   strength: 'Strength',
@@ -898,11 +898,10 @@ export default function ProgressScreen() {
 
   return (
     <Screen contentStyle={{ paddingTop: spacing.sm }}>
-      <GoalHero goal={focusGoal} imageOverride={PROGRESS_EDITORIAL_ART} style={{ minHeight: 470 }}>
+      <GoalHero goal={focusGoal} imageOverride={PROGRESS_EDITORIAL_ART} style={{ minHeight: 320 }}>
         <View style={{ gap: spacing.md }}>
           <View>
-            <Text variant="caption" color="heroMuted" weight="bold">YOUR TRAINING PROGRESS</Text>
-            <Text variant="display" color="heroText" italic style={{ marginTop: 2 }}>Your training progress</Text>
+            <Text variant="display" color="heroText" italic>Your training progress</Text>
           </View>
 
           <Pressable

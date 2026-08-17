@@ -9,20 +9,20 @@ import { useTheme } from '../theme';
  * purpose-composed close crop so the visual focus reads at exercise-card size.
  */
 const MUSCLE_IMAGES: Record<MuscleGroup, ImageSourcePropType> = {
-  chest: require('../../../assets/images/muscles/chest.png'),
-  back: require('../../../assets/images/muscles/back.png'),
-  shoulders: require('../../../assets/images/muscles/shoulders.png'),
-  biceps: require('../../../assets/images/muscles/biceps.png'),
-  triceps: require('../../../assets/images/muscles/triceps.png'),
-  forearms: require('../../../assets/images/muscles/forearms.png'),
-  quads: require('../../../assets/images/muscles/quads.png'),
-  hamstrings: require('../../../assets/images/muscles/hamstrings.png'),
-  glutes: require('../../../assets/images/muscles/glutes.png'),
-  calves: require('../../../assets/images/muscles/calves.png'),
-  abs: require('../../../assets/images/muscles/abs.png'),
-  obliques: require('../../../assets/images/muscles/obliques.png'),
-  lower_back: require('../../../assets/images/muscles/lower_back.png'),
-  neck: require('../../../assets/images/muscles/neck.png'),
+  chest: require('../../../assets/images/muscles/chest.webp'),
+  back: require('../../../assets/images/muscles/back.webp'),
+  shoulders: require('../../../assets/images/muscles/shoulders.webp'),
+  biceps: require('../../../assets/images/muscles/biceps.webp'),
+  triceps: require('../../../assets/images/muscles/triceps.webp'),
+  forearms: require('../../../assets/images/muscles/forearms.webp'),
+  quads: require('../../../assets/images/muscles/quads.webp'),
+  hamstrings: require('../../../assets/images/muscles/hamstrings.webp'),
+  glutes: require('../../../assets/images/muscles/glutes.webp'),
+  calves: require('../../../assets/images/muscles/calves.webp'),
+  abs: require('../../../assets/images/muscles/abs.webp'),
+  obliques: require('../../../assets/images/muscles/obliques.webp'),
+  lower_back: require('../../../assets/images/muscles/lower_back.webp'),
+  neck: require('../../../assets/images/muscles/neck.webp'),
 };
 
 export function MuscleLogo({ groups, size = 82 }: { groups: MuscleGroup[]; size?: number }) {

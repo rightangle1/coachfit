@@ -56,6 +56,18 @@ export const REST = {
   // A circuit keeps moving between stations (ADR-0138) — brief, not zero
   // like steady/interval cardio's "rest is intrinsic to the bout" case.
   AEROBICS_TRANSITION: 10,
+  // Loaded-implement circuit stations (kettlebell/dumbbell work) keep the
+  // "brief transition, not full recovery" circuit format, but get double the
+  // bodyweight transition — ballistic loaded movement needs more buffer
+  // between stations than a bodyweight aerobics step does.
+  LOADED_CIRCUIT_TRANSITION: 20,
+  // Dense-pacing (ADR-0145) circuit transitions. Deliberately a gentler 20%
+  // cut than the straight-set factors below — these constants already sit at
+  // the tightest-safe value ADR-0138/the loaded-station buffer established,
+  // not a generic default with headroom. The 2x aerobics:loaded ratio above is
+  // preserved exactly (8 × 2 = 16), not re-derived.
+  DENSE_AEROBICS_TRANSITION: 8,
+  DENSE_LOADED_CIRCUIT_TRANSITION: 16,
 } as const;
 
 /**
@@ -64,6 +76,16 @@ export const REST = {
  * to grouped exercises' rest so the budget actually credits the structure.
  */
 export const SUPERSET_REST_FACTOR = 0.55;
+
+/**
+ * Dense pacing's (ADR-0145) discount on a compound set's rest — gentler than
+ * isolation's, since compound recovery is where insufficient rest risks
+ * technique breakdown (`PerformedSet.quality: 'form_breakdown'`), not just a
+ * slower pace. Never applied to a genuinely heavy set — see `densePacingFactor`.
+ */
+export const DENSE_PACING_COMPOUND_FACTOR = 0.75;
+/** Isolation work tolerates a more aggressive cut — lower stakes, single joint. */
+export const DENSE_PACING_ISOLATION_FACTOR = 0.6;
 
 /**
  * Whether a strength set is heavy enough to need long, full rest. Keyed on the
@@ -95,6 +117,58 @@ export function restSecondsFor(exercise: Exercise, set: PlannedSet): number {
     return roundToNearest10((isHeavySet(set) ? REST.HEAVY_COMPOUND : REST.HYPERTROPHY_COMPOUND) * factor);
   }
   return roundToNearest10(REST.ISOLATION * factor);
+}
+
+/**
+ * Dense-pacing (ADR-0145) discount on `restSecondsFor`'s output for `set`, or
+ * `1` (no-op) when it doesn't apply. Every safety exemption lives here, in one
+ * place, rather than as separately-derived booleans at each call site:
+ *  - Off entirely, or a calibration/AMRAP test set, or a warmup — always `1`.
+ *    A max-effort test (`isCalibration`) needs full recovery regardless of
+ *    rep count, so it's exempt even outside `isHeavySet`'s reps ≤8 window
+ *    (the endurance-zone test is 15 reps at RPE 9 — genuinely all-out, not
+ *    caught by the low-rep heuristic that flags a heavy compound).
+ *  - Cardio/mobility/aerobics exercises — `1`; dense pacing only shapes
+ *    strength-tier rest. Circuit-station transitions have their own,
+ *    separately-calibrated lever (`REST.DENSE_AEROBICS_TRANSITION`/
+ *    `REST.DENSE_LOADED_CIRCUIT_TRANSITION`), applied at the call site.
+ *  - A genuinely heavy compound set (`isHeavySet`) — `1`; full rest regardless
+ *    of goal pacing (CLAUDE.md: "a good trainer would rather under-load than
+ *    injure").
+ *  - Otherwise: `DENSE_PACING_COMPOUND_FACTOR` or `DENSE_PACING_ISOLATION_FACTOR`.
+ */
+export function densePacingFactor(exercise: Exercise, set: PlannedSet, densePacing: boolean): number {
+  if (!densePacing || set.isCalibration || set.isWarmup) return 1;
+  if (
+    exercise.modality === 'cardio' ||
+    exercise.modality === 'mobility' ||
+    exercise.movementPattern === 'stretch' ||
+    exercise.movementPattern === 'yoga_flow' ||
+    exercise.movementPattern === 'core' ||
+    exercise.movementPattern === 'aerobics'
+  ) {
+    return 1;
+  }
+  if (mechanicOf(exercise) === 'compound') {
+    return isHeavySet(set) ? 1 : DENSE_PACING_COMPOUND_FACTOR;
+  }
+  return DENSE_PACING_ISOLATION_FACTOR;
+}
+
+/**
+ * `restSecondsFor`, adjusted for dense pacing. Kept as a thin wrapper — rather
+ * than a 3rd param on `restSecondsFor` itself — so `restSecondsFor` stays pure
+ * and every existing caller/test is untouched. Only re-rounds when a real
+ * discount applies (`factor !== 1`): re-running an already-rounded value
+ * through `roundToNearest10` unconditionally would silently inflate it (e.g.
+ * `roundToNearest10(15)` = 20, not 15 — `Math.round(1.5)` rounds up), which
+ * would break the "densePacing: false reproduces today's values exactly"
+ * guarantee this whole feature depends on.
+ */
+export function pacedRestSecondsFor(exercise: Exercise, set: PlannedSet, densePacing: boolean): number {
+  const base = restSecondsFor(exercise, set);
+  const factor = densePacingFactor(exercise, set, densePacing);
+  return factor === 1 ? base : roundToNearest10(base * factor);
 }
 
 /** Rest is displayed/counted down in the tracker UI, so keep it a round, glanceable number. */
@@ -137,20 +211,34 @@ export function workSecondsFor(set: PlannedSet, exercise?: Pick<Exercise, 'unila
   return exercise?.unilateral ? base * 2 : base;
 }
 
-/** Full cost of a single set: work + (superset-adjusted) rest. */
-export function setCostSeconds(exercise: Exercise, set: PlannedSet, grouped = false): number {
-  const rest = restSecondsFor(exercise, set) * (grouped ? SUPERSET_REST_FACTOR : 1);
+/**
+ * Full cost of a single set: work + rest. Grouped (superset) and dense-paced
+ * are mutually exclusive, never stacked (ADR-0145) — a grouped set always pays
+ * `SUPERSET_REST_FACTOR` alone, exactly as before this feature existed.
+ * Multiplying both discounts together would compound into a budget estimate
+ * far below the real displayed rest for that same set (`annotateRest` never
+ * applies `SUPERSET_REST_FACTOR`), causing `fitDurationToBudget` to pack in
+ * more work than actually fits and real sessions to run over their requested
+ * duration.
+ */
+export function setCostSeconds(exercise: Exercise, set: PlannedSet, grouped = false, densePacing = false): number {
+  const rest = grouped
+    ? restSecondsFor(exercise, set) * SUPERSET_REST_FACTOR
+    : pacedRestSecondsFor(exercise, set, densePacing);
   return workSecondsFor(set, exercise) + rest;
 }
 
 /**
  * Estimate total seconds for a set of blocks. `resolve` maps a planned
  * exercise's id back to its catalog `Exercise`; unknown ids fall back to a
- * neutral cost so a missing entry never zeroes the estimate.
+ * neutral cost so a missing entry never zeroes the estimate. `densePacing`
+ * mirrors the real rest model (`annotateRest`, rules-engine.ts) so the
+ * duration estimate and the athlete-facing displayed rest never diverge.
  */
 export function estimateBlocksSeconds(
   blocks: SessionBlock[],
   resolve: (id: string) => Exercise | undefined,
+  densePacing = false,
 ): number {
   let seconds = 0;
   for (const block of blocks) {
@@ -163,7 +251,16 @@ export function estimateBlocksSeconds(
         continue;
       }
       seconds += transitionSecondsFor(exercise);
-      for (const set of planned.sets) seconds += setCostSeconds(exercise, set, grouped);
+      const circuitTransition = planned.group?.type === 'circuit'
+        ? (exercise.loadsWeight
+            ? (densePacing ? REST.DENSE_LOADED_CIRCUIT_TRANSITION : REST.LOADED_CIRCUIT_TRANSITION)
+            : (densePacing ? REST.DENSE_AEROBICS_TRANSITION : REST.AEROBICS_TRANSITION))
+        : undefined;
+      for (const set of planned.sets) {
+        seconds += circuitTransition != null
+          ? workSecondsFor(set, exercise) + circuitTransition
+          : setCostSeconds(exercise, set, grouped, densePacing);
+      }
     }
   }
   return seconds;

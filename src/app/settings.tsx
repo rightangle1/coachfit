@@ -13,9 +13,11 @@ import type { SchemePreference } from '@/design';
 import { EquipmentSheet } from '@/features/equipment-sheet';
 import { EquipmentProfilesSheet } from '@/features/equipment-profiles-sheet';
 import { ExerciseCatalogSheet } from '@/features/exercise-catalog-sheet';
+import { GoalsSheet } from '@/features/goals-sheet';
 import { HelpSheet } from '@/features/help-sheet';
 import { MetricsGuideSheet } from '@/features/metrics-guide-sheet';
 import { ProfileSheet } from '@/features/profile-sheet';
+import { TrainingSettingsSheet } from '@/features/training-settings-sheet';
 import { TermsSheet } from '@/features/terms-sheet';
 import { PrivacySheet } from '@/features/privacy-sheet';
 import { healthWritePort } from '@/platform/health';
@@ -62,9 +64,12 @@ export default function SettingsScreen() {
   const [showHelp, setShowHelp] = useState(false);
   const [showMetricsGuide, setShowMetricsGuide] = useState(false);
   const [showProfile, setShowProfile] = useState(false);
+  const [showGoals, setShowGoals] = useState(false);
+  const [showTrainingSettings, setShowTrainingSettings] = useState(false);
   const [showEquipment, setShowEquipment] = useState(false);
   const [editingProfileId, setEditingProfileId] = useState<string | undefined>(undefined);
   const [showProfiles, setShowProfiles] = useState(false);
+  const [profilesAction, setProfilesAction] = useState<'create' | undefined>(undefined);
   const [showTerms, setShowTerms] = useState(false);
   const [showPrivacy, setShowPrivacy] = useState(false);
 
@@ -165,6 +170,14 @@ export default function SettingsScreen() {
     setProfileCount(listEquipmentProfiles().length);
   }
 
+  function refreshProfileSummaries() {
+    const next = getAthleteProfile();
+    setProfile(next);
+    setWeightUnit(next?.weightUnit ?? 'kg');
+    setHealthSyncEnabled(next?.healthSyncEnabled ?? false);
+    setNotificationsEnabled(next?.notificationsEnabled ?? false);
+  }
+
   const experienceLabel = EXPERIENCE_OPTIONS.find((o) => o.value === profile?.experience)?.label;
 
   return (
@@ -187,11 +200,64 @@ export default function SettingsScreen() {
           Goals, experience, warm-up, constraints, weekly targets, max-day cadence, and equipment.
         </Text>
         <ActionRow
-          label={profile ? 'Edit training profile' : 'Set up profile'}
-          description="Goals, experience, constraints, and cadence"
+          label="Profile"
+          description="Experience, bodyweight, and about-you details"
           icon={<Icon name="target" color="primaryTextSoft" />}
           onPress={() => setShowProfile(true)}
           style={{ marginTop: spacing.lg }}
+        />
+        <ActionRow
+          label="Goals"
+          description="Primary focus, subtype, and fine-tuning"
+          icon={<Icon name="target" color="primaryTextSoft" />}
+          onPress={() => setShowGoals(true)}
+          style={{ marginTop: spacing.sm }}
+        />
+        <ActionRow
+          label="Training Settings"
+          description="Warm-up, cooldown, constraints, and weekly cadence"
+          icon={<Icon name="target" color="primaryTextSoft" />}
+          onPress={() => setShowTrainingSettings(true)}
+          style={{ marginTop: spacing.sm }}
+        />
+      </Card>
+
+      <Card>
+        <Text variant="heading">Equipment profile</Text>
+        <Text variant="body" color="textMuted" style={{ marginTop: spacing.xs }}>
+          {equipment
+            ? `${equipment.items.length} equipment option${equipment.items.length === 1 ? '' : 's'} in the active profile · ${profileCount} profile${profileCount === 1 ? '' : 's'} saved`
+            : 'Set up your training space'}
+        </Text>
+        <ActionRow
+          label="Edit profile"
+          description="Change what equipment the active profile has"
+          icon={<Icon name="workout" color="primaryTextSoft" />}
+          onPress={() => {
+            setEditingProfileId(undefined);
+            setShowEquipment(true);
+          }}
+          style={{ marginTop: spacing.lg }}
+        />
+        <ActionRow
+          label="Add new profile"
+          description="Create a profile for a new space — home, gym, travel…"
+          icon={<Icon name="add" color="primaryTextSoft" />}
+          onPress={() => {
+            setProfilesAction('create');
+            setShowProfiles(true);
+          }}
+          style={{ marginTop: spacing.sm }}
+        />
+        <ActionRow
+          label="Switch default"
+          description={`${profileCount} equipment profile${profileCount === 1 ? '' : 's'} · Home, gym, travel…`}
+          icon={<Icon name="rotation" color="primaryTextSoft" />}
+          onPress={() => {
+            setProfilesAction(undefined);
+            setShowProfiles(true);
+          }}
+          style={{ marginTop: spacing.sm }}
         />
       </Card>
 
@@ -251,9 +317,6 @@ export default function SettingsScreen() {
 
       <Card>
         <Text variant="heading">Workout defaults</Text>
-        <Text variant="body" color="textMuted" style={{ marginTop: spacing.xs }}>
-          What a fresh plan build starts with. Override any of these per-build on the Build screen.
-        </Text>
         <Row style={{ justifyContent: 'space-between', alignItems: 'center', marginTop: spacing.md }}>
           <Text variant="body">Warmup</Text>
           <Toggle value={defaultIncludeWarmup} onChange={updateDefaultIncludeWarmup} label="Include warmup by default" />
@@ -281,30 +344,6 @@ export default function SettingsScreen() {
           </Row>
         </Card>
       )}
-
-      <Card>
-        <Text variant="heading">Equipment</Text>
-        <Text variant="body" color="textMuted" style={{ marginTop: spacing.xs }}>
-          {equipment ? `${equipment.items.length} items available` : 'Not set up yet.'}
-        </Text>
-        <ActionRow
-          label="Edit equipment"
-          description={equipment ? `${equipment.items.length} equipment options available` : 'Set up your training space'}
-          icon={<Icon name="workout" color="primaryTextSoft" />}
-          onPress={() => {
-            setEditingProfileId(undefined);
-            setShowEquipment(true);
-          }}
-          style={{ marginTop: spacing.lg }}
-        />
-        <ActionRow
-          label="Switch profile"
-          description={`${profileCount} equipment profile${profileCount === 1 ? '' : 's'} · Home, gym, travel…`}
-          icon={<Icon name="rotation" color="primaryTextSoft" />}
-          onPress={() => setShowProfiles(true)}
-          style={{ marginTop: spacing.sm }}
-        />
-      </Card>
 
       <Card>
         <Text variant="heading">Exercise catalog</Text>
@@ -387,13 +426,26 @@ export default function SettingsScreen() {
         onClose={() => setShowProfile(false)}
         onSaved={() => {
           setShowProfile(false);
-          setProfile(getAthleteProfile());
-          setWeightUnit(getAthleteProfile()?.weightUnit ?? 'kg');
-          setHealthSyncEnabled(getAthleteProfile()?.healthSyncEnabled ?? false);
-          setNotificationsEnabled(getAthleteProfile()?.notificationsEnabled ?? false);
+          refreshProfileSummaries();
           // First-time setup via Settings (no equipment yet) — carry straight
           // into equipment instead of leaving the athlete to find it themselves.
           if (!hasEquipmentInventory()) setShowEquipment(true);
+        }}
+      />
+      <GoalsSheet
+        visible={showGoals}
+        onClose={() => setShowGoals(false)}
+        onSaved={() => {
+          setShowGoals(false);
+          refreshProfileSummaries();
+        }}
+      />
+      <TrainingSettingsSheet
+        visible={showTrainingSettings}
+        onClose={() => setShowTrainingSettings(false)}
+        onSaved={() => {
+          setShowTrainingSettings(false);
+          refreshProfileSummaries();
         }}
       />
       <EquipmentSheet
@@ -414,12 +466,15 @@ export default function SettingsScreen() {
       />
       <EquipmentProfilesSheet
         visible={showProfiles}
+        initialAction={profilesAction}
         onClose={() => {
           setShowProfiles(false);
+          setProfilesAction(undefined);
           refreshEquipmentSummaries();
         }}
         onCreateProfile={(profileId) => {
           setShowProfiles(false);
+          setProfilesAction(undefined);
           setEditingProfileId(profileId);
           setShowEquipment(true);
         }}

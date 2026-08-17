@@ -16,7 +16,7 @@ export function EquipmentSheet({
 }) {
   const title = profileId
     ? `Set up ${getEquipmentProfile(profileId)?.name ?? 'profile'}`
-    : 'Edit equipment';
+    : 'Equipment settings';
   return (
     <SheetModal visible={visible} onClose={onClose} eyebrow="SETTINGS" title={title} closeLabel="Close equipment editor">
       {/* Remounts fresh each open so it re-reads the latest saved inventory

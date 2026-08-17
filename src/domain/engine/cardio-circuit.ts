@@ -1,11 +1,12 @@
 /**
- * Aerobics circuit grouping (ADR-0138). Unlike `supersets.ts`'s pairing —
- * which classifies *why* two exercises belong together (antagonist,
- * pre/post-exhaust) — an aerobics circuit has no such relationship to
- * discover: every station in the Main block rotates together by
- * construction. This just assigns the shared `rotationGroup`/`group` fields
- * so the tracker's existing round-based flatten (built for supersets) renders
- * the circuit for free, with no new UI.
+ * Circuit grouping (ADR-0138, widened to loaded-implement stations). Unlike
+ * `supersets.ts`'s pairing — which classifies *why* two exercises belong
+ * together (antagonist, pre/post-exhaust) — a circuit has no such
+ * relationship to discover: every station in the Main block rotates together
+ * by construction, whether it's a bodyweight aerobics move or a kettlebell/
+ * dumbbell interval. This just assigns the shared `rotationGroup`/`group`
+ * fields so the tracker's existing round-based flatten (built for supersets)
+ * renders the circuit for free, with no new UI.
  *
  * Pure, deterministic, offline (ADR-0003).
  */
@@ -13,10 +14,11 @@
 import type { PlannedExercise, SupersetGroup } from '../types';
 
 /**
- * Groups every exercise in an aerobics Main block into one round-based
- * circuit. No-op below two exercises — a "circuit" of one station is just a
- * regular exercise, and single-member groups would only add UI plumbing that
- * has nothing to rotate through.
+ * Groups every exercise in a circuit-intent Main block into one round-based
+ * rotation — bodyweight aerobics stations, loaded-implement stations, or a
+ * mix of both. No-op below two exercises — a "circuit" of one station is just
+ * a regular exercise, and single-member groups would only add UI plumbing
+ * that has nothing to rotate through.
  *
  * Each station's round count is computed independently in `cardioSets()`
  * (its own progression state can nudge it up or down a round), so members
@@ -37,7 +39,7 @@ export function applyAerobicsCircuit(exercises: PlannedExercise[]): void {
   const group: SupersetGroup = {
     id,
     type: 'circuit',
-    rationale: 'Aerobics circuit — rotate through each move, then repeat for the next round.',
+    rationale: 'Circuit — rotate through each move, then repeat for the next round.',
   };
   for (const exercise of exercises) {
     exercise.rotationGroup = id;

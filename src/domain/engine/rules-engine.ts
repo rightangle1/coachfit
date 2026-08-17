@@ -79,7 +79,7 @@ import {
 } from './selection-score';
 
 import { fatigueAreas } from './fatigue';
-import { durationCalibrationFactor, estimateBlocksSeconds, REST, restSecondsFor, roundToNearest10 } from './timing';
+import { durationCalibrationFactor, estimateBlocksSeconds, pacedRestSecondsFor, REST, roundToNearest10 } from './timing';
 import { cardioRestRatio, cardioWorkRpe, metForExercise } from './intensity';
 import { applySupersets } from './supersets';
 import { applyAerobicsCircuit } from './cardio-circuit';
@@ -176,6 +176,11 @@ export class RulesEngine implements ProgrammingEngine {
       input.plannedFor,
     );
     const weights = normalize(input.goals.weights);
+    // ADR-0145: resolved once here so every rest/duration consumer below
+    // (annotateRest, fitDurationToBudget, estimateDuration, cardioSets) agrees
+    // on the same value, and so it can be persisted onto the plan (SessionPlan.
+    // densePacing) for consumers that only have the plan, not the full goals.
+    const densePacing = input.goals.restPacing === 'dense';
     const experience = input.athlete.experience;
     const targetDurationMin = input.targetDurationMin;
     const options = input.workoutOptions;
@@ -244,6 +249,18 @@ export class RulesEngine implements ProgrammingEngine {
     let mainModality: Modality;
     if (workoutType === 'cardio') {
       mainModality = 'cardio';
+    } else if (
+      workoutType === 'bodybuilding' || workoutType === 'sculpting' || workoutType === 'bodyweight'
+      // 'Balanced' is `workoutType === undefined` — identical to an
+      // unseeded day unless `workoutTypeExplicit` says the athlete actually
+      // tapped it. See options.ts's familyOfWorkoutType: unset resolves to
+      // Strength, so an explicit Balanced pick belongs in this branch too.
+      || (workoutType == null && input.workoutTypeExplicit)
+    ) {
+      // An explicit strength-family choice must win outright, exactly like
+      // 'cardio' above — otherwise a cardio-leaning weeklyPlan/weights pick
+      // below would silently override the athlete's own Build Workout choice.
+      mainModality = 'strength';
     } else if (input.routine) {
       // ADR-0137: a routine's own exercises decide which Main shape runs —
       // the weight/cadence-derived pick would otherwise ignore an all-cardio
@@ -355,7 +372,7 @@ export class RulesEngine implements ProgrammingEngine {
       // (yoga/barre) or targeted-area count (stretch) is the only lever.
       // Running the generic budget-fitter afterward would compress holds
       // toward its 20s filler floor, undoing exactly that.
-      annotateRest(blocks);
+      annotateRest(blocks, densePacing);
       roundPlanTimes(blocks);
 
       const flowRationale = buildFlowRationale(flowType, emphasize, avoid, volumeScale, flow.length > 0, stageRounds);
@@ -363,7 +380,7 @@ export class RulesEngine implements ProgrammingEngine {
       return {
         id: `plan-${input.plannedFor}`,
         plannedFor: input.plannedFor,
-        estimatedDurationMin: Math.round(estimateDuration(blocks) * durationCalibrationFactor(input.history)),
+        estimatedDurationMin: Math.round(estimateDuration(blocks, densePacing) * durationCalibrationFactor(input.history)),
         // ADR-0137 v2: same "which routine drove this" lead-in the strength/
         // cardio path already uses.
         rationale: input.routine ? `Following your "${input.routine.name}" routine. ${flowRationale}` : flowRationale,
@@ -371,6 +388,7 @@ export class RulesEngine implements ProgrammingEngine {
         workoutType,
         workoutOptions: options,
         routineId: input.routine?.id,
+        densePacing,
         blocks,
       };
     }
@@ -424,7 +442,11 @@ export class RulesEngine implements ProgrammingEngine {
     // A skipped Conditioning block's seconds fold into Main the same way a
     // skipped Warmup/Cool down do — only relevant when Conditioning would
     // otherwise have been built at all (step 3 below).
-    const conditioningWouldApply = mainModality !== 'cardio' && weights.cardio + weights.general >= 0.25;
+    // Excludes 'general' too: once mainModality can itself be 'general', the
+    // Main block already IS the general-weighted work, so a Conditioning
+    // finisher here would double-count the same cardio+general signal.
+    const conditioningWouldApply =
+      mainModality !== 'cardio' && mainModality !== 'general' && weights.cardio + weights.general >= 0.25;
     const freedSeconds =
       skippedFixedBlockSeconds + (conditioningWouldApply && !includeConditioning ? baseRx.cardioSeconds + 30 : 0);
     if (mainModality === 'cardio') {
@@ -458,7 +480,7 @@ export class RulesEngine implements ProgrammingEngine {
       const perExerciseSeconds = rx.cardioSeconds + 30;
       let count = routinePool ? routinePool.length : baseCount + (freedSeconds > 0 ? Math.round(freedSeconds / perExerciseSeconds) : 0);
       const matchesIntent = (exercise: Exercise) => cardioIntent === 'circuit'
-        ? exercise.movementPattern === 'aerobics'
+        ? exercise.movementPattern === 'aerobics' || (exercise.movementPattern === 'interval' && exercise.loadsWeight === true)
         : cardioIntent === 'basic'
           ? exercise.movementPattern === 'steady_cardio'
           : exercise.movementPattern === 'interval';
@@ -502,6 +524,14 @@ export class RulesEngine implements ProgrammingEngine {
       if (!routinePool && cardioIntent === 'interval' && isSingleFocusCardioPool(pool)) {
         count = 1;
       }
+      // Shared by reference across every cardio pick below (ADR-0134's own
+      // pattern, mirrored from the strength branch's `usedFamilies` — see
+      // rules-engine.ts's resistance Main block) — without this, the backfill
+      // pick() below started its own empty family tally, so a near-duplicate
+      // (e.g. Burpees' own broad-jump-combo variant) could still land a
+      // second time once the first pick() call's own loop ran out of
+      // distinct candidates and this one took over with no memory of it.
+      const usedFamilies = new Map<string, number>();
       let main = pick(pool, 'cardio', count, emphasize, avoid, swaps, {
         // ADR-0143: the pool is now always intent-filtered (basePool above),
         // whether cardio was explicit or implicit — every candidate already
@@ -517,6 +547,7 @@ export class RulesEngine implements ProgrammingEngine {
         experience,
         profile: routinePool ? 'anchor' : 'neutral',
         anchorCount: routinePool ? routinePool.length : 0,
+        seedUsedFamilies: usedFamilies,
       });
       // The candidate pool (e.g. distinct cardio patterns) can run out before
       // `count` is met — prefer another distinct cardio exercise (even one
@@ -526,7 +557,7 @@ export class RulesEngine implements ProgrammingEngine {
       // needed — backfilling from outside the routine would silently change it.
       if (!routinePool && main.length < count) {
         const remainingPool = pool.filter((e) => e.modality === 'cardio' && !main.some((chosen) => chosen.id === e.id));
-        const more = pick(remainingPool, 'cardio', count - main.length, emphasize, avoid, swaps, { requireDistinctPattern: false, history: input.history, now: input.plannedFor, favorites, experience });
+        const more = pick(remainingPool, 'cardio', count - main.length, emphasize, avoid, swaps, { requireDistinctPattern: false, history: input.history, now: input.plannedFor, favorites, experience, seedUsedFamilies: usedFamilies });
         main = [...main, ...more];
       }
       if (routinePool) {
@@ -565,6 +596,7 @@ export class RulesEngine implements ProgrammingEngine {
             input.trainingIntent,
             cardioStationCount,
             volumeScale,
+            densePacing,
           ),
         ),
       );
@@ -572,6 +604,10 @@ export class RulesEngine implements ProgrammingEngine {
       blocks.push({ modality: 'cardio', label: 'Main', exercises: mainExercises });
       main.forEach((e) => sessionChosenIds.add(e.id));
     } else {
+      // mainModality is guaranteed 'strength' | 'general' here (cardio branches
+      // above, mobility is diverted to the flow builder earlier) — this is which
+      // resistance-shaped catalog pool Main draws from today.
+      const resistanceModality: Modality = mainModality === 'general' ? 'general' : 'strength';
       const isBodybuilding = workoutType === 'bodybuilding';
       const isSculpting = workoutType === 'sculpting';
       // ADR-0137: a routine already fixes exactly which exercises to run —
@@ -593,7 +629,9 @@ export class RulesEngine implements ProgrammingEngine {
       // safety/fatigue conflict is skipped by `pick()` itself (never
       // substituted with something outside the routine).
       const routinePool = input.routine
-        ? available.filter((e) => e.modality === 'strength' && input.routine!.exerciseIds.includes(e.id))
+        ? available.filter(
+            (e) => (e.modality === 'strength' || e.modality === 'general') && input.routine!.exerciseIds.includes(e.id),
+          )
         : undefined;
       const count = routinePool
         ? routinePool.length
@@ -617,7 +655,7 @@ export class RulesEngine implements ProgrammingEngine {
       // sitting on a "chest only" day. Falls back to the full pool if the
       // emphasized one is empty — a session is better than nothing.
       const emphasisOnlyPool = available.filter(
-        (e) => e.modality === 'strength' && emphasizesArea(emphasize, e),
+        (e) => e.modality === resistanceModality && emphasizesArea(emphasize, e),
       );
       const mainPool =
         routinePool ??
@@ -625,8 +663,8 @@ export class RulesEngine implements ProgrammingEngine {
           ? emphasisOnlyPool
           : available);
       let main = fullBody
-        ? pickFullBodySpread(available, count, emphasize, avoid, swaps, weeklyVolume, input.history, favorites, input.plannedFor, usedFamilies, experience)
-        : pick(mainPool, 'strength', count, emphasize, avoid, swaps, {
+        ? pickFullBodySpread(available, count, emphasize, avoid, swaps, weeklyVolume, input.history, favorites, input.plannedFor, usedFamilies, experience, resistanceModality)
+        : pick(mainPool, routinePool ? 'any' : resistanceModality, count, emphasize, avoid, swaps, {
             weeklyVolume,
             history: input.history,
             now: input.plannedFor,
@@ -641,9 +679,10 @@ export class RulesEngine implements ProgrammingEngine {
             requireDistinctPattern: !routinePool,
           });
       if (routinePool) {
-        const missingEquipment = input.routine!.exerciseIds.filter(
-          (id) => resolveExercise(id)?.modality === 'strength' && !routinePool.some((e) => e.id === id),
-        ).length;
+        const missingEquipment = input.routine!.exerciseIds.filter((id) => {
+          const m = resolveExercise(id)?.modality;
+          return (m === 'strength' || m === 'general') && !routinePool.some((e) => e.id === id);
+        }).length;
         if (missingEquipment > 0) {
           swaps.push(`Routine "${input.routine!.name}": ${missingEquipment} exercise${missingEquipment === 1 ? '' : 's'} skipped — missing equipment today`);
         }
@@ -664,7 +703,7 @@ export class RulesEngine implements ProgrammingEngine {
         // honest, though — it let this path deliver six push-up variants. The
         // family-saturation penalty is the precise version of that guard, and it
         // carries the families the pass above already used.
-        const extra = pick(emphasisPool, 'strength', quotaTarget - emphasisDelivered, emphasize, avoid, swaps, {
+        const extra = pick(emphasisPool, resistanceModality, quotaTarget - emphasisDelivered, emphasize, avoid, swaps, {
           requireDistinctPattern: false,
           weeklyVolume,
           history: input.history,
@@ -709,11 +748,11 @@ export class RulesEngine implements ProgrammingEngine {
       if (!routinePool && main.length < count) {
         const remainingPool = available.filter(
           (e) =>
-            e.modality === 'strength' &&
+            e.modality === resistanceModality &&
             !main.some((chosen) => chosen.id === e.id) &&
             (emphasisMode !== 'priority' || !emphasize.length || emphasizesArea(emphasize, e)),
         );
-        const more = pick(remainingPool, 'strength', count - main.length, emphasize, avoid, swaps, { requireDistinctPattern: false, weeklyVolume, history: input.history, now: input.plannedFor, favorites, experience, seedUsedFamilies: usedFamilies, profile: 'accessory' });
+        const more = pick(remainingPool, resistanceModality, count - main.length, emphasize, avoid, swaps, { requireDistinctPattern: false, weeklyVolume, history: input.history, now: input.plannedFor, favorites, experience, seedUsedFamilies: usedFamilies, profile: 'accessory' });
         main = [...main, ...more];
       }
       // Priority mode fills only with emphasized work, so it can legitimately end
@@ -828,7 +867,7 @@ export class RulesEngine implements ProgrammingEngine {
       // volume-ceiling trimming) is the floor fitDurationToBudget must respect.
       if (input.routine) routineMainExerciseCount = main.length;
       blocks.push({
-        modality: 'strength',
+        modality: resistanceModality,
         label: 'Main',
         exercises: main.flatMap((e) => {
           const flagged = anyAreaMatches(avoid.limit, e);
@@ -1122,6 +1161,7 @@ export class RulesEngine implements ProgrammingEngine {
                 input.trainingIntent,
                 1,
                 volumeScale,
+                densePacing,
               ),
             ),
           ),
@@ -1190,12 +1230,13 @@ export class RulesEngine implements ProgrammingEngine {
         ? Math.max(MIN_MAIN_EXERCISES, routineMainExerciseCount)
         : mainIsFullBody ? MIN_MAIN_EXERCISES_FULL_BODY : MIN_MAIN_EXERCISES,
       dailyCapCeiling || undefined,
+      densePacing,
     );
     // Invariant, system-wide: a superset/triset needs ≥2 members. Trimming above
     // can pop a grouped exercise and orphan its partner — demote any survivor
     // back to a plain straight set rather than leave a "superset of one."
     demoteOrphanedSupersets(blocks);
-    annotateRest(blocks);
+    annotateRest(blocks, densePacing);
     roundPlanTimes(blocks);
 
     const rationale = buildRationale(
@@ -1219,12 +1260,13 @@ export class RulesEngine implements ProgrammingEngine {
       dailyCapCeiling,
       dailyCapDroppedExercises,
       priorityBlockShortfall,
+      densePacing,
     );
 
     return {
       id: `plan-${input.plannedFor}`,
       plannedFor: input.plannedFor,
-      estimatedDurationMin: Math.round(estimateDuration(blocks) * durationCalibrationFactor(input.history)),
+      estimatedDurationMin: Math.round(estimateDuration(blocks, densePacing) * durationCalibrationFactor(input.history)),
       // ADR-0137: leads with which routine drove today's Main block, ahead
       // of the usual generated-session explanation.
       rationale: input.routine ? `Following your "${input.routine.name}" routine. ${rationale}` : rationale,
@@ -1233,6 +1275,7 @@ export class RulesEngine implements ProgrammingEngine {
       workoutType,
       workoutOptions: options,
       routineId: input.routine?.id,
+      densePacing,
       blocks,
     };
   }
@@ -1248,12 +1291,15 @@ export class RulesEngine implements ProgrammingEngine {
     ): SessionPlan => {
       nextBlocks = nextBlocks.filter((block) => block.exercises.length > 0);
       demoteOrphanedSupersets(nextBlocks);
-      annotateRest(nextBlocks);
+      // Reads plan.densePacing (not a fresh LiveAdjustmentContext field) so a
+      // live swap stays consistent with how the rest of THIS session was
+      // already timed, rather than the athlete's current standing goal.
+      annotateRest(nextBlocks, plan.densePacing);
       roundPlanTimes(nextBlocks);
       return {
         ...plan,
         blocks: nextBlocks,
-        estimatedDurationMin: estimateDuration(nextBlocks),
+        estimatedDurationMin: estimateDuration(nextBlocks, plan.densePacing),
         rationale: `${plan.rationale} Live adjustment: ${adjustment.note}`,
         adjustments: [...(plan.adjustments ?? []), adjustment.note],
         liveAdjustments: [...(plan.liveAdjustments ?? []), adjustment],
@@ -1413,7 +1459,7 @@ export class RulesEngine implements ProgrammingEngine {
     if (signal.kind === 'time_short') {
       const targetSeconds = Math.max(60, (signal.remainingMinutes ?? Math.max(5, Math.floor((plan.estimatedDurationMin ?? 20) * 0.65))) * 60);
       const secondsFor = (candidateBlocks: SessionBlock[]) =>
-        estimateBlocksSeconds(candidateBlocks, (id) => EXERCISES.find((exercise) => exercise.id === id));
+        estimateBlocksSeconds(candidateBlocks, (id) => EXERCISES.find((exercise) => exercise.id === id), plan.densePacing);
       // Accessories and optional blocks yield before emphasized/priority work.
       for (const label of ['Cool down', 'Conditioning']) {
         if (secondsFor(blocks) <= targetSeconds) break;
@@ -1747,6 +1793,7 @@ function pickFullBodySpread(
    * pick the same variant family once per region. */
   usedFamilies: Map<string, number> = new Map(),
   experience: ExperienceLevel = 'intermediate',
+  modality: Modality = 'strength',
 ): Exercise[] {
   const quotas = fullBodyRegionQuotas(count);
   const chosenIds = new Set<string>();
@@ -1760,7 +1807,7 @@ function pickFullBodySpread(
       continue;
     }
     const regionPool = pool.filter((e) => e.primaryAreas.some((g) => GROUP_TO_REGION[g] === region));
-    const picked = pick(regionPool, 'strength', quota, emphasize, avoid, swaps, {
+    const picked = pick(regionPool, modality, quota, emphasize, avoid, swaps, {
       weeklyVolume,
       history,
       now,
@@ -1781,7 +1828,7 @@ function pickFullBodySpread(
     // the spread. requireDistinctPattern=false, same relaxation that
     // fallback uses.
     if (picked.length < quota) {
-      const more = pick(regionPool, 'strength', quota - picked.length, emphasize, avoid, swaps, {
+      const more = pick(regionPool, modality, quota - picked.length, emphasize, avoid, swaps, {
         requireDistinctPattern: false,
         weeklyVolume,
         history,
@@ -2782,6 +2829,10 @@ export function cardioSets(
    * readiness or recovery-intent day actually reduces cardio volume instead
    * of only blocking further growth. */
   volumeScale = 1,
+  /** Dense-pacing lean (ADR-0145) — only affects the circuit branch's
+   * transition/round-count math, matching the tighter transition
+   * `annotateRest`/`estimateBlocksSeconds` will actually display. */
+  densePacing = false,
 ): PlannedSet[] {
   const met = metForExercise(ex);
   const rpe = cardioWorkRpe(met);
@@ -2810,13 +2861,16 @@ export function cardioSets(
   const progressionCycle = Math.max(0, successfulExposureCount - 1) % 4;
   if (intent === 'circuit') {
     // Continuous circuit, not max-effort work/rest — stations rotate on a
-    // short, fixed transition (REST.AEROBICS_TRANSITION, applied uniformly by
-    // annotateRest()) rather than a per-round recovery set or a progressable
-    // rest ratio, so aerobics only has 3 progression axes, not intervals' 4.
-    // Rounds come from the time budget split across stations (not this one
-    // exercise's own history, which drifts per-station) — applyAerobicsCircuit
-    // trims every station to the shortest round count afterward, the same
-    // safety-first equalize `supersets.ts` already uses for real supersets.
+    // short, fixed transition (REST.AEROBICS_TRANSITION/REST.DENSE_AEROBICS_TRANSITION
+    // for bodyweight stations, REST.LOADED_CIRCUIT_TRANSITION/
+    // REST.DENSE_LOADED_CIRCUIT_TRANSITION for loaded-implement ones, both
+    // applied by annotateRest()) rather than a per-round recovery set or a
+    // progressable rest ratio, so aerobics only has 3 progression axes, not
+    // intervals' 4. Rounds come from the time budget split across stations
+    // (not this one exercise's own history, which drifts per-station) —
+    // applyAerobicsCircuit trims every station to the shortest round count
+    // afterward, the same safety-first equalize `supersets.ts` already uses
+    // for real supersets.
     const totalStations = Math.max(1, stationCount);
     const priorWorkSec = priorWork[0]?.prescribedDurationSec ?? priorWork[0]?.durationSec;
     const baseWork = Math.max(20, priorWorkSec ?? 45);
@@ -2826,7 +2880,13 @@ export function cardioSets(
     // scaled downward by today's readiness/intent before any progression
     // runs — this is exactly the arithmetic that used to reach ~22 rounds
     // (1200s / 1 station / 55s) whenever stationCount defaulted to 1.
-    const priorRounds = clampRounds(Math.round(rx.cardioSeconds / totalStations / (work + REST.AEROBICS_TRANSITION)));
+    // ADR-0145: mirrors whichever transition annotateRest()/estimateBlocksSeconds
+    // will actually display, so the round count stays internally consistent
+    // with the real per-station rest rather than assuming the standard value.
+    const transition = ex.loadsWeight
+      ? (densePacing ? REST.DENSE_LOADED_CIRCUIT_TRANSITION : REST.LOADED_CIRCUIT_TRANSITION)
+      : (densePacing ? REST.DENSE_AEROBICS_TRANSITION : REST.AEROBICS_TRANSITION);
+    const priorRounds = clampRounds(Math.round(rx.cardioSeconds / totalStations / (work + transition)));
     const scaledRounds = Math.max(MIN_CARDIO_ROUNDS, Math.round(priorRounds * Math.min(1, volumeScale)));
     const rounds = mayProgress && aerobicsCycle === 0 ? clampRounds(scaledRounds + 1) : scaledRounds;
     const workRpe = mayProgress && aerobicsCycle === 2 ? Math.min(7, rpe + 1) : rpe;
@@ -2954,12 +3014,13 @@ function normalize(w: ModalityWeights): ModalityWeights {
   };
 }
 
+// Tie-break order when two modalities carry equal weight (ties never occur in
+// practice with real athlete weights, but argmax needs a deterministic pick).
+const MODALITY_PRIORITY: Modality[] = ['cardio', 'mobility', 'general', 'strength'];
+
 function dominantMainModality(w: ModalityWeights): Modality {
-  // 'general' trains via resistance in the Main block, so fold it into strength.
-  const strengthish = w.strength + w.general;
-  if (w.cardio > strengthish && w.cardio >= w.mobility) return 'cardio';
-  if (w.mobility > strengthish && w.mobility > w.cardio) return 'mobility';
-  return 'strength';
+  const best = Math.max(w.strength, w.cardio, w.mobility, w.general);
+  return MODALITY_PRIORITY.find((m) => w[m] === best) ?? 'strength';
 }
 
 interface CadenceOverride {
@@ -3006,12 +3067,12 @@ function applyCadenceOverride(
   };
 }
 
-function estimateDurationSeconds(blocks: SessionBlock[]): number {
-  return estimateBlocksSeconds(blocks, resolveExercise);
+function estimateDurationSeconds(blocks: SessionBlock[], densePacing = false): number {
+  return estimateBlocksSeconds(blocks, resolveExercise, densePacing);
 }
 
-function estimateDuration(blocks: SessionBlock[]): number {
-  return Math.round(estimateDurationSeconds(blocks) / 60);
+function estimateDuration(blocks: SessionBlock[], densePacing = false): number {
+  return Math.round(estimateDurationSeconds(blocks, densePacing) / 60);
 }
 
 // A little rounding slack so the fit pass doesn't fight itself over a few seconds.
@@ -3047,7 +3108,7 @@ const MIN_ANCHOR_HOLD_SEC = 45;
 
 /** True for a strength Main lift whose sets we may add/remove to fit the budget. */
 function isTrimmableStrength(block: SessionBlock): boolean {
-  return block.modality === 'strength' && block.label === 'Main';
+  return (block.modality === 'strength' || block.modality === 'general') && block.label === 'Main';
 }
 
 /** The trimmable strength exercise carrying the most work sets (for even paring). */
@@ -3094,6 +3155,9 @@ function fitDurationToBudget(
    * request is a ceiling on time, never a licence to exceed a volume limit.
    */
   groupCeiling?: number,
+  /** ADR-0145: mirrors the real rest model so the budget the filler/trimmer
+   * loops below chase matches what annotateRest will actually display. */
+  densePacing = false,
 ): void {
   if (!requestedMinutes) return;
   const clamped = Math.max(MIN_TARGET_DURATION_MIN, Math.min(MAX_TARGET_DURATION_MIN, requestedMinutes));
@@ -3101,7 +3165,7 @@ function fitDurationToBudget(
 
   // --- Over budget: shed structure, biggest lever first. ---
   for (let guard = 0; guard < 200; guard++) {
-    if (estimateDurationSeconds(blocks) <= targetSeconds * DURATION_BUDGET_TOLERANCE) break;
+    if (estimateDurationSeconds(blocks, densePacing) <= targetSeconds * DURATION_BUDGET_TOLERANCE) break;
 
     const fullest = largestStrengthExercise(blocks);
     const fullestWorkSets = fullest?.sets.filter((s) => !s.isWarmup).length ?? 0;
@@ -3151,7 +3215,7 @@ function fitDurationToBudget(
 
   // --- Under budget: fill with real set-blocks, not filler. ---
   for (let guard = 0; guard < 200; guard++) {
-    if (estimateDurationSeconds(blocks) >= targetSeconds / DURATION_BUDGET_TOLERANCE) break;
+    if (estimateDurationSeconds(blocks, densePacing) >= targetSeconds / DURATION_BUDGET_TOLERANCE) break;
     // ADR-0128: duration buys volume, but not without limit. Now that reps no
     // longer inflate with session length, a long budget would otherwise keep
     // adding sets until the session sprawled.
@@ -3209,14 +3273,25 @@ function demoteOrphanedSupersets(blocks: SessionBlock[]): void {
 }
 
 /** Populate each set's `restSec` from the real rest model for the tracker's
- * per-set timer. The final set of an exercise gets no trailing rest. */
-function annotateRest(blocks: SessionBlock[]): void {
+ * per-set timer. The final set of an exercise gets no trailing rest.
+ * `densePacing` (ADR-0145) mirrors the exact logic `estimateBlocksSeconds`
+ * uses, so the displayed rest and the duration/budget estimate never diverge. */
+function annotateRest(blocks: SessionBlock[], densePacing = false): void {
   for (const block of blocks) {
     for (const ex of block.exercises) {
       const catalog = resolveExercise(ex.exerciseId);
       if (!catalog) continue;
+      // A circuit-grouped exercise (stamped by applyAerobicsCircuit) always
+      // gets the short rotation transition regardless of movementPattern —
+      // pacedRestSecondsFor's own aerobics check only covers the degenerate
+      // single-exercise (ungrouped) case below it.
+      const circuitRest = ex.group?.type === 'circuit'
+        ? (catalog.loadsWeight
+            ? (densePacing ? REST.DENSE_LOADED_CIRCUIT_TRANSITION : REST.LOADED_CIRCUIT_TRANSITION)
+            : (densePacing ? REST.DENSE_AEROBICS_TRANSITION : REST.AEROBICS_TRANSITION))
+        : undefined;
       ex.sets.forEach((set, i) => {
-        set.restSec = i === ex.sets.length - 1 ? undefined : restSecondsFor(catalog, set);
+        set.restSec = i === ex.sets.length - 1 ? undefined : circuitRest ?? pacedRestSecondsFor(catalog, set, densePacing);
       });
     }
   }
@@ -3225,13 +3300,21 @@ function annotateRest(blocks: SessionBlock[]): void {
 /** Last step of session build: round every set's timed values to the nearest
  * 10s, whichever formula upstream produced them (strength rest, interval
  * work/recovery, mobility holds, ...) — a single seam so the tracker always
- * shows/counts down a glanceable number instead of chasing each source. */
+ * shows/counts down a glanceable number instead of chasing each source.
+ * Circuit-grouped rest is exempt: `annotateRest` already writes its final,
+ * intentional value from the `REST.*_TRANSITION` family — for the dense-
+ * pacing (ADR-0145) 8s/16s variants specifically, `roundToNearest10` would
+ * round them straight back up to the standard 10s/20s and silently erase the
+ * discount. The standard 10s/20s transitions are already exact multiples of
+ * 10, so this is a no-op for every non-dense circuit, matching Phase 2's
+ * output exactly. */
 function roundPlanTimes(blocks: SessionBlock[]): void {
   for (const block of blocks) {
     for (const ex of block.exercises) {
+      const isCircuitRest = ex.group?.type === 'circuit';
       for (const set of ex.sets) {
         if (set.durationSec != null) set.durationSec = roundToNearest10(set.durationSec);
-        if (set.restSec != null) set.restSec = roundToNearest10(set.restSec);
+        if (set.restSec != null && !isCircuitRest) set.restSec = roundToNearest10(set.restSec);
       }
     }
   }
@@ -3271,6 +3354,8 @@ function buildRationale(
   dailyCapDroppedExercises = 0,
   /** ADR-0134: emphasized slots 'priority' mode left unfilled on purpose. */
   priorityBlockShortfall = 0,
+  /** ADR-0145: whether this session was built under a dense-pacing lean. */
+  densePacing = false,
 ): string {
   const parts: string[] = [];
   parts.push(`Today's focus: ${mainModality}.`);
@@ -3279,6 +3364,9 @@ function buildRationale(
   // an unexplained lighter day reads as the app losing track, not looking after you.
   if (layoffNote) parts.push(`${layoffNote.charAt(0).toUpperCase()}${layoffNote.slice(1)}.`);
   if (workoutType === 'cardio') parts.push(`A full cardio-focused session.`);
+  // ADR-0145: named explicitly (CLAUDE.md §7) since it's a real, measurable
+  // change to displayed rest and circuit transitions, not just copy.
+  if (densePacing) parts.push(`Kept rest and transitions tight to match your plan's fast pace.`);
   if (workoutType === 'bodyweight') parts.push(`Bodyweight-only today — no external equipment.`);
   if (workoutType === 'sculpting') parts.push(`A full-body sculpting session — toning across every major muscle group.`);
   const fullBody = isFullBodyTargeting(emphasize);
@@ -3298,7 +3386,7 @@ function buildRationale(
       // problem that isn't there.
       const blockedByExclusion = EXERCISES.some(
         (e) =>
-          e.modality === 'strength' &&
+          e.modality === mainModality &&
           input.excludedExerciseIds?.includes(e.id) &&
           equipmentSatisfied(e, input.equipment) &&
           emphasizesArea(emphasize, e),

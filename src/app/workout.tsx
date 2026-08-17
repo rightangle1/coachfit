@@ -14,7 +14,7 @@ import { ExercisePickerSheet } from '@/features/exercise-picker-sheet';
 import { Meter, Stepper } from '@/design/components/controls';
 import { useWorkoutStore } from '@/state/workout-store';
 import { EXERCISES } from '@/domain/catalog';
-import { equipmentSatisfied, replacementAllowed, replacementFitScore, replacementLogCount } from '@/domain/engine';
+import { cardioRoundCount, equipmentSatisfied, hasIntervalPhases, isGuidedFlowBlock, replacementAllowed, replacementFitScore, replacementLogCount } from '@/domain/engine';
 import { adjustDuringSession } from '@/services/programming';
 import { getAthleteProfile } from '@/services/athlete';
 import { getEquipmentInventory } from '@/services/equipment';
@@ -123,6 +123,7 @@ export default function WorkoutScreen() {
   const setExerciseRpe = useWorkoutStore((state) => state.setExerciseRpe);
   const applySwap = useWorkoutStore((state) => state.applySwap);
   const applyPlanEdit = useWorkoutStore((state) => state.applyPlanEdit);
+  const finish = useWorkoutStore((state) => state.finish);
   const endEarly = useWorkoutStore((state) => state.endEarly);
   const toggleTimerPause = useWorkoutStore((state) => state.toggleTimerPause);
   const preSessionBestE1rm = useWorkoutStore((state) => state.preSessionBestE1rm);
@@ -201,6 +202,7 @@ export default function WorkoutScreen() {
   const totalSets = record?.performed.reduce((sum, exercise) => sum + exercise.sets.length, 0) ?? 0;
   const completeSets = record?.performed.reduce((sum, exercise) => sum + exercise.sets.filter((set) => set.completed || set.skipped).length, 0) ?? 0;
   const progress = totalSets ? Math.round((completeSets / totalSets) * 100) : 0;
+  const workoutComplete = totalSets > 0 && totalSets === completeSets;
 
   // Same hard floor the engine enforces on commit (`replacementAllowed`) — see
   // exercise-adjust-view.tsx for the non-superset Replace flow this mirrors.
@@ -288,12 +290,10 @@ export default function WorkoutScreen() {
     // through to today's plain manual view.
     const autoAdvance = activePlan.workoutOptions?.autoAdvance
       ?? defaultAutoAdvance(activePlan.workoutType, activePlan.workoutOptions?.cardioIntent);
-    // A Conditioning block bolted onto another workout type is also
-    // `modality: 'cardio'` but must never auto-advance — `defaultAutoAdvance`
-    // already keys off `workoutType`, not block modality, so this just makes
-    // that intent explicit (ADR-0406) rather than relying on it implicitly.
-    const cardioFlowEligible = block.modality === 'cardio' && activePlan.workoutType === 'cardio';
-    if ((block.modality === 'mobility' || cardioFlowEligible) && autoAdvance) {
+    // `isGuidedFlowBlock` is the same eligibility check `workout-flow.tsx`
+    // uses to decide how far the flow can chain forward (ADR-0408) — shared
+    // so the two can't drift out of sync the way they did before.
+    if (isGuidedFlowBlock(block, activePlan.workoutType) && autoAdvance) {
       router.push({ pathname: '/workout-flow', params: { exerciseId } });
       return;
     }
@@ -518,7 +518,9 @@ export default function WorkoutScreen() {
   if (view === 'overview') {
     const focusTone = toneForWorkoutType(plan.workoutType);
     return (
-      <Screen footer={<Row gap="sm"><Button title={record.pausedAt ? 'Resume workout' : 'Pause workout'} variant="secondary" onPress={toggleTimerPause} style={{ flex: 1 }} /><Button title="End early" variant="danger" onPress={() => setEndEarlyPrompt(true)} style={{ flex: 1 }} /></Row>}>
+      <Screen footer={workoutComplete
+        ? <Button title="Finish workout" onPress={finishWorkout} fullWidth />
+        : <Row gap="sm"><Button title={record.pausedAt ? 'Resume workout' : 'Pause workout'} variant="secondary" onPress={toggleTimerPause} style={{ flex: 1 }} /><Button title="End early" variant="danger" onPress={() => setEndEarlyPrompt(true)} style={{ flex: 1 }} /></Row>}>
         <ViewSwap key="overview">
         <View style={{ position: 'relative', zIndex: 50, elevation: 50 }}>{renderStatus()}{renderLiveCelebration()}</View>
         <Card>
@@ -572,7 +574,13 @@ export default function WorkoutScreen() {
             equipment={equipment}
             workoutType={plan.workoutType}
             modality={selectedBlock.modality}
-            eyebrow={isMobilityFlow ? `ROUND ${roundIndex + 1} OF ${actual.sets.length}` : `${actual.sets.filter((set) => set.completed || set.skipped).length} OF ${actual.sets.length} SETS`}
+            eyebrow={
+              isMobilityFlow
+                ? `ROUND ${roundIndex + 1} OF ${actual.sets.length}`
+                : hasIntervalPhases(actual.sets)
+                  ? `ROUND ${actual.sets.filter((set) => set.phase !== 'recovery' && (set.completed || set.skipped)).length} OF ${cardioRoundCount(actual.sets)}`
+                  : `${actual.sets.filter((set) => set.completed || set.skipped).length} OF ${actual.sets.length} SETS`
+            }
             onClose={() => returnToOverview(selectedExercise.exerciseId)}
             onUpdateSet={(index, patch) => updateSet(selectedExercise.exerciseId, isMobilityFlow ? roundIndex : index, patch)}
             onToggleSet={(index) => toggleIndividualSet(selectedExercise.exerciseId, isMobilityFlow ? roundIndex : index)}
@@ -651,6 +659,11 @@ export default function WorkoutScreen() {
     setEndEarlyPrompt(false);
     const ended = endEarly(reason);
     router.push(ended ? '/debrief' : '/');
+  }
+
+  function finishWorkout() {
+    finish();
+    router.push('/debrief');
   }
 
   function renderModals() {

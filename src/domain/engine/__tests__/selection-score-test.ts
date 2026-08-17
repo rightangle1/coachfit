@@ -161,6 +161,29 @@ describe('volume need — graded by deficit, not a boolean flag', () => {
     const over = context({ weeklyVolume: { shoulders: 40 } });
     expect(scoreExercise(empty, over)).toBeLessThan(scoreExercise(empty, under));
   });
+
+  it('excludes cardio from the volume-landmark terms — weekly volume never moves a cardio score', () => {
+    // Neither cardio pick() call threads real weeklyVolume through
+    // (rules-engine.ts), so this term used to silently score every cardio
+    // candidate the same uniform +20 regardless of which muscle it happened
+    // to tag. Zeroing it for cardio makes that intentional and permanent
+    // rather than an accident that reappears the moment weeklyVolume is
+    // correctly wired through later.
+    const burpees = exercise('ca-burpees', { modality: 'cardio', movementPattern: 'interval', primaryAreas: ['quads', 'chest'] });
+    const untrained = context({ weeklyVolume: {} });
+    const wellTrained = context({ weeklyVolume: { quads: 40, chest: 40 } });
+    expect(scoreExercise(burpees, untrained)).toBe(scoreExercise(burpees, wellTrained));
+  });
+});
+
+describe('family saturation (ADR-0134) — the fix this pass depends on', () => {
+  it('penalises a second exercise from the same variantFamily, e.g. burpees and its own named variant', () => {
+    const burpees = exercise('ca-burpees', { modality: 'cardio', movementPattern: 'interval', variantFamily: 'cardio:burpee' });
+    const comboVariant = exercise('ca-burpee-broad-jump-combo', { modality: 'cardio', movementPattern: 'interval', variantFamily: 'cardio:burpee' });
+    const clean = context();
+    const burpeesAlreadyChosen = context({ usedFamilies: new Map([['cardio:burpee', 1]]) });
+    expect(scoreExercise(comboVariant, burpeesAlreadyChosen)).toBeLessThan(scoreExercise(burpees, clean));
+  });
 });
 
 describe('fatigue and pattern saturation', () => {

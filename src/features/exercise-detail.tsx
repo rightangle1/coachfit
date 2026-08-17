@@ -12,11 +12,11 @@ import { useAudioPlayer } from 'expo-audio';
 import * as Haptics from 'expo-haptics';
 import { Pressable, View, type ImageSourcePropType } from 'react-native';
 
-import { CheckToggle, FloatingEditField, HeroScrim, Icon, Row, Stepper, Text, useTheme } from '@/design';
+import { CheckToggle, FloatingEditField, HeroScrim, Icon, MuscleLogo, Row, Stepper, Text, useTheme } from '@/design';
 import { EXERCISES } from '@/domain/catalog';
 import { availableWeightsForExercise } from '@/domain/engine';
 import { LOAD_DEMAND_HI, LOAD_DEMAND_LO, cardioIntensityT, metForExercise, resolvedLoadDemand } from '@/domain/engine/intensity';
-import { INTENSITY_LABELS } from '@/app-lib/options';
+import { INTENSITY_LABELS, MUSCLE_GROUP_LABELS } from '@/app-lib/options';
 import { repsLabelFor } from '@/app-lib/set-presentation';
 import { exerciseBestStats } from '@/domain/metrics';
 import { isExerciseExcluded, isExerciseFavorite, isTimerSoundEnabled, setExerciseExcluded, setExerciseFavorite } from '@/services/exercise-preferences';
@@ -45,6 +45,10 @@ export type EditableSet = {
   isCalibration?: boolean;
   /** The floor an all-out set is asked to beat; drives the `N+` label. */
   prescribedReps?: number;
+  /** Interval-cardio work/recovery phase (ADR-0406) — drives the row's Work/
+   * Recovery title in the manual tracker, same signal the guided-flow player
+   * already reads (`hasIntervalPhases`/`cardioRoundCount`, guided-flow.ts). */
+  phase?: 'work' | 'recovery';
 };
 
 export function formatClock(totalSeconds: number) {
@@ -89,21 +93,31 @@ export function intensityLabel(
   return undefined;
 }
 
+export const WORKOUT_TYPE_ART: Record<WorkoutType, ImageSourcePropType> = {
+  yoga: require('../../assets/images/heroes/yoga-hero.webp'),
+  barre: require('../../assets/images/workout-types/barre-thumbnail.webp'),
+  pilates: require('../../assets/images/workout-types/pilates-thumbnail.webp'),
+  stretch: require('../../assets/images/heroes/stretch-hero.webp'),
+  cardio: require('../../assets/images/heroes/cardio-hero.webp'),
+  bodybuilding: require('../../assets/images/heroes/bodybuilding-hero.webp'),
+  bodyweight: require('../../assets/images/heroes/bodyweight-hero.webp'),
+  sculpting: require('../../assets/images/workout-types/sculpting-thumbnail.webp'),
+};
+
+/** Shared workout-style artwork for the planner, routine builder, and workout views. */
+export function workoutTypeArt(workoutType?: WorkoutType): ImageSourcePropType {
+  return workoutType ? WORKOUT_TYPE_ART[workoutType] : WORKOUT_TYPE_ART.bodyweight;
+}
+
 const WORKOUT_HEADER_BACKGROUNDS: Record<WorkoutType, { label: string; image: ImageSourcePropType }> = {
-  yoga: { label: 'Yoga', image: require('../../assets/images/heroes/yoga-hero.png') },
-  // No dedicated barre art yet — reuses the yoga hero as a placeholder
-  // (CLAUDE.md §11: simple placeholders now, richer later).
-  barre: { label: 'Barre', image: require('../../assets/images/heroes/yoga-hero.png') },
-  // No dedicated Pilates art yet — reuses the yoga hero as a placeholder,
-  // same spirit as Barre (CLAUDE.md §11: simple placeholders now, richer later).
-  pilates: { label: 'Pilates', image: require('../../assets/images/heroes/yoga-hero.png') },
-  stretch: { label: 'Stretch', image: require('../../assets/images/heroes/stretch-hero.png') },
-  cardio: { label: 'Cardio', image: require('../../assets/images/heroes/cardio-hero.png') },
-  bodybuilding: { label: 'Bodybuilding', image: require('../../assets/images/heroes/bodybuilding-hero.png') },
-  bodyweight: { label: 'Bodyweight', image: require('../../assets/images/heroes/bodyweight-hero.png') },
-  // No dedicated art yet — reuses the bodybuilding hero as a placeholder
-  // (CLAUDE.md §11: simple placeholders now, richer later).
-  sculpting: { label: 'Sculpting', image: require('../../assets/images/heroes/bodybuilding-hero.png') },
+  yoga: { label: 'Yoga', image: WORKOUT_TYPE_ART.yoga },
+  barre: { label: 'Barre', image: WORKOUT_TYPE_ART.barre },
+  pilates: { label: 'Pilates', image: WORKOUT_TYPE_ART.pilates },
+  stretch: { label: 'Stretch', image: WORKOUT_TYPE_ART.stretch },
+  cardio: { label: 'Cardio', image: WORKOUT_TYPE_ART.cardio },
+  bodybuilding: { label: 'Bodybuilding', image: WORKOUT_TYPE_ART.bodybuilding },
+  bodyweight: { label: 'Bodyweight', image: WORKOUT_TYPE_ART.bodyweight },
+  sculpting: { label: 'Sculpting', image: WORKOUT_TYPE_ART.sculpting },
 };
 
 /** Exported for `app/workout-flow.tsx` — the guided-flow player's full-bleed
@@ -143,7 +157,7 @@ export function ExerciseHero({
   variant = 'workout',
 }: {
   name: string;
-  exercise?: Pick<Exercise, 'modality' | 'movementPattern'>;
+  exercise?: Pick<Exercise, 'modality' | 'movementPattern' | 'primaryAreas'>;
   /** When set, shows favorite/exclude buttons for this exercise. Omitted for a
    *  superset hero, which doesn't represent a single exercise. */
   exerciseId?: string;
@@ -238,13 +252,19 @@ export function ExerciseHero({
         <View style={{ gap: spacing.xs }}>
           <Text variant="caption" color="heroMuted" weight="bold">{background.label.toUpperCase()} · {eyebrow}</Text>
           {variant === 'workout' ? <Text variant="caption" color="heroMuted">{name === 'Superset' ? 'Current superset' : 'Current exercise'}</Text> : null}
-          <Text variant="title" color="heroText" italic numberOfLines={2} style={{ marginTop: spacing.xs, maxWidth: '92%' }}>{name}</Text>
+          <Row gap="sm" style={{ marginTop: spacing.xs, alignItems: 'center' }}>
+            {variant === 'info' && exercise?.primaryAreas?.length ? <MuscleLogo groups={exercise.primaryAreas} size={40} /> : null}
+            <Text variant="title" color="heroText" italic numberOfLines={2} style={{ flexShrink: 1, maxWidth: variant === 'info' && exercise?.primaryAreas?.length ? '78%' : '92%' }}>{name}</Text>
+          </Row>
+          {variant === 'info' && exercise?.primaryAreas?.length ? (
+            <Text variant="caption" color="heroMuted">{exercise.primaryAreas.map((group) => MUSCLE_GROUP_LABELS[group]).join(' · ')}</Text>
+          ) : null}
         </View>
 
         <Row gap="xs">
           <Pressable accessibilityRole="button" accessibilityLabel={`How to perform ${name}`} onPress={onHowTo} style={({ pressed }) => ({ ...heroControlStyle(pressed), flex: 1.15 })}>
-            <Icon name="play" size={15} color="heroText" />
-            <Text variant="label" color="heroText" weight="semibold">How-to</Text>
+            {variant === 'info' ? <Icon name="play" size={14} color="heroText" /> : null}
+            <Text variant="label" color="heroText" weight="semibold">{variant === 'info' ? 'How To' : 'How-to'}</Text>
           </Pressable>
           {onReplace ? (
             <Pressable accessibilityRole="button" accessibilityLabel={`Replace an exercise in ${name}`} onPress={onReplace} style={({ pressed }) => ({ ...heroControlStyle(pressed), flex: 1 })}>

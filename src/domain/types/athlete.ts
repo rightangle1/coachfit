@@ -5,7 +5,7 @@
 
 import type { BodyArea, MuscleGroup } from './body-area';
 import type { ExperienceLevel, TrainingGoals } from './goals';
-import type { RollingPlan, WorkoutOptions, WorkoutType } from './session';
+import type { CardioIntent, RollingPlan, WorkoutOptions, WorkoutType } from './session';
 
 /** Display unit for weight entry/output. Storage stays kg-canonical everywhere
  * else (progression, achievements, decision log) — this only drives the UI
@@ -84,6 +84,11 @@ export interface AthleteProfile {
   /** Standing default workout style (e.g. 'sculpting'). Pre-fills the Today
    * screen's per-session picker; the athlete can always override per session. */
   preferredWorkoutType?: WorkoutType;
+  /** Standing default cardio format (e.g. 'interval'). Pre-fills the Today
+   * screen's per-session Structure picker; the athlete can always override
+   * per session. Never a mandate — the day-to-day rotation still varies
+   * around this lean rather than repeating it every cardio day. */
+  preferredCardioIntent?: CardioIntent;
   /** When the athlete accepted the Terms & Conditions (`app-lib/terms.ts`). Unset = not yet accepted. */
   termsAcceptedAt?: number;
   /** Which `TERMS_VERSION` was accepted, so a future content change can prompt re-acceptance. */
@@ -144,6 +149,9 @@ export interface ScheduledWorkout {
   trainingIntent?: 'recovery' | 'balanced' | 'challenge';
   /** Routine (ADR-0137) to run this day, if any. */
   routineId?: string;
+  /** Target areas to emphasize when this day is customized from the Weekly
+   * Plan popup, rather than left to the engine's own bias. */
+  targeting?: { emphasize: BodyArea[] };
 }
 
 export const DEFAULT_WARMUP_PREFERENCES: WarmupPreferences = {

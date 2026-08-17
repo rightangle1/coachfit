@@ -1,0 +1,161 @@
+{
+  "version": 1,
+  "license": "Original AI-generated artwork for CoachFit; bundled for offline use",
+  "ownership": {
+    "createdFor": "CoachFit",
+    "source": "OpenAI built-in ImageGen (or equivalent) — match assets/images/editorial/manifest.json's house style",
+    "usage": "Product editorial surfaces only; do not imply a real person endorsement."
+  },
+  "styleNotes": "Natural, contemporary, editorial photography-style renders. Diverse adult athletes, safe/correct form, home-or-gym settings that match the app's existing warm-neutral palette. Generous negative space on one side for UI copy/scrim. No visible text, logos, or brand marks in the image itself.",
+  "wiring": {
+    "subtypeCards": "Once approved, set GoalPreset.cardImage in src/app-lib/goal-presets.ts to require('../../assets/images/goals/subtypes/<file>') for the matching preset id. SubtypeChoiceCard (src/design/components/goal-hero.tsx) already renders it when present and gracefully falls back to a plain ChoiceTile when cardImage is undefined, so presets can be filled in incrementally.",
+    "categoryHeroes": "Once approved, replace the duplicated entries in WORKOUT_HEADER_BACKGROUNDS (src/features/exercise-detail.tsx) — barre and pilates currently both point at assets/images/heroes/yoga-hero.png, sculpting at bodybuilding-hero.png — with the new dedicated file.",
+    "generalFitnessCard": "PRIMARY_GOAL_OPTIONS_BY_ID.general_fitness.cardImage in src/app-lib/goal-presets.ts currently reuses assets/images/editorial/explore-general-v1.png as an interim fix (previously duplicated lose_weight's fat-burn-card.png). Swap in the dedicated card once generated; this one is lower priority since the interim fix already reads as distinct."
+  },
+  "assets": [
+    {
+      "id": "general_fitness.card",
+      "file": "assets/images/goals/general-fitness-card.webp",
+      "priority": "low",
+      "placement": ["Onboarding primary-goal picker — General Fitness / Stay Active"],
+      "alt": "An adult athlete finishing a relaxed, well-rounded bodyweight circuit at home.",
+      "promptSummary": "Approachable, low-intensity full-body movement that reads as 'staying consistently active' rather than a specific training style."
+    },
+    {
+      "id": "goals.subtype.build_strength.max_strength",
+      "file": "assets/images/goals/subtypes/build-strength-max-strength.webp",
+      "priority": "high",
+      "placement": ["Onboarding subtype grid — Build Strength > Max Strength"],
+      "alt": "An adult athlete braced under a loaded barbell for a heavy back squat.",
+      "promptSummary": "Focused, heavy-effort barbell strength work; determined but controlled expression, safe bar path."
+    },
+    {
+      "id": "goals.subtype.build_strength.hypertrophy",
+      "file": "assets/images/goals/subtypes/build-strength-hypertrophy.webp",
+      "priority": "high",
+      "placement": ["Onboarding subtype grid — Build Strength > Build Muscle"],
+      "alt": "An adult athlete performing a controlled dumbbell bicep curl in a home gym.",
+      "promptSummary": "Bodybuilding-style moderate-load, controlled-tempo dumbbell work with visible muscular effort."
+    },
+    {
+      "id": "goals.subtype.build_strength.tone_sculpt",
+      "file": "assets/images/goals/subtypes/build-strength-tone-sculpt.webp",
+      "priority": "medium",
+      "placement": ["Onboarding subtype grid — Build Strength > Tone & Sculpt"],
+      "alt": "An adult athlete doing a light dumbbell lateral raise.",
+      "promptSummary": "Light-load, higher-rep full-body toning; lean, controlled movement, bright airy setting."
+    },
+    {
+      "id": "goals.subtype.build_strength.functional_strength",
+      "file": "assets/images/goals/subtypes/build-strength-functional-strength.webp",
+      "priority": "medium",
+      "placement": ["Onboarding subtype grid — Build Strength > Functional Strength"],
+      "alt": "An adult athlete performing a bodyweight push-up on a home living-room floor.",
+      "promptSummary": "No-equipment bodyweight strength that reads as everyday functional capability."
+    },
+    {
+      "id": "goals.subtype.improve_cardio.build_endurance",
+      "file": "assets/images/goals/subtypes/improve-cardio-build-endurance.webp",
+      "priority": "high",
+      "placement": ["Onboarding subtype grid — Improve Cardio > Build Endurance"],
+      "alt": "An adult runner at an easy, steady pace on a tree-lined path.",
+      "promptSummary": "Calm, sustainable aerobic-base running; relaxed posture, unhurried pace."
+    },
+    {
+      "id": "goals.subtype.improve_cardio.get_fitter_fast",
+      "file": "assets/images/goals/subtypes/improve-cardio-get-fitter-fast.webp",
+      "priority": "medium",
+      "placement": ["Onboarding subtype grid — Improve Cardio > Get Fitter Fast"],
+      "alt": "An adult athlete sprinting hard on an outdoor track.",
+      "promptSummary": "High-effort interval sprint work; visible speed and intensity, athletic form."
+    },
+    {
+      "id": "goals.subtype.improve_cardio.sport_conditioning",
+      "file": "assets/images/goals/subtypes/improve-cardio-sport-conditioning.webp",
+      "priority": "medium",
+      "placement": ["Onboarding subtype grid — Improve Cardio > Sport & Functional Conditioning"],
+      "alt": "An adult athlete performing a lateral shuffle through an agility ladder.",
+      "promptSummary": "Athletic, sport-conditioning movement — agility/lateral work, gym or turf setting."
+    },
+    {
+      "id": "goals.subtype.move_better.flexibility",
+      "file": "assets/images/goals/subtypes/move-better-flexibility.webp",
+      "priority": "high",
+      "placement": ["Onboarding subtype grid — Move & Feel Better > Increase Flexibility & ROM"],
+      "alt": "An adult athlete in a deep standing forward-fold stretch on a mat.",
+      "promptSummary": "Purposeful deep-stretch mobility work; calm, bright home setting."
+    },
+    {
+      "id": "goals.subtype.move_better.active_recovery",
+      "file": "assets/images/goals/subtypes/move-better-active-recovery.webp",
+      "priority": "medium",
+      "placement": ["Onboarding subtype grid — Move & Feel Better > Active Recovery"],
+      "alt": "An adult athlete doing a gentle seated stretch with a foam roller nearby.",
+      "promptSummary": "Gentle, low-intensity recovery movement between harder sessions."
+    },
+    {
+      "id": "goals.subtype.move_better.stress_relief",
+      "file": "assets/images/goals/subtypes/move-better-stress-relief.webp",
+      "priority": "medium",
+      "placement": ["Onboarding subtype grid — Move & Feel Better > Stress Relief & Mind-Body"],
+      "alt": "An adult athlete seated cross-legged in a quiet, breath-led moment on a mat.",
+      "promptSummary": "Slow, meditative, breath-led practice; soft light, minimal/uncluttered room."
+    },
+    {
+      "id": "goals.subtype.lose_weight.with_strength",
+      "file": "assets/images/goals/subtypes/lose-weight-with-strength.webp",
+      "priority": "high",
+      "placement": ["Onboarding subtype grid — Lose Weight/Burn Fat > Fat Loss with Strength"],
+      "alt": "An adult athlete mid-rep on a dumbbell squat-to-press, visibly working hard.",
+      "promptSummary": "Sweaty, full-body resistance-led fat-loss training; higher effort than a pure strength shot."
+    },
+    {
+      "id": "goals.subtype.lose_weight.with_cardio",
+      "file": "assets/images/goals/subtypes/lose-weight-with-cardio.webp",
+      "priority": "medium",
+      "placement": ["Onboarding subtype grid — Lose Weight/Burn Fat > Fat Loss with Cardio"],
+      "alt": "An adult athlete mid-jump during a jump-rope session.",
+      "promptSummary": "High-energy cardio-led fat-loss work; dynamic, sweaty, upbeat."
+    },
+    {
+      "id": "goals.subtype.lose_weight.metabolic_conditioning",
+      "file": "assets/images/goals/subtypes/lose-weight-metabolic-conditioning.webp",
+      "priority": "medium",
+      "placement": ["Onboarding subtype grid — Lose Weight/Burn Fat > Metabolic Conditioning/Circuit"],
+      "alt": "An adult athlete mid-swing on a kettlebell at a circuit training station.",
+      "promptSummary": "Fast-paced blended circuit work; kettlebell or similar implement, high heart-rate energy."
+    },
+    {
+      "id": "goals.subtype.general_fitness.balanced",
+      "file": "assets/images/goals/subtypes/general-fitness-balanced.webp",
+      "priority": "medium",
+      "placement": ["Onboarding subtype grid — General Fitness > Balanced"],
+      "alt": "An adult athlete finishing a light, varied bodyweight circuit at home.",
+      "promptSummary": "Well-rounded, low-commitment, approachable movement — the easiest entry point of the set."
+    },
+    {
+      "id": "category.barre_hero",
+      "file": "assets/images/heroes/barre-hero.webp",
+      "priority": "high",
+      "placement": ["Exercise detail header — Barre workout type (currently reuses yoga-hero.png)"],
+      "alt": "An adult athlete at a ballet barre performing a controlled plié.",
+      "promptSummary": "Studio barre setting, small controlled pulses/holds at a barre, distinct from the yoga mat scene it currently borrows."
+    },
+    {
+      "id": "category.pilates_hero",
+      "file": "assets/images/heroes/pilates-hero.webp",
+      "priority": "high",
+      "placement": ["Exercise detail header — Pilates workout type (currently reuses yoga-hero.png)"],
+      "alt": "An adult athlete on a mat mid-way through a controlled pilates roll-up.",
+      "promptSummary": "Precise, core-controlled mat pilates movement, distinct from the yoga mat scene it currently borrows."
+    },
+    {
+      "id": "category.sculpting_hero",
+      "file": "assets/images/heroes/sculpting-hero.webp",
+      "priority": "high",
+      "placement": ["Exercise detail header — Sculpting workout type (currently reuses bodybuilding-hero.png)"],
+      "alt": "An adult athlete performing a light-dumbbell full-body toning move.",
+      "promptSummary": "Lighter-load, higher-rep toning session, visually lighter/leaner than the heavier bodybuilding-hero scene it currently borrows."
+    }
+  ]
+}

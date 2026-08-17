@@ -7,12 +7,14 @@
 import type { IconName } from '@/design';
 import type {
   BodyArea,
+  CardioIntent,
   CardioModality,
   EquipmentType,
   ExperienceLevel,
   Modality,
   MovementPattern,
   MuscleGroup,
+  RestPacing,
   WeightedEquipmentType,
   WeightUnit,
   WorkoutFamily,
@@ -86,6 +88,64 @@ export const WORKOUT_TYPE_OPTIONS: { label: string; value: WorkoutType | undefin
   { label: 'Bodyweight', value: 'bodyweight', caption: 'No equipment, anywhere' },
   { label: 'Cardio', value: 'cardio', caption: 'A full cardio-focused session' },
 ];
+
+/** Cardio's intensity-structure options (ADR-0141/0143) — shared by the Today
+ * builder's "Structure" chip row and onboarding's "Cardio format" Fine-tune
+ * row, so the two stay in sync rather than keeping their own copies. */
+export const CARDIO_INTENT_OPTIONS: { label: string; value: CardioIntent; caption: string }[] = [
+  { label: 'Basic', value: 'basic', caption: 'Conversational, steady work that builds endurance.' },
+  { label: 'Circuit', value: 'circuit', caption: 'A rotating circuit of moves at a steady pace — no machine required.' },
+  { label: 'Interval', value: 'interval', caption: 'Timed work and recovery rounds with clear RPE targets.' },
+];
+
+/** Rest/pacing lean options (ADR-0145) — the onboarding Fine-tune "Pacing" row. */
+export const REST_PACING_OPTIONS: { label: string; value: RestPacing; caption: string }[] = [
+  { label: 'Standard', value: 'standard', caption: 'Full recovery between sets, at the usual pace.' },
+  { label: 'Dense', value: 'dense', caption: 'Shorter rest and tighter transitions to keep things moving.' },
+];
+
+/** "What kind of day?" — the Feeling section's training-intent picker, shared
+ * by the Today builder and the Weekly Plan popup's per-day summary text. */
+export type TrainingIntent = 'recovery' | 'balanced' | 'challenge';
+
+export const INTENT_OPTIONS: { label: string; value: TrainingIntent; caption: string }[] = [
+  { label: 'Ease in', value: 'recovery', caption: 'Lower volume, gentler effort' },
+  { label: 'Balanced', value: 'balanced', caption: 'Your normal training day' },
+  { label: 'Push', value: 'challenge', caption: 'A little more challenge' },
+];
+
+/** "Balanced" display label for an unset `WorkoutType` — shared by the Today
+ * summary row and the Weekly Plan popup's per-day title. */
+export function workoutLabel(type: WorkoutType | undefined): string {
+  if (!type) return 'Balanced';
+  return type[0].toUpperCase() + type.slice(1);
+}
+
+/** Same family→icon mapping the "Kind of session" tiles use, reused so the
+ * Weekly Plan popup's day rows read as the same visual language. */
+export function workoutTypeIcon(type: WorkoutType | undefined): 'goalCardio' | 'goalMobility' | 'goalStrength' {
+  const family = familyOfWorkoutType(type);
+  if (family === 'cardio') return 'goalCardio';
+  if (family === 'mobility') return 'goalMobility';
+  return 'goalStrength';
+}
+
+export function modalityIcon(modality: Modality | undefined): 'goalCardio' | 'goalMobility' | 'goalStrength' | 'goalBurn' {
+  if (modality === 'cardio') return 'goalCardio';
+  if (modality === 'mobility') return 'goalMobility';
+  if (modality === 'general') return 'goalBurn';
+  return 'goalStrength';
+}
+
+/** A forecast day only carries a `Modality`, not a specific `WorkoutType` —
+ * this is the same default-style choice each family's "Kind of session"
+ * step A picker would land on, used when accepting a forecast day's
+ * suggestion as-is (the Weekly Plan popup's "Recommend" action). */
+export function defaultWorkoutTypeForModality(modality: Modality | undefined): WorkoutType | undefined {
+  if (modality === 'cardio') return 'cardio';
+  if (modality === 'mobility') return 'stretch';
+  return undefined;
+}
 
 /**
  * Stretch/warmup focus areas (ADR-0111). Deliberately muscle-group level (not

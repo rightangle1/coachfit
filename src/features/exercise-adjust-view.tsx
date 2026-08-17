@@ -14,7 +14,7 @@ import { View } from 'react-native';
 
 import { Button, Card, HowToSheet, Row, Text, useTheme } from '@/design';
 import { EXERCISES } from '@/domain/catalog';
-import { equipmentSatisfied, replacementAllowed, replacementFitScore, replacementLogCount } from '@/domain/engine';
+import { equipmentSatisfied, hasIntervalPhases, replacementAllowed, replacementFitScore, replacementLogCount } from '@/domain/engine';
 import { getExercisePreferences } from '@/services/exercise-preferences';
 import { CompletionBox, ExerciseBestStatsRow, ExerciseHero, SetRow, type EditableSet } from '@/features/exercise-detail';
 import { ExerciseHistorySheet } from '@/features/exercise-history-sheet';
@@ -86,6 +86,11 @@ export function ExerciseAdjustView({
   const [excludedIds] = useState(() => new Set(getExercisePreferences().excludedExerciseIds));
 
   const catalog = EXERCISES.find((entry) => entry.id === exercise.exerciseId);
+  // Interval cardio's sets alternate work/recovery phases (ADR-0406) — flag
+  // each row accordingly so a 5-round interval exercise doesn't render as 10
+  // identical, unlabeled rows (the touchless guided-flow player already does
+  // this; the manual tracker hadn't).
+  const hasIntervalCardio = hasIntervalPhases(sets);
   // Replace's full candidate pool: the same hard floor the engine enforces on
   // commit (`replacementAllowed` — training type, equipment, exclusions, safety),
   // never movement/muscle fit. Fit quality only decides ranking within "Best
@@ -150,6 +155,7 @@ export function ExerciseAdjustView({
               skipped={Boolean(set.skipped)}
               weightUnit={weightUnit}
               equipment={equipment}
+              title={hasIntervalCardio ? (set.phase === 'recovery' ? 'Recovery' : 'Work') : undefined}
               showCompletion={Boolean(onToggleSet)}
               emphasis={
                 activeSetIndex == null

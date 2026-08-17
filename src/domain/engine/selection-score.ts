@@ -220,16 +220,29 @@ function peakFatigue(ex: Exercise, byGroup: Partial<Record<MuscleGroup, number>>
  * deficit rather than the old boolean "is under MEV". On a Friday, rear delts
  * sitting at 4 sets used to rank exactly level with lats at 9; now the emptier
  * group wins, which is what a trainer would actually do.
+ *
+ * Cardio is excluded: MEV/MRV are resistance-training weekly-set landmarks with
+ * no coherent meaning for a bodyweight interval circuit's incidental muscle
+ * tags, and neither cardio `pick()` call threads real weekly volume through
+ * anyway (`weeklyVolume` defaults to `{}`), which silently made this term a
+ * uniform +20 for every cardio candidate rather than a signal. Zeroing it here
+ * makes that a permanent, intentional no-op instead of an accident that would
+ * reappear (favoring whichever cardio exercise happens to touch the least-
+ * trained incidental muscle) the moment someone correctly wires weeklyVolume
+ * into those calls.
  */
 function volumeDeficit(ex: Exercise, weekly: Partial<Record<MuscleGroup, number>>): number {
+  if (ex.modality === 'cardio') return 0;
   return ex.primaryAreas.reduce(
     (worst, group) => Math.max(worst, clamp((MEV - (weekly[group] ?? 0)) / MEV, 0, 1)),
     0,
   );
 }
 
-/** How far past the weekly ceiling this exercise's muscles already are, 0..1. */
+/** How far past the weekly ceiling this exercise's muscles already are, 0..1.
+ * Excluded for cardio — see `volumeDeficit`. */
 function volumeExcess(ex: Exercise, weekly: Partial<Record<MuscleGroup, number>>): number {
+  if (ex.modality === 'cardio') return 0;
   return ex.primaryAreas.reduce(
     (worst, group) => Math.max(worst, clamp(((weekly[group] ?? 0) - MRV) / MRV, 0, 1)),
     0,

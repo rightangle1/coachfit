@@ -11,7 +11,7 @@ import { useEffect, useState } from 'react';
 import { Modal, ScrollView } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
-import { Card, HowToSheet, Text, useTheme } from '@/design';
+import { Card, ExerciseStepsMedia, ExerciseVideoPreviewSheet, Text, useTheme } from '@/design';
 import { EXERCISES } from '@/domain/catalog';
 import { MODALITY_LABELS, MOVEMENT_PATTERN_LABELS, MUSCLE_GROUP_LABELS } from '@/app-lib/options';
 import { ExerciseBestStatsRow, ExerciseHero, intensityLabel } from '@/features/exercise-detail';
@@ -30,13 +30,13 @@ export function ExerciseInfoView({
   onClose: () => void;
 }) {
   const { colors, spacing } = useTheme();
-  const [howToOpen, setHowToOpen] = useState(false);
+  const [videoPreviewOpen, setVideoPreviewOpen] = useState(false);
   const [historyOpen, setHistoryOpen] = useState(false);
   const exercise = exerciseId ? EXERCISES.find((entry) => entry.id === exerciseId) : undefined;
 
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect -- initialHowTo is an explicit open-state command
-    if (exercise && initialHowTo) setHowToOpen(true);
+    if (exercise && initialHowTo) setVideoPreviewOpen(true);
   }, [exercise, initialHowTo]);
 
   return (
@@ -51,7 +51,7 @@ export function ExerciseInfoView({
               modality={exercise.modality}
               eyebrow={`${MODALITY_LABELS[exercise.modality]} · ${MOVEMENT_PATTERN_LABELS[exercise.movementPattern]}`}
               variant="info"
-              onHowTo={() => setHowToOpen(true)}
+              onHowTo={() => setVideoPreviewOpen(true)}
               onHistory={() => setHistoryOpen(true)}
               onOverview={onClose}
             />
@@ -64,13 +64,21 @@ export function ExerciseInfoView({
                 {intensityLabel(exercise) ? ` · ${intensityLabel(exercise)}` : ''}
               </Text>
             </Card>
+            <Card>
+              <ExerciseStepsMedia pattern={exercise.movementPattern} media={exercise.media} steps={exercise.steps} showClip={false} requireImage />
+            </Card>
           </ScrollView>
         )}
         {/* Nested inside the outer Modal's own subtree (not a sibling) so iOS
          * presents these on top of it instead of racing to present on the
          * already-presented root — a sibling Modal here silently fails to
          * show on native. */}
-        <HowToSheet visible={howToOpen} onClose={() => setHowToOpen(false)} name={exercise?.name ?? ''} exercise={exercise} />
+        <ExerciseVideoPreviewSheet
+          visible={videoPreviewOpen}
+          onClose={() => setVideoPreviewOpen(false)}
+          name={exercise?.name ?? ''}
+          exercise={exercise}
+        />
         {historyOpen && exercise && (
           <ExerciseHistorySheet exerciseId={exercise.id} exerciseName={exercise.name} weightUnit={weightUnit} onClose={() => setHistoryOpen(false)} />
         )}

@@ -15,6 +15,7 @@ import { ExerciseHistorySheet } from '@/features/exercise-history-sheet';
 import { RoutineBuilderSheet } from '@/features/routine-builder-sheet';
 import { RoutineDetailSheet } from '@/features/routine-detail-sheet';
 import { CARDIO_MODALITIES, CARDIO_MODALITY_LABELS, EQUIPMENT_OPTIONS, MODALITY_LABELS, MOVEMENT_PATTERN_LABELS, MUSCLE_GROUP_LABELS, WORKOUT_TYPE_OPTIONS } from '@/app-lib/options';
+import { GOAL_STORIES } from '@/app-lib/personalization';
 import { ALL_MUSCLE_GROUPS, GROUP_TO_REGION, type CardioModality, type EquipmentType, type Modality, type MovementPattern, type MuscleGroup, type Routine } from '@/domain/types';
 
 type ExploreTab = 'discover' | 'saved' | 'routines';
@@ -28,39 +29,36 @@ const REGION_FILTERS: { value: RegionFilter; label: string }[] = [
   { value: 'core', label: 'Core' },
 ];
 
+// All four launch modalities now have real, catalog-backed exercises
+// (general included — see ADR note on Modality in domain/types/goals.ts), so
+// this chip list intentionally mirrors GOAL_COLLECTIONS below one-for-one.
 const MODALITIES: { value: Modality; label: string }[] = [
   { value: 'strength', label: 'Strength' },
   { value: 'cardio', label: 'Cardio' },
   { value: 'mobility', label: 'Mobility' },
+  { value: 'general', label: 'General' },
 ];
 
-const CARDIO_ART = require('../../assets/images/editorial/explore-cardio-v1.png');
+const CARDIO_ART = require('../../assets/images/editorial/explore-cardio-v1.webp');
 
+// Title/caption are sourced from GOAL_STORIES (app-lib/personalization) —
+// the same per-modality record onboarding/GoalHero/Progress read — so this
+// browsing copy can't drift from goal-setting copy the way two independent
+// literal tables would.
 const GOAL_COLLECTIONS: {
   title: string;
   caption: string;
   image: ImageSourcePropType;
-  modality?: Modality;
+  modality: Modality;
   pattern?: MovementPattern;
-  collection?: 'everyday';
 }[] = [
-  { title: 'Build strength', caption: 'Dumbbells, barbells, and bodyweight', image: require('../../assets/images/editorial/explore-strength-v1.png'), modality: 'strength' },
-  { title: 'Find your pace', caption: 'Steady cardio', image: CARDIO_ART, modality: 'cardio' },
-  { title: 'Move with ease', caption: 'Mobility and recovery', image: require('../../assets/images/editorial/explore-mobility-v1.png'), modality: 'mobility' },
-  { title: 'Move well today', caption: 'Simple full-body options', image: require('../../assets/images/editorial/explore-general-v1.png'), collection: 'everyday' },
+  { title: GOAL_STORIES.strength.browseTitle, caption: GOAL_STORIES.strength.browseCaption, image: require('../../assets/images/editorial/explore-strength-v1.webp'), modality: 'strength' },
+  { title: GOAL_STORIES.cardio.browseTitle, caption: GOAL_STORIES.cardio.browseCaption, image: CARDIO_ART, modality: 'cardio' },
+  { title: GOAL_STORIES.mobility.browseTitle, caption: GOAL_STORIES.mobility.browseCaption, image: require('../../assets/images/editorial/explore-mobility-v1.webp'), modality: 'mobility' },
+  { title: GOAL_STORIES.general.browseTitle, caption: GOAL_STORIES.general.browseCaption, image: require('../../assets/images/editorial/explore-general-v1.webp'), modality: 'general' },
 ];
 
 const MOVEMENT_PATTERNS: MovementPattern[] = ['squat', 'hinge', 'lunge', 'push', 'pull', 'carry', 'core', 'stretch', 'yoga_flow'];
-
-const EVERYDAY_EXERCISE_IDS = new Set([
-  'sq-bw',
-  'pu-incline-pushup',
-  'hi-hip-bridge',
-  'co-bird-dog',
-  'co-plank',
-  'ca-brisk-walk-bw',
-  'mob-active-hamstring-stretch',
-]);
 
 // ADR-0137 v2: style is a routine's topline field — surfaced on its card.
 function routineStyleLabel(workoutType: Routine['workoutType']): string {
@@ -187,7 +185,6 @@ export default function ExploreScreen() {
   const [cardioModality, setCardioModality] = useState<CardioModality | undefined>();
   const [selectedMuscles, setSelectedMuscles] = useState<MuscleGroup[]>([]);
   const [removedAreaMuscles, setRemovedAreaMuscles] = useState<MuscleGroup[]>([]);
-  const [collection, setCollection] = useState<'everyday' | undefined>();
   const [selectedGoalTitle, setSelectedGoalTitle] = useState<string | undefined>();
   const [equipment, setEquipment] = useState<EquipmentType | undefined>();
   const [filterOpen, setFilterOpen] = useState(false);
@@ -225,7 +222,6 @@ export default function ExploreScreen() {
     const term = query.trim().toLowerCase();
     return EXERCISES
       .filter((exercise) => tab !== 'saved' || favorites.has(exercise.id))
-      .filter((exercise) => !collection || EVERYDAY_EXERCISE_IDS.has(exercise.id))
       .filter((exercise) => !modality || exercise.modality === modality)
       .filter((exercise) => !movementPattern || exercise.movementPattern === movementPattern)
       .filter((exercise) => !cardioModality || exercise.cardioModality === cardioModality)
@@ -237,7 +233,7 @@ export default function ExploreScreen() {
         const ownedB = b.equipment.some((item) => ownedEquipment.has(item)) ? 1 : 0;
         return ownedB - ownedA || a.name.localeCompare(b.name);
       });
-  }, [cardioModality, collection, effectiveMuscles, equipment, favorites, modality, movementPattern, ownedEquipment, query, tab]);
+  }, [cardioModality, effectiveMuscles, equipment, favorites, modality, movementPattern, ownedEquipment, query, tab]);
 
   function toggleFavorite(id: string) {
     const next = new Set(favorites);
@@ -256,7 +252,6 @@ export default function ExploreScreen() {
     setTab('discover');
     setModality(collection.modality);
     setMovementPattern(collection.pattern);
-    setCollection(collection.collection);
     setSelectedGoalTitle(collection.title);
   }
 
@@ -278,23 +273,20 @@ export default function ExploreScreen() {
 
   function chooseBrowseMode(next: BrowseMode) {
     setBrowseMode(next);
-    if (next !== 'goal') { setCollection(undefined); setSelectedGoalTitle(undefined); }
+    if (next !== 'goal') setSelectedGoalTitle(undefined);
   }
 
   function chooseRegion(next: RegionFilter) {
-    setCollection(undefined);
     setSelectedGoalTitle(undefined);
     setRegion(next);
   }
 
   function chooseEquipment(next: EquipmentType) {
-    setCollection(undefined);
     setSelectedGoalTitle(undefined);
     setEquipment(equipment === next ? undefined : next);
   }
 
   function chooseModality(next: Modality) {
-    setCollection(undefined);
     setSelectedGoalTitle(undefined);
     const nextModality = modality === next ? undefined : next;
     setModality(nextModality);
@@ -302,24 +294,21 @@ export default function ExploreScreen() {
   }
 
   function chooseMovementPattern(next: MovementPattern) {
-    setCollection(undefined);
     setSelectedGoalTitle(undefined);
     setMovementPattern(movementPattern === next ? undefined : next);
   }
 
   function chooseCardioModality(next: CardioModality) {
-    setCollection(undefined);
     setSelectedGoalTitle(undefined);
     setCardioModality(cardioModality === next ? undefined : next);
   }
 
-  const activeFilters = [region !== 'all', Boolean(modality), Boolean(movementPattern), Boolean(cardioModality), Boolean(collection), Boolean(equipment), selectedMuscles.length > 0, removedAreaMuscles.length > 0].filter(Boolean).length;
+  const activeFilters = [region !== 'all', Boolean(modality), Boolean(movementPattern), Boolean(cardioModality), Boolean(equipment), selectedMuscles.length > 0, removedAreaMuscles.length > 0].filter(Boolean).length;
 
   return (
     <Screen>
       <View>
-        <Text variant="caption" color="primaryTextSoft" weight="bold">MOVE WITH PURPOSE</Text>
-        <Text variant="display" style={{ marginTop: 4 }}>Explore movement</Text>
+        <Text variant="display" italic style={{ marginTop: 4 }}>Explore movement</Text>
         <Text variant="body" color="textMuted" style={{ marginTop: spacing.xs }}>
           Find exercises that fit your body, your goals, and what you have available.
         </Text>

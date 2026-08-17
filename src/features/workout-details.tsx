@@ -18,8 +18,10 @@ function blockIcon(block: SessionBlock): IconName {
   return 'workout';
 }
 
-function blockMinutes(block: SessionBlock) {
-  return Math.max(1, Math.round(estimateBlocksSeconds([block], (id) => EXERCISES.find((exercise) => exercise.id === id)) / 60));
+// `densePacing` mirrors `plan.densePacing` (ADR-0145) so this badge never
+// disagrees with what the tracker's real per-set rest countdown shows.
+function blockMinutes(block: SessionBlock, densePacing?: boolean) {
+  return Math.max(1, Math.round(estimateBlocksSeconds([block], (id) => EXERCISES.find((exercise) => exercise.id === id), densePacing) / 60));
 }
 
 export function WorkoutDetails({
@@ -74,7 +76,7 @@ export function WorkoutDetails({
       {showHeading && <Text variant="heading" italic>Workout details</Text>}
       {plan.blocks.map((block) => {
         const expanded = visibleBlocks.has(block.label);
-        const minutes = blockMinutes(block);
+        const minutes = blockMinutes(block, plan.densePacing);
         return (
           <Card key={block.label} padded={false} style={{ overflow: 'hidden' }}>
             <Pressable

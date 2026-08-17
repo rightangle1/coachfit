@@ -79,6 +79,15 @@ export interface SessionContext {
    * with a single-purpose block for that style.
    */
   workoutType?: WorkoutType;
+  /**
+   * True when the athlete actually tapped a style in the "Kind of session"
+   * picker this visit — including "Balanced", whose `workoutType` value is
+   * `undefined`, identical to an unseeded day's. Without this, an explicit
+   * Balanced pick is indistinguishable from "no preference" and would lose
+   * to `weeklyPlan`'s default instead of winning outright like every other
+   * explicit `workoutType` value already does.
+   */
+  workoutTypeExplicit?: boolean;
   /** Per-session controls that make each dedicated workout style behave differently. */
   workoutOptions?: WorkoutOptions;
   /** Catalog ids the athlete has excluded (settings) — never selected or offered as swaps. */
@@ -280,6 +289,15 @@ export interface SessionPlan {
   liveAdjustments?: LiveAdjustmentRecord[];
   /** Set when this plan was generated from a routine (ADR-0137) — the id of `SessionContext.routine`. */
   routineId?: string;
+  /**
+   * Whether this plan was generated under a dense-pacing lean (ADR-0145,
+   * `TrainingGoals.restPacing === 'dense'`), resolved once at generation time.
+   * Downstream consumers that only have the plan — not the full
+   * `SessionContext`/`TrainingGoals` (e.g. the pre-workout duration badge,
+   * a live mid-session adjustment) read this instead of re-deriving it, so a
+   * plan's rest/duration math stays internally consistent everywhere it's read.
+   */
+  densePacing?: boolean;
 }
 
 export interface SessionBlock {

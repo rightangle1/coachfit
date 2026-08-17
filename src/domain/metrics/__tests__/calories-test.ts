@@ -218,7 +218,8 @@ describe('estimateSessionCalories', () => {
     });
     const doubled = estimateSessionCalories(rec, 70);
     const singled = estimateSessionCalories(single, 70);
-    expect(doubled.byModality.strength).toBeCloseTo((singled.byModality.strength ?? 0) * 2, 5);
+    // sq-bw is modality: 'general' — the bucket this accumulates into.
+    expect(doubled.byModality.general).toBeCloseTo((singled.byModality.general ?? 0) * 2, 5);
   });
 
   it('always rounds totalKcal to an integer', () => {

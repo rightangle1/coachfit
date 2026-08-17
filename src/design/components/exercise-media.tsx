@@ -22,16 +22,26 @@ function needsAttribution(license: string): boolean {
 export function ExerciseMediaCard({
   pattern,
   media,
+  showClip = true,
+  showStillWithClip = true,
 }: {
   pattern: MovementPattern;
   media?: ExerciseMedia;
+  /** Set false to render only the still/illustration and never embed the
+   *  video — used for the catalog's main exercise view, where the video is
+   *  reserved for the dedicated "How To" preview instead. */
+  showClip?: boolean;
+  /** Set false to never show a still above the clip, even a form-guide one —
+   *  used for the "How To" video preview, which should lead with just the
+   *  video. */
+  showStillWithClip?: boolean;
 }) {
   const { colors, radii, spacing } = useTheme();
   const still = media?.stills?.[0];
-  const clip = media?.clips?.[0];
+  const clip = showClip ? media?.clips?.[0] : undefined;
   // Form-guide stills complement clips: they give the athlete a quick,
   // scannable alignment reference before the fuller video explanation.
-  const showStill = Boolean(still && (!clip || still.role === 'form-guide'));
+  const showStill = Boolean(still && (!clip || (showStillWithClip && still.role === 'form-guide')));
 
   return (
     <View style={{ gap: spacing.xs }}>

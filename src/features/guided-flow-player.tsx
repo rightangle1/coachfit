@@ -1,7 +1,7 @@
 /**
  * Touchless playback for a guided flow (docs/methodology/guided-flow-sequencer.md).
  * `useGuidedFlowPlayer` owns the countdown/auto-advance; `GuidedFlowRing`,
- * `GuidedFlowRail`, `GuidedFlowCuesDrawer` and `GuidedFlowBottomBar` are the
+ * `GuidedFlowRail`, `GuidedFlowStepsDrawer` and `GuidedFlowBottomBar` are the
  * presentational pieces `app/workout-flow.tsx` composes into the full-screen
  * player, built so the exercise photo stays contain-fit and unobstructed
  * except for the top ring, the edge rail, and (only while open) the cues
@@ -114,8 +114,8 @@ export function useGuidedFlowPlayer(steps: GuidedFlowStep[], opts: UseGuidedFlow
   return { index, step, remaining, running: !paused, skipForward, skipBack, canSkipBack: index > 0 };
 }
 
-const RING_SIZE = 52;
-const RING_STROKE = 3;
+const RING_SIZE = 96;
+const RING_STROKE = 5;
 const RING_RADIUS = (RING_SIZE - RING_STROKE) / 2;
 const RING_CIRCUMFERENCE = 2 * Math.PI * RING_RADIUS;
 const AnimatedCircle = Animated.createAnimatedComponent(Circle);
@@ -164,7 +164,7 @@ export function GuidedFlowRing({
           animatedProps={circleProps}
         />
       </Svg>
-      <Text variant="caption" color="heroText" weight="bold">{formatClock(remaining)}</Text>
+      <Text variant="caption" color="heroText" weight="bold" style={{ fontSize: 22, lineHeight: 26 }}>{formatClock(remaining)}</Text>
     </View>
   );
 }
@@ -174,46 +174,51 @@ const RAIL_MARK_NOW = 24;
 
 /** The sequence rail along the right edge — one mark per distinct exercise in
  * stage order (not one per flattened round×stage step, which would repeat the
- * same handful of marks once per round). Purely decorative (`pointerEvents:
+ * same handful of marks once per round) — and now spans every section of a
+ * multi-block flow (ADR-0408), with a hairline break wherever the section
+ * changes so Warmup/Main/Cool down still read as distinct legs of the same
+ * timeline rather than one undifferentiated list. Deduplication is scoped
+ * per section (`sectionIndex:exerciseId`), not globally, since the same
+ * exercise can legitimately reappear in two different sections (e.g. a
+ * stretch opening the Warmup and closing the Cool down) and each occurrence
+ * is its own event in the timeline. Purely decorative (`pointerEvents:
  * 'none'`); jumping between exercises stays on the bottom bar's buttons and
  * the photo's swipe gesture. */
-export function GuidedFlowRail({
-  steps,
-  currentExerciseId,
-  currentLabel,
-}: {
-  steps: GuidedFlowStep[];
-  currentExerciseId: string;
-  currentLabel: string;
-}) {
+export function GuidedFlowRail({ steps, currentIndex }: { steps: GuidedFlowStep[]; currentIndex: number }) {
   const { colors, spacing } = useTheme();
+  const current = steps[currentIndex];
 
-  const sequence = useMemo(() => {
+  const entries = useMemo(() => {
     const seen = new Set<string>();
-    const unique: GuidedFlowStep[] = [];
+    const list: { key: string; label: string; sectionIndex: number; breakBefore: boolean }[] = [];
+    let lastSection = -1;
     for (const step of steps) {
-      if (seen.has(step.exerciseId)) continue;
-      seen.add(step.exerciseId);
-      unique.push(step);
+      const key = `${step.sectionIndex}:${step.exerciseId}`;
+      if (seen.has(key)) continue;
+      seen.add(key);
+      list.push({ key, label: step.label, sectionIndex: step.sectionIndex, breakBefore: lastSection !== -1 && step.sectionIndex !== lastSection });
+      lastSection = step.sectionIndex;
     }
-    return unique;
+    return list;
   }, [steps]);
 
-  const currentIndex = sequence.findIndex((entry) => entry.exerciseId === currentExerciseId);
-  if (sequence.length < 2) return null;
+  if (!current || entries.length < 2) return null;
+  const currentKey = `${current.sectionIndex}:${current.exerciseId}`;
+  const currentRank = entries.findIndex((entry) => entry.key === currentKey);
 
   return (
     <View
       pointerEvents="none"
       style={{ position: 'absolute', top: 0, bottom: 0, right: spacing.md, justifyContent: 'center', alignItems: 'flex-end', gap: spacing.sm }}
     >
-      {sequence.map((entry, index) => {
-        const state = index === currentIndex ? 'now' : index < currentIndex ? 'done' : 'pending';
+      {entries.map((entry, index) => {
+        const state = index === currentRank ? 'now' : index < currentRank ? 'done' : 'pending';
         return (
-          <View key={entry.exerciseId} style={{ alignItems: 'flex-end', gap: 4 }}>
+          <View key={entry.key} style={{ alignItems: 'flex-end', gap: 4 }}>
+            {entry.breakBefore ? <View style={{ width: 14, height: 1, backgroundColor: colors.heroBorder, marginBottom: spacing.sm }} /> : null}
             {state === 'now' ? (
               <View style={{ backgroundColor: colors.heroPill, paddingHorizontal: spacing.xs, paddingVertical: 3, borderRadius: 999 }}>
-                <Text variant="caption" color="heroText" weight="bold" style={{ fontSize: 9 }}>{currentLabel}</Text>
+                <Text variant="caption" color="heroText" weight="bold" style={{ fontSize: 9 }}>{entry.label}</Text>
               </View>
             ) : null}
             <View
@@ -233,11 +238,14 @@ export function GuidedFlowRail({
   );
 }
 
-/** Expandable cues panel — collapsed height is 0 (nothing covers the photo);
- * open, it rises from the bottom bar and overlays only the lower photo.
- * Height animates to the content's own measured size (via `onLayout`) rather
- * than a fixed value, so it never clips a longer cue. */
-export function GuidedFlowCuesDrawer({ open, label, cues }: { open: boolean; label: string; cues?: string }) {
+/** Expandable form-guide panel — the same ordered `Exercise.steps` shown in
+ * full elsewhere (`HowToPanel`), not the abridged glance-cue string, since a
+ * touchless athlete mid-flow needs the whole instruction, not a fragment.
+ * Collapsed height is 0 (nothing covers the photo); open, it rises from the
+ * bottom bar and overlays only the lower photo. Height animates to the
+ * content's own measured size (via `onLayout`) rather than a fixed value, so
+ * it never clips a longer step list. */
+export function GuidedFlowStepsDrawer({ open, label, steps }: { open: boolean; label: string; steps?: string[] }) {
   const { colors, spacing, radii, motion } = useTheme();
   const [contentHeight, setContentHeight] = useState(0);
   const openness = useSharedValue(0);
@@ -251,7 +259,7 @@ export function GuidedFlowCuesDrawer({ open, label, cues }: { open: boolean; lab
     opacity: openness.get(),
   }));
 
-  if (!cues) return null;
+  if (!steps || steps.length === 0) return null;
 
   return (
     <Animated.View
@@ -261,10 +269,14 @@ export function GuidedFlowCuesDrawer({ open, label, cues }: { open: boolean; lab
         drawerStyle,
       ]}
     >
-      <View onLayout={(event) => setContentHeight(event.nativeEvent.layout.height)} style={{ padding: spacing.lg, gap: spacing.xs }}>
+      <View onLayout={(event) => setContentHeight(event.nativeEvent.layout.height)} style={{ padding: spacing.lg, gap: spacing.sm }}>
         <View style={{ width: 34, height: 4, borderRadius: radii.pill, backgroundColor: colors.heroBorder, alignSelf: 'center', marginBottom: spacing.xs }} />
-        <Text variant="caption" color="heroMuted" weight="bold">{label.toUpperCase()} · CUES</Text>
-        <Text variant="body" color="heroText">{cues}</Text>
+        <Text variant="caption" color="heroMuted" weight="bold">{label.toUpperCase()} · FORM GUIDE</Text>
+        <View style={{ gap: spacing.xs }}>
+          {steps.map((step, i) => (
+            <Text key={i} variant="body" color="heroText">{i + 1}. {step}</Text>
+          ))}
+        </View>
       </View>
     </Animated.View>
   );
@@ -277,9 +289,9 @@ export function GuidedFlowBottomBar({
   title,
   round,
   tone,
-  hasCues,
-  cuesOpen,
-  onToggleCues,
+  hasSteps,
+  stepsOpen,
+  onToggleSteps,
   running,
   onToggleRun,
   onSkipForward,
@@ -289,9 +301,9 @@ export function GuidedFlowBottomBar({
   title: string;
   round: string;
   tone?: ContextTone;
-  hasCues: boolean;
-  cuesOpen: boolean;
-  onToggleCues: () => void;
+  hasSteps: boolean;
+  stepsOpen: boolean;
+  onToggleSteps: () => void;
   running: boolean;
   onToggleRun: () => void;
   onSkipForward: () => void;
@@ -331,15 +343,15 @@ export function GuidedFlowBottomBar({
       </Row>
 
       <View style={{ alignItems: 'center', gap: spacing.xs }}>
-        {hasCues ? (
+        {hasSteps ? (
           <Pressable
             accessibilityRole="button"
-            accessibilityLabel={cuesOpen ? 'Hide cues' : 'Show cues'}
+            accessibilityLabel={stepsOpen ? 'Hide form guide' : 'Show form guide'}
             hitSlop={10}
-            onPress={onToggleCues}
+            onPress={onToggleSteps}
             style={({ pressed }) => ({ opacity: pressed ? 0.6 : 1 })}
           >
-            <Icon name={cuesOpen ? 'chevronDown' : 'chevronUp'} size={16} color="primary" />
+            <Icon name={stepsOpen ? 'chevronDown' : 'chevronUp'} size={16} color="primary" />
           </Pressable>
         ) : null}
 
@@ -355,7 +367,9 @@ export function GuidedFlowBottomBar({
           </Pressable>
         </Row>
 
-        <Text variant="caption" color="heroMuted" weight="bold">{round}</Text>
+        <View style={{ backgroundColor: colors.heroPill, paddingHorizontal: spacing.sm, paddingVertical: 3, borderRadius: radii.pill }}>
+          <Text variant="label" color="heroText" weight="bold">{round}</Text>
+        </View>
       </View>
     </View>
   );

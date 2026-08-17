@@ -9,6 +9,7 @@ import type {
   EquipmentInventory,
   ExperienceLevel,
   ModalityWeights,
+  MuscleGroup,
   SessionContext,
   SessionPlan,
   SessionRecord,
@@ -171,6 +172,23 @@ describe('RulesEngine.generateSession — modality-specific flows', () => {
     expect(auditSessionShape(plan.blocks, { cardioIntent: 'interval', hasRoutine: false }).filter((f) => f.severity === 'warn')).toEqual([]);
   });
 
+  it('never picks both Burpees and its own named variant into one interval cardio session', async () => {
+    // Regression guard: ca-burpees and ca-burpee-broad-jump-combo used to
+    // auto-derive into different variantFamily buckets (the "jump" in the
+    // variant's name routed it to a different movementSlot), so
+    // FAMILY_SATURATION never penalised picking both. Restricting to the
+    // bodyweight cardio pool (where both live) and a duration long enough to
+    // scale past a single station gives the bug its best chance to recur.
+    const plan = await new RulesEngine().generateSession(context({
+      workoutType: 'cardio',
+      workoutOptions: { cardioIntent: 'interval', cardioModalities: ['bodyweight'] },
+      targetDurationMin: 45,
+    }));
+    const mainBlock = plan.blocks.find((block) => block.label === 'Main');
+    const ids = mainBlock!.exercises.map((exercise) => exercise.exerciseId);
+    expect(ids.includes('ca-burpees') && ids.includes('ca-burpee-broad-jump-combo')).toBe(false);
+  });
+
   it('builds a rotating circuit of distinct stations for an aerobics cardio session', async () => {
     const plan = await new RulesEngine().generateSession(context({
       workoutType: 'cardio',
@@ -187,7 +205,11 @@ describe('RulesEngine.generateSession — modality-specific flows', () => {
     expect(new Set(exercises.map((exercise) => exercise.exerciseId)).size).toBe(exercises.length);
     for (const exercise of exercises) {
       const catalogEntry = EXERCISES.find((entry) => entry.id === exercise.exerciseId);
-      expect(catalogEntry?.movementPattern).toBe('aerobics');
+      // Circuit's pool is bodyweight aerobics stations OR loaded-implement
+      // interval stations (widened alongside metabolic-conditioning support)
+      // — never any other movement pattern.
+      expect(['aerobics', 'interval'].includes(catalogEntry!.movementPattern)).toBe(true);
+      if (catalogEntry!.movementPattern === 'interval') expect(catalogEntry!.loadsWeight).toBe(true);
     }
 
     // All stations rotate together as one circuit (reuses the superset
@@ -235,16 +257,62 @@ describe('RulesEngine.generateSession — modality-specific flows', () => {
     }
   });
 
-  it('drops an unsatisfiable cardio type preference instead of generating an empty session (ADR-0140)', async () => {
-    // No aerobics-pattern exercise is tagged loaded_cardio — this combo has zero matches.
+  it('builds a loaded-implement circuit when cardioModalities is scoped to loaded cardio', async () => {
+    // Circuit's pool now includes loaded-implement interval exercises
+    // (kettlebell/dumbbell work), so this combo — unsatisfiable before the
+    // widening — now builds a real rotating circuit instead of falling back.
     const plan = await new RulesEngine().generateSession(context({
       workoutType: 'cardio',
       workoutOptions: { cardioIntent: 'circuit', cardioModalities: ['loaded_cardio'] },
     }));
     const mainBlock = plan.blocks.find((block) => block.label === 'Main');
     expect(mainBlock).toBeDefined();
-    expect(mainBlock!.exercises.length).toBeGreaterThan(0);
-    expect(plan.adjustments).toContain("Cardio type preference skipped — no matching exercises for today's format");
+    const exercises = mainBlock!.exercises;
+    expect(exercises.length).toBeGreaterThan(0);
+    expect(plan.adjustments ?? []).not.toContain("Cardio type preference skipped — no matching exercises for today's format");
+    for (const exercise of exercises) {
+      const catalogEntry = EXERCISES.find((entry) => entry.id === exercise.exerciseId);
+      expect(catalogEntry?.cardioModality).toBe('loaded_cardio');
+    }
+    const groupIds = new Set(exercises.map((exercise) => exercise.rotationGroup));
+    expect(groupIds.size).toBe(1);
+    expect(exercises.every((exercise) => exercise.group?.type === 'circuit')).toBe(true);
+  });
+
+  it('gives a loaded circuit station real rest, not the aerobics flat 10s or the cardio-default 0s', async () => {
+    const plan = await new RulesEngine().generateSession(context({
+      workoutType: 'cardio',
+      workoutOptions: { cardioIntent: 'circuit', cardioModalities: ['loaded_cardio'] },
+    }));
+    const mainBlock = plan.blocks.find((block) => block.label === 'Main');
+    const exercises = mainBlock!.exercises;
+    expect(exercises.length).toBeGreaterThan(0);
+    for (const exercise of exercises) {
+      // Every set but the last carries a rest value; the loaded transition
+      // (double the bodyweight aerobics one) must be what's actually shown,
+      // not the cardio catch-all's 0s this phase's design review caught.
+      const restValues = exercise.sets.slice(0, -1).map((set) => set.restSec);
+      expect(restValues.every((rest) => rest === 20)).toBe(true);
+    }
+  });
+
+  it('circuit stations are not all loaded-implement even when equipment allows it (PATTERN_SATURATION diversity)', async () => {
+    // Relies on selection-score.ts's existing pattern-saturation scoring to
+    // keep circuits varied — not a new hard cap. If this ever fails, that
+    // scoring pressure has weakened and circuit variety needs a real fix.
+    const plan = await new RulesEngine().generateSession(context({
+      workoutType: 'cardio',
+      workoutOptions: { cardioIntent: 'circuit' },
+      targetDurationMin: 40,
+      athlete: { ...athlete(CARDIO_HEAVY_WEIGHTS), experience: 'advanced' },
+    }));
+    const mainBlock = plan.blocks.find((block) => block.label === 'Main');
+    const exercises = mainBlock!.exercises;
+    const loadedCount = exercises.filter((exercise) => {
+      const catalogEntry = EXERCISES.find((entry) => entry.id === exercise.exerciseId);
+      return catalogEntry?.loadsWeight === true;
+    }).length;
+    expect(loadedCount).toBeLessThan(exercises.length);
   });
 
   it('adds a controlled calibration top set only when an eligible muscle cadence is due', async () => {
@@ -259,6 +327,97 @@ describe('RulesEngine.generateSession — modality-specific flows', () => {
     expect(plan.workoutType).toBe('bodybuilding');
     expect(exercises.some((exercise) => exercise.sets.some((set) => set.isCalibration))).toBe(true);
     expect(exercises.some((exercise) => exercise.rotationGroup != null)).toBe(true);
+  });
+});
+
+describe('RulesEngine.generateSession — ADR-0145 dense pacing', () => {
+  it('dense pacing shortens Main-block straight-set rest, without touching heavy/calibration sets', async () => {
+    // STRENGTH_HEAVY_WEIGHTS + no explicit workoutType: mainModality resolves
+    // to 'strength' (naive weight argmax), and cardio+general < 0.3 keeps
+    // applySupersets' time-saver path off, so the whole Main block stays
+    // straight (ungrouped) — exactly the case dense pacing's straight-set
+    // lever is meant to shape.
+    const densePlan = await new RulesEngine().generateSession(context({
+      goals: { weights: STRENGTH_HEAVY_WEIGHTS, restPacing: 'dense' },
+    }));
+    const standardPlan = await new RulesEngine().generateSession(context({
+      goals: { weights: STRENGTH_HEAVY_WEIGHTS },
+    }));
+    expect(densePlan.densePacing).toBe(true);
+    expect(standardPlan.densePacing).toBe(false);
+
+    const denseMain = densePlan.blocks.find((block) => block.label === 'Main')!;
+    const standardMain = standardPlan.blocks.find((block) => block.label === 'Main')!;
+    expect(denseMain.modality).toBe('strength');
+
+    // Exercise selection and prescription (reps/RPE) don't depend on
+    // restPacing, so matching exercises should carry the same first-set
+    // prescription in both plans — only its rest should ever differ, and
+    // only downward, never up.
+    let sawDiscount = false;
+    for (const denseEx of denseMain.exercises) {
+      if (denseEx.rotationGroup != null) continue; // grouped sets deliberately unaffected
+      const standardEx = standardMain.exercises.find((exercise) => exercise.exerciseId === denseEx.exerciseId);
+      if (!standardEx) continue;
+      const denseSet = denseEx.sets[0];
+      const standardSet = standardEx.sets[0];
+      if (denseSet.isCalibration || standardSet.isCalibration) continue;
+      if (denseSet.reps !== standardSet.reps || denseSet.targetRpe !== standardSet.targetRpe) continue;
+      expect(denseSet.restSec ?? 0).toBeLessThanOrEqual(standardSet.restSec ?? 0);
+      if ((denseSet.restSec ?? 0) < (standardSet.restSec ?? 0)) sawDiscount = true;
+    }
+    expect(sawDiscount).toBe(true);
+  });
+
+  it('given the same requested duration, dense pacing fits at least as much work as standard pacing', async () => {
+    const denseMain = (await new RulesEngine().generateSession(context({
+      goals: { weights: STRENGTH_HEAVY_WEIGHTS, restPacing: 'dense' },
+      targetDurationMin: 45,
+    }))).blocks.find((block) => block.label === 'Main')!;
+    const standardMain = (await new RulesEngine().generateSession(context({
+      goals: { weights: STRENGTH_HEAVY_WEIGHTS },
+      targetDurationMin: 45,
+    }))).blocks.find((block) => block.label === 'Main')!;
+    const denseSets = denseMain.exercises.reduce((sum, exercise) => sum + workSetCount(exercise), 0);
+    const standardSets = standardMain.exercises.reduce((sum, exercise) => sum + workSetCount(exercise), 0);
+    // Cheaper per-set time estimates mean the under-budget filler can pack in
+    // more work for the same requested duration — bounded by the same
+    // MAX_SESSION_WORK_SETS/volume-landmark ceiling either way, so "at least
+    // as much," not an unconditional increase.
+    expect(denseSets).toBeGreaterThanOrEqual(standardSets);
+  });
+
+  it('dense pacing gives circuit stations the tighter 8s/16s transition, not the standard 10s/20s', async () => {
+    const plan = await new RulesEngine().generateSession(context({
+      workoutType: 'cardio',
+      workoutOptions: { cardioIntent: 'circuit' },
+      goals: { weights: CARDIO_HEAVY_WEIGHTS, restPacing: 'dense' },
+    }));
+    expect(plan.densePacing).toBe(true);
+    const mainBlock = plan.blocks.find((block) => block.label === 'Main')!;
+    const exercises = mainBlock.exercises;
+    expect(exercises.length).toBeGreaterThan(0);
+    for (const exercise of exercises) {
+      const catalogEntry = EXERCISES.find((entry) => entry.id === exercise.exerciseId);
+      const expected = catalogEntry?.loadsWeight ? 16 : 8;
+      const restValues = exercise.sets.slice(0, -1).map((set) => set.restSec);
+      expect(restValues.every((rest) => rest === expected)).toBe(true);
+    }
+    // Round count stays internally consistent with the tighter transition
+    // across the shared rotation group (mirrors ADR-0138's equalize step).
+    const roundCounts = new Set(exercises.map((exercise) => exercise.sets.length));
+    expect(roundCounts.size).toBe(1);
+  });
+
+  it('names dense pacing in the session rationale when active, and omits it when not', async () => {
+    const densePlan = await new RulesEngine().generateSession(context({
+      goals: { weights: STRENGTH_HEAVY_WEIGHTS, restPacing: 'dense' },
+    }));
+    const standardPlan = await new RulesEngine().generateSession(context({
+      goals: { weights: STRENGTH_HEAVY_WEIGHTS },
+    }));
+    expect(densePlan.rationale).toContain("Kept rest and transitions tight to match your plan's fast pace.");
+    expect(standardPlan.rationale).not.toContain('Kept rest and transitions tight');
   });
 });
 
@@ -887,8 +1046,8 @@ describe('RulesEngine.adjustDuringSession — manual replacements', () => {
         label: 'Main',
         modality: 'strength',
         exercises: [{
-          exerciseId: 'sq-bw',
-          name: 'Bodyweight squat',
+          exerciseId: 'sq-jump',
+          name: 'Jump squat',
           primaryAreas: [{ group: 'quads' }],
           sets: [{ reps: 12 }],
           zone: 'hypertrophy',
@@ -898,7 +1057,7 @@ describe('RulesEngine.adjustDuringSession — manual replacements', () => {
 
     const result = await new RulesEngine().adjustDuringSession(plan, {
       kind: 'swap',
-      exerciseId: 'sq-bw',
+      exerciseId: 'sq-jump',
       replacementExerciseId: 'sq-goblet',
     }, { equipment: EQUIPMENT, history: [], experience: 'intermediate' });
     // ADR-0144: a replacement with no history of its own still gets a real,
@@ -916,7 +1075,7 @@ describe('RulesEngine.adjustDuringSession — manual replacements', () => {
     }];
     const withHistory = await new RulesEngine().adjustDuringSession(plan, {
       kind: 'swap',
-      exerciseId: 'sq-bw',
+      exerciseId: 'sq-jump',
       replacementExerciseId: 'sq-goblet',
     }, { equipment: EQUIPMENT, history: ownHistory, experience: 'intermediate' });
     expect(withHistory.blocks[0].exercises[0].sets[0].weightKg).toBe(15);
@@ -926,16 +1085,18 @@ describe('RulesEngine.adjustDuringSession — manual replacements', () => {
     // ADR-0134 revision: the engine's swap floor only enforces training type,
     // equipment, exclusions, and today's avoidance flags (`replacementAllowed`,
     // matching.ts) — movement-slot/muscle fit is a picker-UI "Suggested" signal,
-    // not a hard block, so an athlete can knowingly swap a squat for a push-up.
+    // not a hard block, so an athlete can knowingly swap a squat for a plank
+    // (sq-bw and co-plank are both modality: 'general' — same training type,
+    // different movement pattern).
     const plan: SessionPlan = {
-      id: 'override', plannedFor: NOW, rationale: '', blocks: [{ label: 'Main', modality: 'strength', exercises: [{
+      id: 'override', plannedFor: NOW, rationale: '', blocks: [{ label: 'Main', modality: 'general', exercises: [{
         exerciseId: 'sq-bw', name: 'Bodyweight squat', primaryAreas: [{ group: 'quads' }], sets: [{ reps: 10 }],
       }] }],
     };
     const result = await new RulesEngine().adjustDuringSession(plan, {
-      kind: 'swap', exerciseId: 'sq-bw', replacementExerciseId: 'pu-pushup',
+      kind: 'swap', exerciseId: 'sq-bw', replacementExerciseId: 'co-plank',
     }, { equipment: EQUIPMENT, experience: 'intermediate' });
-    expect(result.blocks[0].exercises[0].exerciseId).toBe('pu-pushup');
+    expect(result.blocks[0].exercises[0].exerciseId).toBe('co-plank');
     expect(result.liveAdjustments?.at(-1)?.reasonCode).toBe('compatible_substitution');
   });
 
@@ -959,17 +1120,17 @@ describe('RulesEngine.adjustDuringSession — manual replacements', () => {
     // never sets this flag.
     const plan: SessionPlan = {
       id: 'equipment-override', plannedFor: NOW, rationale: '', blocks: [{ label: 'Main', modality: 'strength', exercises: [{
-        exerciseId: 'sq-bw', name: 'Bodyweight squat', primaryAreas: [{ group: 'quads' }], sets: [{ reps: 10 }],
+        exerciseId: 'sq-jump', name: 'Jump squat', primaryAreas: [{ group: 'quads' }], sets: [{ reps: 10 }],
       }] }],
     };
     const rejected = await new RulesEngine().adjustDuringSession(plan, {
-      kind: 'swap', exerciseId: 'sq-bw', replacementExerciseId: 'tr-cable-pushdown',
+      kind: 'swap', exerciseId: 'sq-jump', replacementExerciseId: 'tr-cable-pushdown',
     }, { equipment: EQUIPMENT, experience: 'intermediate' });
-    expect(rejected.blocks[0].exercises[0].exerciseId).toBe('sq-bw');
+    expect(rejected.blocks[0].exercises[0].exerciseId).toBe('sq-jump');
     expect(rejected.liveAdjustments?.at(-1)?.reasonCode).toBe('rejected_substitution');
 
     const allowed = await new RulesEngine().adjustDuringSession(plan, {
-      kind: 'swap', exerciseId: 'sq-bw', replacementExerciseId: 'tr-cable-pushdown', ignoreEquipment: true,
+      kind: 'swap', exerciseId: 'sq-jump', replacementExerciseId: 'tr-cable-pushdown', ignoreEquipment: true,
     }, { equipment: EQUIPMENT, experience: 'intermediate' });
     expect(allowed.blocks[0].exercises[0].exerciseId).toBe('tr-cable-pushdown');
     expect(allowed.liveAdjustments?.at(-1)?.reasonCode).toBe('compatible_substitution');
@@ -2037,6 +2198,17 @@ describe('RulesEngine.generateSession — ADR-0137 routines', () => {
     expect(conditioning?.exercises.map((e) => e.exerciseId)).toContain('ca-machine-steady');
   });
 
+  it('keeps every general-tagged exercise in a routine, with no false "missing equipment" swap', async () => {
+    // sq-bw/pl-table-row/co-plank are all modality: 'general' — before the
+    // routine pool widened to accept 'general' alongside 'strength', these
+    // would have come up empty and misreported an equipment problem.
+    const generalRoutine = { id: 'routine-general', name: 'Simple Full Body', exerciseIds: ['sq-bw', 'pl-table-row', 'co-plank'] };
+    const plan = await new RulesEngine().generateSession(context({ routine: generalRoutine }));
+    const ids = mainOf(plan).map((e) => e.exerciseId);
+    expect(new Set(ids)).toEqual(new Set(generalRoutine.exerciseIds));
+    expect(plan.rationale).not.toMatch(/missing equipment/i);
+  });
+
   describe('ADR-0137 v2 — Yoga/Stretch honor input.routine', () => {
     // Spans three distinct YOGA_STAGE_ORDER stages (center/balance/cooldown)
     // so the routine-restricted sequence's ordering can be checked too.
@@ -2115,5 +2287,70 @@ describe('RulesEngine.generateSession — ADR-0137 routines', () => {
       expect(ids).toContain('mob-supine-hamstring-stretch');
       expect(ids.every((id) => STRETCH_ROUTINE.exerciseIds.includes(id))).toBe(true);
     });
+  });
+});
+
+describe('RulesEngine.generateSession — general as a first-class modality', () => {
+  const GENERAL_HEAVY_WEIGHTS: ModalityWeights = { strength: 0.1, cardio: 0.1, mobility: 0.1, general: 0.7 };
+  const mainOf = (plan: SessionPlan) => plan.blocks.find((b) => b.label === 'Main')?.exercises ?? [];
+
+  it('a general-heavy goal produces a general-mainModality session drawn from general-tagged exercises', async () => {
+    const plan = await new RulesEngine().generateSession(context({ goals: { weights: GENERAL_HEAVY_WEIGHTS } }));
+    const main = plan.blocks.find((b) => b.label === 'Main');
+    expect(main?.modality).toBe('general');
+    expect(plan.rationale).toContain("Today's focus: general.");
+    const ids = mainOf(plan).map((e) => e.exerciseId);
+    expect(ids.length).toBeGreaterThan(0);
+    for (const id of ids) {
+      expect(EXERCISES.find((e) => e.id === id)?.modality).toBe('general');
+    }
+  });
+
+  it('leaves the existing strength/cardio/mobility-dominant picks unchanged', async () => {
+    const strength = await new RulesEngine().generateSession(context({ goals: { weights: STRENGTH_HEAVY_WEIGHTS } }));
+    expect(strength.rationale).toContain("Today's focus: strength.");
+    const cardio = await new RulesEngine().generateSession(context({ goals: { weights: CARDIO_HEAVY_WEIGHTS } }));
+    expect(cardio.rationale).toContain("Today's focus: cardio.");
+    // Mobility-dominant days route to the Stretch flow (ADR-0145), which uses
+    // its own "Today's focus: a stretch flow." rationale — not the generic
+    // "Today's focus: {mainModality}." text the other three modalities get.
+    const mobility = await new RulesEngine().generateSession(context({ goals: { weights: MOBILITY_HEAVY_WEIGHTS } }));
+    expect(mobility.rationale).toContain("Today's focus: a stretch flow.");
+  });
+
+  it('scales a general Main block with requested session duration, same as a strength session', async () => {
+    const engine = new RulesEngine();
+    const goals = { weights: GENERAL_HEAVY_WEIGHTS };
+    const short = await engine.generateSession(context({ goals, targetDurationMin: 10 }));
+    const long = await engine.generateSession(context({ goals, targetDurationMin: 60 }));
+    expect(mainOf(long).length).toBeGreaterThan(mainOf(short).length);
+    expect(long.estimatedDurationMin ?? 0).toBeGreaterThan(short.estimatedDurationMin ?? 0);
+  });
+
+  it('does not add a Conditioning block on a general-mainModality day, even past the cardio+general threshold', async () => {
+    // general (0.6) dominates Main; cardio(0.15)+general(0.6) clears the 0.25
+    // conditioningWouldApply threshold — the case that used to double-count.
+    const weights: ModalityWeights = { strength: 0.2, cardio: 0.15, mobility: 0.05, general: 0.6 };
+    const plan = await new RulesEngine().generateSession(context({ goals: { weights } }));
+    const main = plan.blocks.find((b) => b.label === 'Main');
+    expect(main?.modality).toBe('general');
+    expect(plan.blocks.find((b) => b.label === 'Conditioning')).toBeUndefined();
+  });
+
+  it('spans upper/lower/core with general-tagged exercises under Full Body targeting', async () => {
+    const plan = await new RulesEngine().generateSession(
+      context({
+        goals: { weights: GENERAL_HEAVY_WEIGHTS },
+        targeting: { emphasize: [{ region: 'full_body' }], avoid: [] },
+      }),
+    );
+    const main = mainOf(plan);
+    const regions = new Set(
+      main.flatMap((e) => e.primaryAreas.map((a) => a.group).filter((g): g is MuscleGroup => g != null).map((g) => GROUP_TO_REGION[g])),
+    );
+    expect(regions.size).toBeGreaterThanOrEqual(3);
+    for (const e of main) {
+      expect(EXERCISES.find((entry) => entry.id === e.exerciseId)?.modality).toBe('general');
+    }
   });
 });

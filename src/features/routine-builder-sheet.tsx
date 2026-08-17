@@ -4,9 +4,11 @@
 
 import { useEffect, useMemo, useState } from 'react';
 import { View } from 'react-native';
+import { ImageBackground } from 'expo-image';
 
-import { Button, Card, Chip, Icon, MuscleLogo, PressScale, Row, SheetModal, Text, TextField, useTheme } from '@/design';
+import { Button, Card, Chip, HeroScrim, Icon, MuscleLogo, PressScale, Row, SheetModal, Text, TextField, useTheme } from '@/design';
 import { WORKOUT_TYPE_OPTIONS } from '@/app-lib/options';
+import { workoutTypeArt } from '@/features/exercise-detail';
 import { EXERCISES } from '@/domain/catalog';
 import { getEquipmentInventory } from '@/services/equipment';
 import { equipmentSatisfied, exercisesAllowedForWorkoutType } from '@/domain/engine';
@@ -36,7 +38,7 @@ export function RoutineBuilderSheet({
   onClose: () => void;
   onSaved: (routine: Routine) => void;
 }) {
-  const { spacing } = useTheme();
+  const { colors, radii, spacing } = useTheme();
   const [name, setName] = useState('');
   const [exerciseIds, setExerciseIds] = useState<string[]>([]);
   const [recurrence, setRecurrence] = useState<Set<number>>(new Set());
@@ -135,11 +137,31 @@ export function RoutineBuilderSheet({
         <Text variant="caption" color="textMuted" style={{ marginTop: 2 }}>
           Determines which exercises you can add below.
         </Text>
-        <Row gap="sm" wrap style={{ marginTop: spacing.sm }}>
+        <View style={{ marginTop: spacing.sm, flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm }}>
           {WORKOUT_TYPE_OPTIONS.map((option) => (
-            <Chip key={option.label} label={option.label} selected={workoutType === option.value} onPress={() => selectWorkoutType(option.value)} />
+            <PressScale
+              key={option.label}
+              onPress={() => selectWorkoutType(option.value)}
+              haptic="selection"
+              accessibilityRole="button"
+              accessibilityLabel={option.label}
+              accessibilityState={{ selected: workoutType === option.value }}
+              style={{
+                width: '31%',
+                height: 82,
+                borderRadius: radii.md,
+                overflow: 'hidden',
+                borderWidth: workoutType === option.value ? 2 : 1,
+                borderColor: workoutType === option.value ? colors.primary : colors.border,
+              }}
+            >
+              <ImageBackground source={workoutTypeArt(option.value)} contentFit="cover" style={{ flex: 1, justifyContent: 'flex-end', padding: spacing.sm }}>
+                <HeroScrim />
+                <Text variant="caption" color="heroText" weight="bold" numberOfLines={1}>{option.label}</Text>
+              </ImageBackground>
+            </PressScale>
           ))}
-        </Row>
+        </View>
         {styleNotice ? (
           <Text variant="caption" color="primaryTextSoft" style={{ marginTop: spacing.sm }}>
             {styleNotice}

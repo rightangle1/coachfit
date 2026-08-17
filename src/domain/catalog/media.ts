@@ -22,65 +22,123 @@ const formGuide = (file: StillAsset['file']): StillAsset => ({
 });
 
 export const EXERCISE_MEDIA: Record<string, ExerciseMedia> = {
+  'br-plie-first-position': {
+    stills: [formGuide(require('../../../assets/images/exercises/br-plie-first-position-form-guide.webp'))],
+  },
+  'br-plie-second-position': {
+    stills: [formGuide(require('../../../assets/images/exercises/br-plie-second-position-form-guide.webp'))],
+  },
+  'br-releve-calf-raise': {
+    stills: [formGuide(require('../../../assets/images/exercises/br-releve-calf-raise-form-guide.webp'))],
+  },
+  'br-arabesque-pulse': {
+    stills: [formGuide(require('../../../assets/images/exercises/br-arabesque-pulse-form-guide.webp'))],
+  },
+  'br-standing-donkey-kick': {
+    stills: [formGuide(require('../../../assets/images/exercises/br-standing-donkey-kick-form-guide.webp'))],
+  },
+  'br-hundred-prep': {
+    stills: [formGuide(require('../../../assets/images/exercises/br-hundred-prep-form-guide.webp'))],
+  },
+  'br-plank-tuck': {
+    stills: [formGuide(require('../../../assets/images/exercises/br-plank-tuck-form-guide.webp'))],
+  },
+  'br-tricep-kickback-pulse': {
+    stills: [formGuide(require('../../../assets/images/exercises/br-tricep-kickback-pulse-form-guide.webp'))],
+  },
+  'br-bicep-curl-hold': {
+    stills: [formGuide(require('../../../assets/images/exercises/br-bicep-curl-hold-form-guide.webp'))],
+  },
+  'br-seated-arm-pulses': {
+    stills: [formGuide(require('../../../assets/images/exercises/br-seated-arm-pulses-form-guide.webp'))],
+  },
+  'pl-the-hundred-flow': {
+    stills: [formGuide(require('../../../assets/images/exercises/pl-the-hundred-flow-form-guide.webp'))],
+  },
+  'pl-roll-up-flow': {
+    stills: [formGuide(require('../../../assets/images/exercises/pl-roll-up-flow-form-guide.webp'))],
+  },
+  'pl-single-leg-stretch-flow': { stills: [formGuide(require('../../../assets/images/exercises/pl-single-leg-stretch-flow-form-guide.webp'))] },
+  'pl-double-leg-stretch-flow': { stills: [formGuide(require('../../../assets/images/exercises/pl-double-leg-stretch-flow-form-guide.webp'))] },
+  'pl-criss-cross': { stills: [formGuide(require('../../../assets/images/exercises/pl-criss-cross-form-guide.webp'))] },
+  'pl-leg-pull-front': { stills: [formGuide(require('../../../assets/images/exercises/pl-leg-pull-front-form-guide.webp'))] },
+  'pl-swimming-flow': { stills: [formGuide(require('../../../assets/images/exercises/pl-swimming-flow-form-guide.webp'))] },
+  'pl-superman-hold': { stills: [formGuide(require('../../../assets/images/exercises/pl-superman-hold-form-guide.webp'))] },
+  'pl-standing-balance-reach': { stills: [formGuide(require('../../../assets/images/exercises/pl-standing-balance-reach-form-guide.webp'))] },
   // ---- Resistance band catalog expansion (ADR-0117) — clips verified via
   // YouTube's oEmbed endpoint (real, currently-live URLs; title/creator taken
   // verbatim from the response, not guessed).
   'hi-band-loop-lateral-walk': {
+    stills: [formGuide(require('../../../assets/images/exercises/hi-band-loop-lateral-walk-form-guide.webp'))],
     clips: [
       { url: 'https://www.youtube.com/watch?v=PhNkkOieB-8', title: 'Lateral Band Walk', creator: "Women's Strength Nation by Holly Perkins" },
     ],
   },
   'hi-band-loop-clamshell': {
+    stills: [formGuide(require('../../../assets/images/exercises/hi-band-loop-clamshell-form-guide.webp'))],
     clips: [
       { url: 'https://www.youtube.com/watch?v=ymjOGuPjOSE', title: 'Clam Shell Exercise for Hips | Banded Clamshells for Abductor Activation', creator: 'FITBODY with Julie Lohre' },
     ],
   },
+  'hi-clamshell': {
+    stills: [formGuide(require('../../../assets/images/exercises/hi-clamshell-form-guide.webp'))],
+  },
   'hi-band-loop-monster-walk': {
+    stills: [formGuide(require('../../../assets/images/exercises/hi-band-loop-monster-walk-form-guide.webp'))],
     clips: [
       { url: 'https://www.youtube.com/watch?v=hE4UsbLMjC8', title: 'Resistance Band Monster Walk', creator: 'Clench Fitness' },
     ],
   },
   'hi-band-loop-glute-bridge': {
+    stills: [formGuide(require('../../../assets/images/exercises/hi-band-loop-glute-bridge-form-guide.webp'))],
     clips: [
       { url: 'https://www.youtube.com/watch?v=ktdIgom5B18', title: 'How To Do GLUTE BRIDGES With Resistance Bands // Maximize Your Booty', creator: 'Fitasamamabear Strength Training & Nutrition Coach' },
     ],
   },
   'hi-band-loop-fire-hydrant': {
+    stills: [formGuide(require('../../../assets/images/exercises/hi-band-loop-fire-hydrant-form-guide.webp'))],
     clips: [
       { url: 'https://www.youtube.com/watch?v=Gn7b4qVxFYA', title: 'How To Do The BANDED FIRE HYDRANT EXERCISE | Exercise Demonstration Video and Guide', creator: 'Live Lean TV Daily Exercises' },
     ],
   },
   'hi-band-loop-donkey-kick': {
+    stills: [formGuide(require('../../../assets/images/exercises/hi-band-loop-donkey-kick-form-guide.webp'))],
     clips: [
       { url: 'https://www.youtube.com/watch?v=A0iUAb4xUck', title: 'How to Do Donkey Kicks with Resistance Bands | Movement Breakdown', creator: 'LivingFit' },
     ],
   },
   'hi-band-loop-standing-abduction': {
+    stills: [formGuide(require('../../../assets/images/exercises/hi-band-loop-standing-abduction-form-guide.webp'))],
     clips: [
       { url: 'https://www.youtube.com/watch?v=v-tN9LG547I', title: 'Banded Hip Abduction | Band | Strength and Conditioning Exercises', creator: 'Rehab My Patient' },
     ],
   },
   'hi-band-loop-frog-pump': {
+    stills: [formGuide(require('../../../assets/images/exercises/hi-band-loop-frog-pump-form-guide.webp'))],
     clips: [
       { url: 'https://www.youtube.com/watch?v=rzjQ8XpXt1Q', title: 'Banded Frog Pump', creator: 'Glute Lab' },
     ],
   },
   'hi-band-loop-kickback': {
+    stills: [formGuide(require('../../../assets/images/exercises/hi-band-loop-kickback-form-guide.webp'))],
     clips: [
       { url: 'https://www.youtube.com/watch?v=pdP0uJXvc44', title: 'Standing Banded Kickback', creator: 'OPEX Fitness' },
     ],
   },
   'lu-band-loop-curtsy-lunge': {
+    stills: [formGuide(require('../../../assets/images/exercises/lu-band-loop-curtsy-lunge-form-guide.webp'))],
     clips: [
       { url: 'https://www.youtube.com/watch?v=iNmJlBrTrl8', title: 'Banded Curtsy Lunge', creator: 'The Queen of Lean' },
     ],
   },
   'lu-band-loop-lateral-lunge': {
+    stills: [formGuide(require('../../../assets/images/exercises/lu-band-loop-lateral-lunge-form-guide.webp'))],
     clips: [
       { url: 'https://www.youtube.com/watch?v=SryEGxlB6oA', title: 'How To: Banded Side Lunge or Lateral Lunge | Blatnik Strength | Exercise Index', creator: 'Strength Empire Gym' },
     ],
   },
   'sq-band-loop-terminal-knee-extension': {
+    stills: [formGuide(require('../../../assets/images/exercises/sq-band-loop-terminal-knee-extension-form-guide.webp'))],
     clips: [
       { url: 'https://www.youtube.com/watch?v=WEcLkuvcMZc', title: 'How To: Banded Terminal Knee Extension (TKE)', creator: 'Live Lean TV Daily Exercises' },
     ],
@@ -91,116 +149,139 @@ export const EXERCISE_MEDIA: Record<string, ExerciseMedia> = {
     ],
   },
   'pl-band-loop-pull-apart': {
+    stills: [formGuide(require('../../../assets/images/exercises/pl-band-loop-pull-apart-form-guide.webp'))],
     clips: [
       { url: 'https://www.youtube.com/watch?v=pABreZZwQN8', title: 'Mini Band Prone Pull Apart | Exercise Demo | Coaching Software | QuickCoach', creator: 'QuickCoach' },
     ],
   },
   'pl-band-assisted-pullup': {
+    stills: [formGuide(require('../../../assets/images/exercises/pl-band-assisted-pullup-form-guide.webp'))],
     clips: [
       { url: 'https://www.youtube.com/watch?v=4yE-XGDWJPg', title: 'How to do Banded Assisted Pull-Ups', creator: 'REP' },
     ],
   },
   'pl-band-single-arm-row': {
+    stills: [formGuide(require('../../../assets/images/exercises/pl-band-single-arm-row-form-guide.webp'))],
     clips: [
       { url: 'https://www.youtube.com/watch?v=WCC6YtrrPVA', title: 'Resistance Band Single Arm Row', creator: 'billyrobbinfit' },
     ],
   },
   'de-band-external-rotation': {
+    stills: [formGuide(require('../../../assets/images/exercises/de-band-external-rotation-form-guide.webp'))],
     clips: [
       { url: 'https://www.youtube.com/watch?v=ybNV36DoRfY', title: 'Banded Shoulder External Rotation | Band | Strength and Conditioning Exercises', creator: 'Rehab My Patient' },
     ],
   },
   'mob-band-hamstring-stretch': {
+    stills: [formGuide(require('../../../assets/images/exercises/stretch-band-hamstring-form-guide.webp'))],
     clips: [
       { url: 'https://www.youtube.com/watch?v=0HsJaEIE0bc', title: 'Stretch Tutorial: Lateral Hamstring Stretch With Resistance Band', creator: 'Travis Tarrant' },
     ],
   },
   'mob-band-doorway-chest-stretch': {
+    stills: [formGuide(require('../../../assets/images/exercises/stretch-band-doorway-chest-form-guide.webp'))],
     clips: [
       { url: 'https://www.youtube.com/watch?v=M850sCj9LHQ', title: 'How to Do a Doorway Pec Stretch Exercise | 90 Degrees Abduction | MedBridge', creator: 'Medbridge' },
     ],
   },
   'mob-band-lat-stretch': {
+    stills: [formGuide(require('../../../assets/images/exercises/stretch-band-lat-form-guide.webp'))],
     clips: [
       { url: 'https://www.youtube.com/watch?v=iaAsxl0OfIc', title: 'Banded Lat Stretch | CrossFit Invictus', creator: 'CrossFit Invictus' },
     ],
   },
   'mob-band-loop-90-90-hip-stretch': {
+    stills: [formGuide(require('../../../assets/images/exercises/stretch-band-loop-90-90-form-guide.webp'))],
     clips: [
       { url: 'https://www.youtube.com/watch?v=_rzJ1RXhM90', title: 'How To Do The 90/90 Hip Stretch | Exercise Demonstration Video and Guide', creator: 'Live Lean TV Daily Exercises' },
     ],
   },
   'wu-band-loop-ankle-mobilization': {
+    stills: [formGuide(require('../../../assets/images/exercises/warmup-band-ankle-mobilization-form-guide.webp'))],
     clips: [
       { url: 'https://www.youtube.com/watch?v=YgSRw1fo5Xs', title: 'Banded Ankle Mobilizations | Ankle Dorsiflexion & Lower-Leg Mobility', creator: 'Replay Baseball Institue' },
     ],
   },
   'mob-band-shoulder-er-stretch': {
+    stills: [formGuide(require('../../../assets/images/exercises/stretch-band-shoulder-er-form-guide.webp'))],
     clips: [
       { url: 'https://www.youtube.com/watch?v=_UvmPNGtlPM', title: 'Shoulder External Rotation with Resistive Band - Ask Doctor Jo', creator: 'AskDoctorJo' },
     ],
   },
   'hi-band-standing-hip-abduction': {
+    stills: [formGuide(require('../../../assets/images/exercises/hi-band-standing-hip-abduction-form-guide.webp'))],
     clips: [
       { url: 'https://www.youtube.com/watch?v=fR_yq6V4yxc', title: 'Band Standing Hip Abduction', creator: 'Glute Lab' },
     ],
   },
   'pu-band-incline-press': {
+    stills: [formGuide(require('../../../assets/images/exercises/pu-band-incline-press-form-guide.webp'))],
     clips: [
       { url: 'https://www.youtube.com/watch?v=Infd_StwnTg', title: 'Resistance Band Incline Chest Press', creator: 'Pursuit Fitness' },
     ],
   },
   'de-band-rear-delt-fly': {
+    stills: [formGuide(require('../../../assets/images/exercises/de-band-rear-delt-fly-form-guide.webp'))],
     clips: [
       { url: 'https://www.youtube.com/watch?v=8TS775tZvKQ', title: "Banded Rear Delt Fly's | Row Patterning", creator: 'Dr. Carl Baird' },
     ],
   },
   'de-band-internal-rotation': {
+    stills: [formGuide(require('../../../assets/images/exercises/de-band-internal-rotation-form-guide.webp'))],
     clips: [
       { url: 'https://www.youtube.com/watch?v=MfjCK5_Ss5g', title: 'How To Do An Internal Rotation with Band | Exercise Guide', creator: 'Bodybuilding.com' },
     ],
   },
   'pl-band-seated-row': {
+    stills: [formGuide(require('../../../assets/images/exercises/pl-band-seated-row-form-guide.webp'))],
     clips: [
       { url: 'https://www.youtube.com/watch?v=PKZW3s3G_Y0', title: 'How to Do Seated Rows with Resistance Bands! (With and without an Anchor)', creator: 'Scott Abel Coaching' },
     ],
   },
   'hi-band-loop-single-leg-glute-bridge': {
+    stills: [formGuide(require('../../../assets/images/exercises/hi-band-loop-single-leg-glute-bridge-form-guide.webp'))],
     clips: [
       { url: 'https://www.youtube.com/watch?v=18GVqjfHy-M', title: 'Single Leg Bridge | Step-by-Step Tutorial', creator: 'Physio Plus Fitness' },
     ],
   },
   'hi-band-loop-seated-abduction': {
+    stills: [formGuide(require('../../../assets/images/exercises/hi-band-loop-seated-abduction-form-guide.webp'))],
     clips: [
       { url: 'https://www.youtube.com/watch?v=DU6W5rVb7zA', title: 'How To Do A SEATED BANDED HIP ABDUCTION | Exercise Demonstration Video and Guide', creator: 'Live Lean TV Daily Exercises' },
     ],
   },
   'hi-band-loop-good-morning': {
+    stills: [formGuide(require('../../../assets/images/exercises/hi-band-loop-good-morning-form-guide.webp'))],
     clips: [
       { url: 'https://www.youtube.com/watch?v=_V0WOAL0_k0', title: 'Resistance Band Good Morning', creator: 'Clench Fitness' },
     ],
   },
   'de-band-loop-external-rotation': {
+    stills: [formGuide(require('../../../assets/images/exercises/de-band-loop-external-rotation-form-guide.webp'))],
     clips: [
       { url: 'https://www.youtube.com/watch?v=lw5jkvrLwVw', title: 'Strengthen Your Rotator Cuff: Shoulder External Rotation with Mini Band', creator: 'Muscle & Motion' },
     ],
   },
   'pl-band-loop-face-pull': {
+    stills: [formGuide(require('../../../assets/images/exercises/pl-band-loop-face-pull-form-guide.webp'))],
     clips: [
       { url: 'https://www.youtube.com/watch?v=IndIttUTNMU', title: 'Face-Pull with a Band', creator: 'Derek Charlebois' },
     ],
   },
   'mob-band-loop-hip-flexor-stretch': {
+    stills: [formGuide(require('../../../assets/images/exercises/stretch-band-loop-hip-flexor-form-guide.webp'))],
     clips: [
       { url: 'https://www.youtube.com/watch?v=g1sOD9TYrLY', title: 'Banded Hip Flexor Stretch | Movement Demo', creator: 'Vintage CrossFit' },
     ],
   },
   'mob-band-loop-hamstring-stretch': {
+    stills: [formGuide(require('../../../assets/images/exercises/stretch-band-loop-hamstring-form-guide.webp'))],
     clips: [
       { url: 'https://www.youtube.com/watch?v=0HsJaEIE0bc', title: 'Stretch Tutorial: Lateral Hamstring Stretch With Resistance Band', creator: 'Travis Tarrant' },
     ],
   },
   'sq-band-loop-squat': {
+    stills: [formGuide(require('../../../assets/images/exercises/sq-band-loop-squat-form-guide.webp'))],
     clips: [
       { url: 'https://www.youtube.com/watch?v=9CbPyDr2P0w', title: 'Banded Squats - Kinetic U Exercise Series', creator: 'Tangelo - Seattle Chiropractor + Rehab' },
     ],
@@ -208,20 +289,21 @@ export const EXERCISE_MEDIA: Record<string, ExerciseMedia> = {
 
   'pu-pushup': {
     stills: [
+      formGuide(require('../../../assets/images/exercises/pu-pushup-form-guide.webp')),
       {
-        file: require('../../../assets/images/exercises/pu-pushup-fedb-0.jpg'),
+        file: require('../../../assets/images/exercises/pu-pushup-fedb-0.webp'),
         license: 'public-domain',
         attribution: 'free-exercise-db (The Unlicense)',
         sourceUrl: 'https://github.com/yuhonas/free-exercise-db/blob/main/exercises/Pushups/0.jpg',
       },
       {
-        file: require('../../../assets/images/exercises/pu-pushup-fedb-1.jpg'),
+        file: require('../../../assets/images/exercises/pu-pushup-fedb-1.webp'),
         license: 'public-domain',
         attribution: 'free-exercise-db (The Unlicense)',
         sourceUrl: 'https://github.com/yuhonas/free-exercise-db/blob/main/exercises/Pushups/1.jpg',
       },
       {
-        file: require('../../../assets/images/exercises/pushup.jpg'),
+        file: require('../../../assets/images/exercises/pushup.webp'),
         license: 'public-domain',
         attribution: 'PFC Charlie Chavez / U.S. Marine Corps',
         sourceUrl: 'https://commons.wikimedia.org/wiki/File:Marines_do_pushups.jpg',
@@ -242,20 +324,21 @@ export const EXERCISE_MEDIA: Record<string, ExerciseMedia> = {
   },
   'pl-pullup': {
     stills: [
+      formGuide(require('../../../assets/images/exercises/pl-pullup-form-guide.webp')),
       {
-        file: require('../../../assets/images/exercises/pl-pullup-fedb-0.jpg'),
+        file: require('../../../assets/images/exercises/pl-pullup-fedb-0.webp'),
         license: 'public-domain',
         attribution: 'free-exercise-db (The Unlicense)',
         sourceUrl: 'https://github.com/yuhonas/free-exercise-db/blob/main/exercises/Pullups/0.jpg',
       },
       {
-        file: require('../../../assets/images/exercises/pl-pullup-fedb-1.jpg'),
+        file: require('../../../assets/images/exercises/pl-pullup-fedb-1.webp'),
         license: 'public-domain',
         attribution: 'free-exercise-db (The Unlicense)',
         sourceUrl: 'https://github.com/yuhonas/free-exercise-db/blob/main/exercises/Pullups/1.jpg',
       },
       {
-        file: require('../../../assets/images/exercises/pullup.jpg'),
+        file: require('../../../assets/images/exercises/pullup.webp'),
         license: 'public-domain',
         attribution: 'A1C Zachary Hada / U.S. Air Force',
         sourceUrl:
@@ -282,20 +365,21 @@ export const EXERCISE_MEDIA: Record<string, ExerciseMedia> = {
   },
   'sq-bw': {
     stills: [
+      formGuide(require('../../../assets/images/exercises/sq-bw-form-guide.webp')),
       {
-        file: require('../../../assets/images/exercises/sq-bw-fedb-0.jpg'),
+        file: require('../../../assets/images/exercises/sq-bw-fedb-0.webp'),
         license: 'public-domain',
         attribution: 'free-exercise-db (The Unlicense)',
         sourceUrl: 'https://github.com/yuhonas/free-exercise-db/blob/main/exercises/Bodyweight_Squat/0.jpg',
       },
       {
-        file: require('../../../assets/images/exercises/sq-bw-fedb-1.jpg'),
+        file: require('../../../assets/images/exercises/sq-bw-fedb-1.webp'),
         license: 'public-domain',
         attribution: 'free-exercise-db (The Unlicense)',
         sourceUrl: 'https://github.com/yuhonas/free-exercise-db/blob/main/exercises/Bodyweight_Squat/1.jpg',
       },
       {
-        file: require('../../../assets/images/exercises/bodyweight-squat.jpg'),
+        file: require('../../../assets/images/exercises/bodyweight-squat.webp'),
         license: 'public-domain',
         attribution: 'Tech. Sgt. Phillip Butterfield / U.S. Department of Defense',
         sourceUrl:
@@ -311,6 +395,7 @@ export const EXERCISE_MEDIA: Record<string, ExerciseMedia> = {
     ],
   },
   'sq-pulse': {
+    stills: [formGuide(require('../../../assets/images/exercises/sq-pulse-form-guide.webp'))],
     clips: [
       {
         url: 'https://www.youtube.com/watch?v=7HarjcM6b10',
@@ -320,6 +405,7 @@ export const EXERCISE_MEDIA: Record<string, ExerciseMedia> = {
     ],
   },
   'sq-jump': {
+    stills: [formGuide(require('../../../assets/images/exercises/sq-jump-form-guide.webp'))],
     clips: [
       {
         url: 'https://www.youtube.com/watch?v=tZSYZdtbONc',
@@ -334,6 +420,7 @@ export const EXERCISE_MEDIA: Record<string, ExerciseMedia> = {
     ],
   },
   'sq-wall-sit': {
+    stills: [formGuide(require('../../../assets/images/exercises/sq-wall-sit-form-guide.webp'))],
     clips: [
       {
         url: 'https://www.youtube.com/watch?v=JaZNYM3zAP0',
@@ -343,6 +430,7 @@ export const EXERCISE_MEDIA: Record<string, ExerciseMedia> = {
     ],
   },
   'sq-sumo-bw': {
+    stills: [formGuide(require('../../../assets/images/exercises/sq-sumo-bw-form-guide.webp'))],
     clips: [
       {
         url: 'https://www.youtube.com/watch?v=ksmxuw3JDbQ',
@@ -352,6 +440,7 @@ export const EXERCISE_MEDIA: Record<string, ExerciseMedia> = {
     ],
   },
   'sq-cossack': {
+    stills: [formGuide(require('../../../assets/images/exercises/sq-cossack-form-guide.webp'))],
     clips: [
       {
         url: 'https://www.youtube.com/watch?v=JaCbmoDqUc4',
@@ -361,6 +450,7 @@ export const EXERCISE_MEDIA: Record<string, ExerciseMedia> = {
     ],
   },
   'sq-pistol-assisted': {
+    stills: [formGuide(require('../../../assets/images/exercises/sq-pistol-assisted-form-guide.webp'))],
     clips: [
       {
         url: 'https://www.youtube.com/watch?v=6pUx2ktKCMQ',
@@ -371,14 +461,15 @@ export const EXERCISE_MEDIA: Record<string, ExerciseMedia> = {
   },
   'sq-goblet': {
     stills: [
+      formGuide(require('../../../assets/images/exercises/sq-goblet-form-guide.webp')),
       {
-        file: require('../../../assets/images/exercises/sq-goblet-fedb-0.jpg'),
+        file: require('../../../assets/images/exercises/sq-goblet-fedb-0.webp'),
         license: 'public-domain',
         attribution: 'free-exercise-db (The Unlicense)',
         sourceUrl: 'https://github.com/yuhonas/free-exercise-db/blob/main/exercises/Goblet_Squat/0.jpg',
       },
       {
-        file: require('../../../assets/images/exercises/sq-goblet-fedb-1.jpg'),
+        file: require('../../../assets/images/exercises/sq-goblet-fedb-1.webp'),
         license: 'public-domain',
         attribution: 'free-exercise-db (The Unlicense)',
         sourceUrl: 'https://github.com/yuhonas/free-exercise-db/blob/main/exercises/Goblet_Squat/1.jpg',
@@ -398,6 +489,7 @@ export const EXERCISE_MEDIA: Record<string, ExerciseMedia> = {
     ],
   },
   'sq-db-front': {
+    stills: [formGuide(require('../../../assets/images/exercises/sq-db-front-form-guide.webp'))],
     clips: [
       {
         url: 'https://www.youtube.com/watch?v=hZI8Yy5elZs',
@@ -407,6 +499,7 @@ export const EXERCISE_MEDIA: Record<string, ExerciseMedia> = {
     ],
   },
   'sq-db-sumo': {
+    stills: [formGuide(require('../../../assets/images/exercises/sq-db-sumo-form-guide.webp'))],
     clips: [
       {
         url: 'https://www.youtube.com/watch?v=Sq88Uw0roVU',
@@ -417,8 +510,9 @@ export const EXERCISE_MEDIA: Record<string, ExerciseMedia> = {
   },
   'sq-db-box': {
     stills: [
+      formGuide(require('../../../assets/images/exercises/sq-db-box-form-guide.webp')),
       {
-        file: require('../../../assets/images/exercises/sq-box-squat-dumbbell.jpg'),
+        file: require('../../../assets/images/exercises/sq-box-squat-dumbbell.webp'),
         license: 'cc-by-sa',
         attribution: 'Everkinetic, CC BY-SA 3.0',
         sourceUrl: 'https://commons.wikimedia.org/wiki/File:Squat_to_bench_with_dumbbells_2.svg',
@@ -433,6 +527,7 @@ export const EXERCISE_MEDIA: Record<string, ExerciseMedia> = {
     ],
   },
   'sq-bb-back': {
+    stills: [formGuide(require('../../../assets/images/exercises/sq-bb-back-form-guide.webp'))],
     clips: [
       {
         url: 'https://www.youtube.com/watch?v=8PMjqgR8Wa8',
@@ -443,8 +538,9 @@ export const EXERCISE_MEDIA: Record<string, ExerciseMedia> = {
   },
   'sq-bb-front': {
     stills: [
+      formGuide(require('../../../assets/images/exercises/sq-bb-front-form-guide.webp')),
       {
-        file: require('../../../assets/images/exercises/sq-bb-front-squat.jpg'),
+        file: require('../../../assets/images/exercises/sq-bb-front-squat.webp'),
         license: 'cc-by-sa',
         attribution: 'Everkinetic, CC BY-SA 3.0',
         sourceUrl: 'https://commons.wikimedia.org/wiki/File:Front_squat_with_barbell_2.svg',
@@ -460,8 +556,9 @@ export const EXERCISE_MEDIA: Record<string, ExerciseMedia> = {
   },
   'sq-bb-box': {
     stills: [
+      formGuide(require('../../../assets/images/exercises/sq-bb-box-form-guide.webp')),
       {
-        file: require('../../../assets/images/exercises/sq-box-squat-barbell.jpg'),
+        file: require('../../../assets/images/exercises/sq-box-squat-barbell.webp'),
         license: 'cc-by-sa',
         attribution: 'Everkinetic, CC BY-SA 3.0',
         sourceUrl: 'https://commons.wikimedia.org/wiki/File:Squat_to_bench_with_barbell_2.svg',
@@ -476,6 +573,7 @@ export const EXERCISE_MEDIA: Record<string, ExerciseMedia> = {
     ],
   },
   'sq-bb-pause': {
+    stills: [formGuide(require('../../../assets/images/exercises/sq-bb-pause-form-guide.webp'))],
     clips: [
       {
         url: 'https://www.youtube.com/watch?v=C8MYeGhmn-U',
@@ -486,8 +584,9 @@ export const EXERCISE_MEDIA: Record<string, ExerciseMedia> = {
   },
   'sq-bb-overhead': {
     stills: [
+      formGuide(require('../../../assets/images/exercises/sq-bb-overhead-form-guide.webp')),
       {
-        file: require('../../../assets/images/exercises/sq-bb-overhead-squat.jpg'),
+        file: require('../../../assets/images/exercises/sq-bb-overhead-squat.webp'),
         license: 'cc-by-sa',
         attribution: 'Everkinetic, CC BY-SA 3.0',
         sourceUrl: 'https://commons.wikimedia.org/wiki/File:Overhead_squat_with_barbell_2.svg',
@@ -502,6 +601,7 @@ export const EXERCISE_MEDIA: Record<string, ExerciseMedia> = {
     ],
   },
   'sq-kb-goblet': {
+    stills: [formGuide(require('../../../assets/images/exercises/sq-kb-goblet-form-guide.webp'))],
     clips: [
       {
         url: 'https://www.youtube.com/watch?v=aNDUbH_Uv4g',
@@ -511,6 +611,7 @@ export const EXERCISE_MEDIA: Record<string, ExerciseMedia> = {
     ],
   },
   'sq-kb-front': {
+    stills: [formGuide(require('../../../assets/images/exercises/sq-kb-front-form-guide.webp'))],
     clips: [
       {
         url: 'https://www.youtube.com/watch?v=6XghYOzny8U',
@@ -520,6 +621,7 @@ export const EXERCISE_MEDIA: Record<string, ExerciseMedia> = {
     ],
   },
   'sq-leg-press-band': {
+    stills: [formGuide(require('../../../assets/images/exercises/sq-leg-press-band-form-guide.webp'))],
     clips: [
       {
         url: 'https://www.youtube.com/watch?v=hz__3jNueFg',
@@ -529,6 +631,7 @@ export const EXERCISE_MEDIA: Record<string, ExerciseMedia> = {
     ],
   },
   'sq-band-squat': {
+    stills: [formGuide(require('../../../assets/images/exercises/sq-band-squat-form-guide.webp'))],
     clips: [
       {
         url: 'https://www.youtube.com/watch?v=bE97Ietr9aM',
@@ -538,6 +641,7 @@ export const EXERCISE_MEDIA: Record<string, ExerciseMedia> = {
     ],
   },
   'sq-cable-squat': {
+    stills: [formGuide(require('../../../assets/images/exercises/sq-cable-squat-form-guide.webp'))],
     clips: [
       {
         url: 'https://www.youtube.com/watch?v=_C5hMlDZQ6M',
@@ -547,6 +651,7 @@ export const EXERCISE_MEDIA: Record<string, ExerciseMedia> = {
     ],
   },
   'sq-box-squat-bw': {
+    stills: [formGuide(require('../../../assets/images/exercises/sq-box-squat-bw-form-guide.webp'))],
     clips: [
       {
         url: 'https://www.youtube.com/watch?v=7LpLZOdz68A',
@@ -557,14 +662,15 @@ export const EXERCISE_MEDIA: Record<string, ExerciseMedia> = {
   },
   'sq-single-leg-box': {
     stills: [
+      formGuide(require('../../../assets/images/exercises/sq-single-leg-box-form-guide.webp')),
       {
-        file: require('../../../assets/images/exercises/sq-single-leg-box-fedb-0.jpg'),
+        file: require('../../../assets/images/exercises/sq-single-leg-box-fedb-0.webp'),
         license: 'public-domain',
         attribution: 'free-exercise-db (The Unlicense)',
         sourceUrl: 'https://github.com/yuhonas/free-exercise-db/blob/main/exercises/Single-Leg_High_Box_Squat/0.jpg',
       },
       {
-        file: require('../../../assets/images/exercises/sq-single-leg-box-fedb-1.jpg'),
+        file: require('../../../assets/images/exercises/sq-single-leg-box-fedb-1.webp'),
         license: 'public-domain',
         attribution: 'free-exercise-db (The Unlicense)',
         sourceUrl: 'https://github.com/yuhonas/free-exercise-db/blob/main/exercises/Single-Leg_High_Box_Squat/1.jpg',
@@ -580,14 +686,15 @@ export const EXERCISE_MEDIA: Record<string, ExerciseMedia> = {
   },
   'sq-jump-db': {
     stills: [
+      formGuide(require('../../../assets/images/exercises/sq-jump-db-form-guide.webp')),
       {
-        file: require('../../../assets/images/exercises/sq-jump-db-fedb-0.jpg'),
+        file: require('../../../assets/images/exercises/sq-jump-db-fedb-0.webp'),
         license: 'public-domain',
         attribution: 'free-exercise-db (The Unlicense)',
         sourceUrl: 'https://github.com/yuhonas/free-exercise-db/blob/main/exercises/Weighted_Jump_Squat/0.jpg',
       },
       {
-        file: require('../../../assets/images/exercises/sq-jump-db-fedb-1.jpg'),
+        file: require('../../../assets/images/exercises/sq-jump-db-fedb-1.webp'),
         license: 'public-domain',
         attribution: 'free-exercise-db (The Unlicense)',
         sourceUrl: 'https://github.com/yuhonas/free-exercise-db/blob/main/exercises/Weighted_Jump_Squat/1.jpg',
@@ -602,6 +709,7 @@ export const EXERCISE_MEDIA: Record<string, ExerciseMedia> = {
     ],
   },
   'sq-wall-sit-db': {
+    stills: [formGuide(require('../../../assets/images/exercises/sq-wall-sit-db-form-guide.webp'))],
     clips: [
       {
         url: 'https://www.youtube.com/watch?v=YGGM_f9Kq1w',
@@ -611,6 +719,7 @@ export const EXERCISE_MEDIA: Record<string, ExerciseMedia> = {
     ],
   },
   'cf-single-leg-bw': {
+    stills: [formGuide(require('../../../assets/images/exercises/cf-single-leg-bw-form-guide.webp'))],
     clips: [
       {
         url: 'https://www.youtube.com/watch?v=ElcvJ0kjt6c',
@@ -620,6 +729,7 @@ export const EXERCISE_MEDIA: Record<string, ExerciseMedia> = {
     ],
   },
   'cf-db-standing': {
+    stills: [formGuide(require('../../../assets/images/exercises/cf-db-standing-form-guide.webp'))],
     clips: [
       {
         url: 'https://www.youtube.com/watch?v=H6WptvjXkgw',
@@ -635,20 +745,21 @@ export const EXERCISE_MEDIA: Record<string, ExerciseMedia> = {
   },
   'cf-donkey-bw': {
     stills: [
+      formGuide(require('../../../assets/images/exercises/cf-donkey-bw-form-guide.webp')),
       {
-        file: require('../../../assets/images/exercises/cf-donkey-bw-fedb-0.jpg'),
+        file: require('../../../assets/images/exercises/cf-donkey-bw-fedb-0.webp'),
         license: 'public-domain',
         attribution: 'free-exercise-db (The Unlicense)',
         sourceUrl: 'https://github.com/yuhonas/free-exercise-db/blob/main/exercises/Donkey_Calf_Raises/0.jpg',
       },
       {
-        file: require('../../../assets/images/exercises/cf-donkey-bw-fedb-1.jpg'),
+        file: require('../../../assets/images/exercises/cf-donkey-bw-fedb-1.webp'),
         license: 'public-domain',
         attribution: 'free-exercise-db (The Unlicense)',
         sourceUrl: 'https://github.com/yuhonas/free-exercise-db/blob/main/exercises/Donkey_Calf_Raises/1.jpg',
       },
       {
-        file: require('../../../assets/images/exercises/donkey-calf-raise.jpg'),
+        file: require('../../../assets/images/exercises/donkey-calf-raise.webp'),
         license: 'cc-by-sa',
         attribution: 'Everkinetic, CC BY-SA 3.0',
         sourceUrl: 'https://commons.wikimedia.org/wiki/File:Donkey_calf_raises_1.svg',
@@ -663,6 +774,7 @@ export const EXERCISE_MEDIA: Record<string, ExerciseMedia> = {
     ],
   },
   'wu-flow': {
+    stills: [formGuide(require('../../../assets/images/exercises/warmup-full-body-flow-form-guide.webp'))],
     clips: [
       {
         url: 'https://www.youtube.com/watch?v=3qyWpJ34dWw',
@@ -672,6 +784,7 @@ export const EXERCISE_MEDIA: Record<string, ExerciseMedia> = {
     ],
   },
   'wu-jog': {
+    stills: [formGuide(require('../../../assets/images/exercises/warmup-jog-in-place-form-guide.webp'))],
     clips: [
       {
         url: 'https://www.youtube.com/watch?v=xmkYBO85leM',
@@ -681,6 +794,7 @@ export const EXERCISE_MEDIA: Record<string, ExerciseMedia> = {
     ],
   },
   'wu-arm-circles': {
+    stills: [formGuide(require('../../../assets/images/exercises/warmup-arm-circles-form-guide.webp'))],
     clips: [
       {
         url: 'https://www.youtube.com/watch?v=hne3nHGXPRM',
@@ -690,9 +804,9 @@ export const EXERCISE_MEDIA: Record<string, ExerciseMedia> = {
     ],
   },
   'wu-leg-swings': {
-    stills: [
+    stills: [formGuide(require('../../../assets/images/exercises/warmup-leg-swings-form-guide.webp')),
       {
-        file: require('../../../assets/images/exercises/leg-pendulum-swing.jpg'),
+        file: require('../../../assets/images/exercises/leg-pendulum-swing.webp'),
         license: 'cc-by-sa',
         attribution: 'BruceBlaus, CC BY-SA 4.0',
         sourceUrl: 'https://commons.wikimedia.org/wiki/File:Exercise_Pendulum_Swings.png',
@@ -712,7 +826,7 @@ export const EXERCISE_MEDIA: Record<string, ExerciseMedia> = {
     ],
   },
   'mob-hip': {
-    stills: [formGuide(require('../../../assets/images/exercises/stretch-hip-mobility-flow-form-guide.png'))],
+    stills: [formGuide(require('../../../assets/images/exercises/stretch-hip-mobility-flow-form-guide.webp'))],
     clips: [
       {
         url: 'https://www.youtube.com/watch?v=WUKHM6-ekJM',
@@ -722,7 +836,7 @@ export const EXERCISE_MEDIA: Record<string, ExerciseMedia> = {
     ],
   },
   'mob-hamstring': {
-    stills: [formGuide(require('../../../assets/images/exercises/stretch-standing-hamstring-form-guide.png'))],
+    stills: [formGuide(require('../../../assets/images/exercises/stretch-standing-hamstring-form-guide.webp'))],
     clips: [
       {
         url: 'https://www.youtube.com/watch?v=B0jl9k3ImKU',
@@ -732,7 +846,7 @@ export const EXERCISE_MEDIA: Record<string, ExerciseMedia> = {
     ],
   },
   'mob-shoulder': {
-    stills: [formGuide(require('../../../assets/images/exercises/stretch-shoulder-circles-form-guide.png'))],
+    stills: [formGuide(require('../../../assets/images/exercises/stretch-shoulder-circles-form-guide.webp'))],
     clips: [
       {
         url: 'https://www.youtube.com/watch?v=h8H2fEMlVfI',
@@ -742,7 +856,7 @@ export const EXERCISE_MEDIA: Record<string, ExerciseMedia> = {
     ],
   },
   'mob-thoracic': {
-    stills: [formGuide(require('../../../assets/images/exercises/stretch-cat-cow-form-guide.png'))],
+    stills: [formGuide(require('../../../assets/images/exercises/stretch-cat-cow-form-guide.webp'))],
     clips: [
       {
         url: 'https://www.youtube.com/watch?v=nbhJvFWFPTE',
@@ -752,7 +866,7 @@ export const EXERCISE_MEDIA: Record<string, ExerciseMedia> = {
     ],
   },
   'mob-neck': {
-    stills: [formGuide(require('../../../assets/images/exercises/stretch-neck-trap-release-form-guide.png'))],
+    stills: [formGuide(require('../../../assets/images/exercises/stretch-neck-trap-release-form-guide.webp'))],
     clips: [
       {
         url: 'https://www.youtube.com/watch?v=DwCIZ4YSyd4',
@@ -762,7 +876,7 @@ export const EXERCISE_MEDIA: Record<string, ExerciseMedia> = {
     ],
   },
   'mob-ankle': {
-    stills: [formGuide(require('../../../assets/images/exercises/stretch-ankle-circles-form-guide.png'))],
+    stills: [formGuide(require('../../../assets/images/exercises/stretch-ankle-circles-form-guide.webp'))],
     clips: [
       {
         url: 'https://www.youtube.com/watch?v=6XX3R9ibBfw',
@@ -777,7 +891,7 @@ export const EXERCISE_MEDIA: Record<string, ExerciseMedia> = {
     ],
   },
   'mob-wrist': {
-    stills: [formGuide(require('../../../assets/images/exercises/stretch-wrist-circles-form-guide.png'))],
+    stills: [formGuide(require('../../../assets/images/exercises/stretch-wrist-circles-form-guide.webp'))],
     clips: [
       {
         url: 'https://www.youtube.com/watch?v=IJvS9bYl_cs',
@@ -792,7 +906,7 @@ export const EXERCISE_MEDIA: Record<string, ExerciseMedia> = {
     ],
   },
   'mob-hip-flexor': {
-    stills: [formGuide(require('../../../assets/images/exercises/stretch-kneeling-hip-flexor-form-guide.png'))],
+    stills: [formGuide(require('../../../assets/images/exercises/stretch-kneeling-hip-flexor-form-guide.webp'))],
     clips: [
       {
         url: 'https://www.youtube.com/watch?v=6o-GpPIGR5w',
@@ -802,7 +916,7 @@ export const EXERCISE_MEDIA: Record<string, ExerciseMedia> = {
     ],
   },
   'mob-90-90': {
-    stills: [formGuide(require('../../../assets/images/exercises/stretch-90-90-form-guide.png'))],
+    stills: [formGuide(require('../../../assets/images/exercises/stretch-90-90-form-guide.webp'))],
     clips: [
       {
         url: 'https://www.youtube.com/watch?v=qq_Z7sAmVrA',
@@ -812,7 +926,7 @@ export const EXERCISE_MEDIA: Record<string, ExerciseMedia> = {
     ],
   },
   'mob-pigeon': {
-    stills: [formGuide(require('../../../assets/images/exercises/stretch-pigeon-form-guide.png'))],
+    stills: [formGuide(require('../../../assets/images/exercises/stretch-pigeon-form-guide.webp'))],
     clips: [
       {
         url: 'https://www.youtube.com/watch?v=0RQVD6viVXo',
@@ -822,7 +936,7 @@ export const EXERCISE_MEDIA: Record<string, ExerciseMedia> = {
     ],
   },
   'mob-cobra': {
-    stills: [formGuide(require('../../../assets/images/exercises/stretch-cobra-form-guide.png'))],
+    stills: [formGuide(require('../../../assets/images/exercises/stretch-cobra-form-guide.webp'))],
     clips: [
       {
         url: 'https://www.youtube.com/watch?v=YYudWYM5Q9g',
@@ -832,7 +946,7 @@ export const EXERCISE_MEDIA: Record<string, ExerciseMedia> = {
     ],
   },
   'mob-downdog': {
-    stills: [formGuide(require('../../../assets/images/exercises/stretch-downdog-form-guide.png'))],
+    stills: [formGuide(require('../../../assets/images/exercises/stretch-downdog-form-guide.webp'))],
     clips: [
       {
         url: 'https://www.youtube.com/watch?v=ulZr-S0cFOI',
@@ -842,7 +956,7 @@ export const EXERCISE_MEDIA: Record<string, ExerciseMedia> = {
     ],
   },
   'mob-quad-stretch': {
-    stills: [formGuide(require('../../../assets/images/exercises/stretch-quad-form-guide.png'))],
+    stills: [formGuide(require('../../../assets/images/exercises/stretch-quad-form-guide.webp'))],
     clips: [
       {
         url: 'https://www.youtube.com/watch?v=kia2OzZiwqw',
@@ -852,7 +966,7 @@ export const EXERCISE_MEDIA: Record<string, ExerciseMedia> = {
     ],
   },
   'mob-calf-stretch': {
-    stills: [formGuide(require('../../../assets/images/exercises/stretch-calf-form-guide.png'))],
+    stills: [formGuide(require('../../../assets/images/exercises/stretch-calf-form-guide.webp'))],
     clips: [
       {
         url: 'https://www.youtube.com/watch?v=YTYQo4WvJHA',
@@ -862,7 +976,7 @@ export const EXERCISE_MEDIA: Record<string, ExerciseMedia> = {
     ],
   },
   'mob-chest-stretch': {
-    stills: [formGuide(require('../../../assets/images/exercises/stretch-chest-form-guide.png'))],
+    stills: [formGuide(require('../../../assets/images/exercises/stretch-chest-form-guide.webp'))],
     clips: [
       {
         url: 'https://www.youtube.com/watch?v=M850sCj9LHQ',
@@ -872,7 +986,7 @@ export const EXERCISE_MEDIA: Record<string, ExerciseMedia> = {
     ],
   },
   'mob-lat-stretch': {
-    stills: [formGuide(require('../../../assets/images/exercises/stretch-lat-form-guide.png'))],
+    stills: [formGuide(require('../../../assets/images/exercises/stretch-lat-form-guide.webp'))],
     clips: [
       {
         url: 'https://www.youtube.com/watch?v=OX5NZLkidtY',
@@ -882,7 +996,7 @@ export const EXERCISE_MEDIA: Record<string, ExerciseMedia> = {
     ],
   },
   'mob-tricep-stretch': {
-    stills: [formGuide(require('../../../assets/images/exercises/stretch-tricep-form-guide.png'))],
+    stills: [formGuide(require('../../../assets/images/exercises/stretch-tricep-form-guide.webp'))],
     clips: [
       {
         url: 'https://www.youtube.com/watch?v=cPTrm13hSSo',
@@ -892,7 +1006,7 @@ export const EXERCISE_MEDIA: Record<string, ExerciseMedia> = {
     ],
   },
   'mob-bicep-stretch': {
-    stills: [formGuide(require('../../../assets/images/exercises/stretch-wall-biceps-form-guide.png'))],
+    stills: [formGuide(require('../../../assets/images/exercises/stretch-wall-biceps-form-guide.webp'))],
     clips: [
       {
         url: 'https://www.youtube.com/watch?v=7WiSuaPAorU',
@@ -902,7 +1016,7 @@ export const EXERCISE_MEDIA: Record<string, ExerciseMedia> = {
     ],
   },
   'mob-groin-stretch': {
-    stills: [formGuide(require('../../../assets/images/exercises/stretch-butterfly-form-guide.png'))],
+    stills: [formGuide(require('../../../assets/images/exercises/stretch-butterfly-form-guide.webp'))],
     clips: [
       {
         url: 'https://www.youtube.com/watch?v=QehQaZvvquA',
@@ -912,7 +1026,7 @@ export const EXERCISE_MEDIA: Record<string, ExerciseMedia> = {
     ],
   },
   'mob-it-band': {
-    stills: [formGuide(require('../../../assets/images/exercises/stretch-standing-it-band-form-guide.png'))],
+    stills: [formGuide(require('../../../assets/images/exercises/stretch-standing-it-band-form-guide.webp'))],
     clips: [
       {
         url: 'https://www.youtube.com/watch?v=wzDoSQ8-GWY',
@@ -922,7 +1036,7 @@ export const EXERCISE_MEDIA: Record<string, ExerciseMedia> = {
     ],
   },
   'mob-spinal-twist': {
-    stills: [formGuide(require('../../../assets/images/exercises/stretch-seated-spinal-twist-form-guide.png'))],
+    stills: [formGuide(require('../../../assets/images/exercises/stretch-seated-spinal-twist-form-guide.webp'))],
     clips: [
       {
         url: 'https://www.youtube.com/watch?v=r5JuFoNzOU8',
@@ -932,7 +1046,7 @@ export const EXERCISE_MEDIA: Record<string, ExerciseMedia> = {
     ],
   },
   'mob-scorpion': {
-    stills: [formGuide(require('../../../assets/images/exercises/stretch-scorpion-form-guide.png'))],
+    stills: [formGuide(require('../../../assets/images/exercises/stretch-scorpion-form-guide.webp'))],
     clips: [
       {
         url: 'https://www.youtube.com/watch?v=7GjzFFdUnQQ',
@@ -942,7 +1056,7 @@ export const EXERCISE_MEDIA: Record<string, ExerciseMedia> = {
     ],
   },
   'mob-band-dislocate': {
-    stills: [formGuide(require('../../../assets/images/exercises/stretch-band-shoulder-pass-through-form-guide.png'))],
+    stills: [formGuide(require('../../../assets/images/exercises/stretch-band-shoulder-pass-through-form-guide.webp'))],
     clips: [
       {
         url: 'https://www.youtube.com/watch?v=riVxa9By-pM',
@@ -952,7 +1066,7 @@ export const EXERCISE_MEDIA: Record<string, ExerciseMedia> = {
     ],
   },
   'mob-band-hip-distraction': {
-    stills: [formGuide(require('../../../assets/images/exercises/stretch-banded-hip-distraction-form-guide.png'))],
+    stills: [formGuide(require('../../../assets/images/exercises/stretch-band-hip-distraction-v2-form-guide.webp'))],
     clips: [
       {
         url: 'https://www.youtube.com/watch?v=2b3lbYf8SuE',
@@ -962,7 +1076,7 @@ export const EXERCISE_MEDIA: Record<string, ExerciseMedia> = {
     ],
   },
   'mob-sphinx': {
-    stills: [formGuide(require('../../../assets/images/exercises/stretch-sphinx-form-guide.png'))],
+    stills: [formGuide(require('../../../assets/images/exercises/stretch-sphinx-form-guide.webp'))],
     clips: [
       {
         url: 'https://www.youtube.com/watch?v=beQs5ChCZ0U',
@@ -972,10 +1086,10 @@ export const EXERCISE_MEDIA: Record<string, ExerciseMedia> = {
     ],
   },
   'mob-thread-the-needle': {
-    stills: [formGuide(require('../../../assets/images/exercises/stretch-thread-the-needle-form-guide.png'))],
+    stills: [formGuide(require('../../../assets/images/exercises/stretch-thread-the-needle-form-guide.webp'))],
   },
   'mob-seated-forward-fold': {
-    stills: [formGuide(require('../../../assets/images/exercises/stretch-seated-forward-fold-form-guide.png'))],
+    stills: [formGuide(require('../../../assets/images/exercises/stretch-seated-forward-fold-form-guide.webp'))],
     clips: [
       {
         url: 'https://www.youtube.com/watch?v=zWWTdrJulmk',
@@ -985,6 +1099,7 @@ export const EXERCISE_MEDIA: Record<string, ExerciseMedia> = {
     ],
   },
   'wu-inchworm': {
+    stills: [formGuide(require('../../../assets/images/exercises/warmup-inchworm-form-guide.webp'))],
     clips: [
       {
         url: 'https://www.youtube.com/watch?v=ml3MdmCkwbQ',
@@ -994,9 +1109,9 @@ export const EXERCISE_MEDIA: Record<string, ExerciseMedia> = {
     ],
   },
   'wu-jumping-jack-easy': {
-    stills: [
+    stills: [formGuide(require('../../../assets/images/exercises/warmup-easy-jumping-jacks-form-guide.webp')),
       {
-        file: require('../../../assets/images/exercises/jumping-jacks.jpg'),
+        file: require('../../../assets/images/exercises/jumping-jacks.webp'),
         license: 'public-domain',
         attribution: 'MC2 Zack Baddorf / U.S. Navy',
         sourceUrl:
@@ -1013,8 +1128,9 @@ export const EXERCISE_MEDIA: Record<string, ExerciseMedia> = {
   },
   'ca-jumping-jacks': {
     stills: [
+      formGuide(require('../../../assets/images/exercises/cardio-jumping-jacks-form-guide.webp')),
       {
-        file: require('../../../assets/images/exercises/jumping-jacks.jpg'),
+        file: require('../../../assets/images/exercises/jumping-jacks.webp'),
         license: 'public-domain',
         attribution: 'MC2 Zack Baddorf / U.S. Navy',
         sourceUrl:
@@ -1031,8 +1147,9 @@ export const EXERCISE_MEDIA: Record<string, ExerciseMedia> = {
   },
   'cf-standing-bw': {
     stills: [
+      formGuide(require('../../../assets/images/exercises/cf-standing-bw-form-guide.webp')),
       {
-        file: require('../../../assets/images/exercises/calf-raise.jpg'),
+        file: require('../../../assets/images/exercises/calf-raise.webp'),
         license: 'cc-by-sa',
         attribution: 'BruceBlaus, CC BY-SA 4.0',
         sourceUrl: 'https://commons.wikimedia.org/wiki/File:Exercise_Heel_Raise_Two_Legs.png',
@@ -1053,20 +1170,21 @@ export const EXERCISE_MEDIA: Record<string, ExerciseMedia> = {
   },
   'cf-seated-bench': {
     stills: [
+      formGuide(require('../../../assets/images/exercises/cf-seated-bench-form-guide.webp')),
       {
-        file: require('../../../assets/images/exercises/cf-seated-bench-fedb-0.jpg'),
+        file: require('../../../assets/images/exercises/cf-seated-bench-fedb-0.webp'),
         license: 'public-domain',
         attribution: 'free-exercise-db (The Unlicense)',
         sourceUrl: 'https://github.com/yuhonas/free-exercise-db/blob/main/exercises/Seated_Calf_Raise/0.jpg',
       },
       {
-        file: require('../../../assets/images/exercises/cf-seated-bench-fedb-1.jpg'),
+        file: require('../../../assets/images/exercises/cf-seated-bench-fedb-1.webp'),
         license: 'public-domain',
         attribution: 'free-exercise-db (The Unlicense)',
         sourceUrl: 'https://github.com/yuhonas/free-exercise-db/blob/main/exercises/Seated_Calf_Raise/1.jpg',
       },
       {
-        file: require('../../../assets/images/exercises/seated-calf-raise.jpg'),
+        file: require('../../../assets/images/exercises/seated-calf-raise.webp'),
         license: 'cc-by-sa',
         attribution: 'Everkinetic, CC BY-SA 3.0',
         sourceUrl: 'https://commons.wikimedia.org/wiki/File:Seated_calf_raise_with_barbell_2.svg',
@@ -1083,7 +1201,7 @@ export const EXERCISE_MEDIA: Record<string, ExerciseMedia> = {
   'co-leg-raise': {
     stills: [
       {
-        file: require('../../../assets/images/exercises/straight-leg-raise.jpg'),
+        file: require('../../../assets/images/exercises/straight-leg-raise.webp'),
         license: 'cc-by-sa',
         attribution: 'BruceBlaus, CC BY-SA 4.0',
         sourceUrl: 'https://commons.wikimedia.org/wiki/File:Exercise_Straight_Leg_Raises.png',
@@ -1105,19 +1223,19 @@ export const EXERCISE_MEDIA: Record<string, ExerciseMedia> = {
   'bi-db-curl': {
     stills: [
       {
-        file: require('../../../assets/images/exercises/bi-db-curl-fedb-0.jpg'),
+        file: require('../../../assets/images/exercises/bi-db-curl-fedb-0.webp'),
         license: 'public-domain',
         attribution: 'free-exercise-db (The Unlicense)',
         sourceUrl: 'https://github.com/yuhonas/free-exercise-db/blob/main/exercises/Dumbbell_Bicep_Curl/0.jpg',
       },
       {
-        file: require('../../../assets/images/exercises/bi-db-curl-fedb-1.jpg'),
+        file: require('../../../assets/images/exercises/bi-db-curl-fedb-1.webp'),
         license: 'public-domain',
         attribution: 'free-exercise-db (The Unlicense)',
         sourceUrl: 'https://github.com/yuhonas/free-exercise-db/blob/main/exercises/Dumbbell_Bicep_Curl/1.jpg',
       },
       {
-        file: require('../../../assets/images/exercises/bicep-curl-illustration.jpg'),
+        file: require('../../../assets/images/exercises/bicep-curl-illustration.webp'),
         license: 'cc-by-sa',
         attribution: 'BruceBlaus, CC BY-SA 4.0',
         sourceUrl: 'https://commons.wikimedia.org/wiki/File:Exercise_Bicep_Curls.png',
@@ -1134,7 +1252,7 @@ export const EXERCISE_MEDIA: Record<string, ExerciseMedia> = {
   'fa-db-wrist-curl': {
     stills: [
       {
-        file: require('../../../assets/images/exercises/wrist-curl.jpg'),
+        file: require('../../../assets/images/exercises/wrist-curl.webp'),
         license: 'cc-by-sa',
         attribution: 'BruceBlaus, CC BY-SA 4.0',
         sourceUrl: 'https://commons.wikimedia.org/wiki/File:Exercise_Wrist_Curls.png',
@@ -1151,7 +1269,7 @@ export const EXERCISE_MEDIA: Record<string, ExerciseMedia> = {
   'yg-mountain': {
     stills: [
       {
-        file: require('../../../assets/images/exercises/yoga-mountain-form-guide.png'),
+        file: require('../../../assets/images/exercises/yoga-mountain-form-guide.webp'),
         license: 'app-original',
         attribution: 'FitnessTrainter original instructional image',
         sourceUrl: 'Generated in-house with OpenAI image generation, August 2026',
@@ -1167,7 +1285,7 @@ export const EXERCISE_MEDIA: Record<string, ExerciseMedia> = {
     ],
   },
   'yg-sun-salutation': {
-    stills: [formGuide(require('../../../assets/images/exercises/yoga-sun-salutation-form-guide.png'))],
+    stills: [formGuide(require('../../../assets/images/exercises/yoga-sun-salutation-form-guide.webp'))],
     clips: [
       {
         url: 'https://www.youtube.com/watch?v=zE369yup5A0',
@@ -1179,7 +1297,7 @@ export const EXERCISE_MEDIA: Record<string, ExerciseMedia> = {
   'yg-warrior-1': {
     stills: [
       {
-        file: require('../../../assets/images/exercises/yoga-warrior1-form-guide.png'),
+        file: require('../../../assets/images/exercises/yoga-warrior1-form-guide.webp'),
         license: 'app-original',
         attribution: 'FitnessTrainter original instructional image',
         sourceUrl: 'Generated in-house with OpenAI image generation, August 2026',
@@ -1195,7 +1313,7 @@ export const EXERCISE_MEDIA: Record<string, ExerciseMedia> = {
     ],
   },
   'yg-warrior-2': {
-    stills: [formGuide(require('../../../assets/images/exercises/yoga-warrior2-form-guide.png'))],
+    stills: [formGuide(require('../../../assets/images/exercises/yoga-warrior2-form-guide.webp'))],
     clips: [
       {
         url: 'https://www.youtube.com/watch?v=dW231uCUvyg',
@@ -1205,7 +1323,7 @@ export const EXERCISE_MEDIA: Record<string, ExerciseMedia> = {
     ],
   },
   'yg-reverse-warrior': {
-    stills: [formGuide(require('../../../assets/images/exercises/yoga-reverse-warrior-form-guide.png'))],
+    stills: [formGuide(require('../../../assets/images/exercises/yoga-reverse-warrior-form-guide.webp'))],
     clips: [
       {
         url: 'https://www.youtube.com/watch?v=h_iHFVf-1J4',
@@ -1215,7 +1333,7 @@ export const EXERCISE_MEDIA: Record<string, ExerciseMedia> = {
     ],
   },
   'yg-triangle': {
-    stills: [formGuide(require('../../../assets/images/exercises/yoga-triangle-form-guide.png'))],
+    stills: [formGuide(require('../../../assets/images/exercises/yoga-triangle-form-guide.webp'))],
     clips: [
       {
         url: 'https://www.youtube.com/watch?v=Op72srvfIXM',
@@ -1225,7 +1343,7 @@ export const EXERCISE_MEDIA: Record<string, ExerciseMedia> = {
     ],
   },
   'yg-extended-side-angle': {
-    stills: [formGuide(require('../../../assets/images/exercises/yoga-side-angle-form-guide.png'))],
+    stills: [formGuide(require('../../../assets/images/exercises/yoga-side-angle-form-guide.webp'))],
     clips: [
       {
         url: 'https://www.youtube.com/watch?v=0k0A_N_FA7k',
@@ -1235,7 +1353,7 @@ export const EXERCISE_MEDIA: Record<string, ExerciseMedia> = {
     ],
   },
   'yg-tree': {
-    stills: [formGuide(require('../../../assets/images/exercises/yoga-tree-form-guide.png'))],
+    stills: [formGuide(require('../../../assets/images/exercises/yoga-tree-form-guide.webp'))],
     clips: [
       {
         url: 'https://www.youtube.com/watch?v=bcwq1qeybWs',
@@ -1245,7 +1363,7 @@ export const EXERCISE_MEDIA: Record<string, ExerciseMedia> = {
     ],
   },
   'yg-chair': {
-    stills: [formGuide(require('../../../assets/images/exercises/yoga-chair-form-guide.png'))],
+    stills: [formGuide(require('../../../assets/images/exercises/yoga-chair-form-guide.webp'))],
     clips: [
       {
         url: 'https://www.youtube.com/watch?v=UEsSjeq5B18',
@@ -1255,7 +1373,7 @@ export const EXERCISE_MEDIA: Record<string, ExerciseMedia> = {
     ],
   },
   'yg-eagle': {
-    stills: [formGuide(require('../../../assets/images/exercises/yoga-eagle-form-guide.png'))],
+    stills: [formGuide(require('../../../assets/images/exercises/yoga-eagle-form-guide.webp'))],
     clips: [
       {
         url: 'https://www.youtube.com/watch?v=oZAG1NMr3-I',
@@ -1265,7 +1383,7 @@ export const EXERCISE_MEDIA: Record<string, ExerciseMedia> = {
     ],
   },
   'yg-half-moon': {
-    stills: [formGuide(require('../../../assets/images/exercises/yoga-halfmoon-form-guide.png'))],
+    stills: [formGuide(require('../../../assets/images/exercises/yoga-halfmoon-form-guide.webp'))],
     clips: [
       {
         url: 'https://www.youtube.com/watch?v=EriPRTk1ly0',
@@ -1275,7 +1393,7 @@ export const EXERCISE_MEDIA: Record<string, ExerciseMedia> = {
     ],
   },
   'yg-bridge': {
-    stills: [formGuide(require('../../../assets/images/exercises/yoga-bridge-form-guide.png'))],
+    stills: [formGuide(require('../../../assets/images/exercises/yoga-bridge-form-guide.webp'))],
     clips: [
       {
         url: 'https://www.youtube.com/watch?v=XMHf6FUGSmk',
@@ -1285,7 +1403,7 @@ export const EXERCISE_MEDIA: Record<string, ExerciseMedia> = {
     ],
   },
   'yg-boat': {
-    stills: [formGuide(require('../../../assets/images/exercises/yoga-boat-form-guide.png'))],
+    stills: [formGuide(require('../../../assets/images/exercises/yoga-boat-form-guide.webp'))],
     clips: [
       {
         url: 'https://www.youtube.com/watch?v=972i40ShAm0',
@@ -1295,7 +1413,7 @@ export const EXERCISE_MEDIA: Record<string, ExerciseMedia> = {
     ],
   },
   'yg-locust': {
-    stills: [formGuide(require('../../../assets/images/exercises/yoga-locust-form-guide.png'))],
+    stills: [formGuide(require('../../../assets/images/exercises/yoga-locust-form-guide.webp'))],
     clips: [
       {
         url: 'https://www.youtube.com/watch?v=v-h-nVkxJBY',
@@ -1305,7 +1423,7 @@ export const EXERCISE_MEDIA: Record<string, ExerciseMedia> = {
     ],
   },
   'yg-camel': {
-    stills: [formGuide(require('../../../assets/images/exercises/yoga-camel-form-guide.png'))],
+    stills: [formGuide(require('../../../assets/images/exercises/yoga-camel-form-guide.webp'))],
     clips: [
       {
         url: 'https://www.youtube.com/watch?v=hm0TJfe0oIg',
@@ -1315,7 +1433,7 @@ export const EXERCISE_MEDIA: Record<string, ExerciseMedia> = {
     ],
   },
   'yg-fish': {
-    stills: [formGuide(require('../../../assets/images/exercises/yoga-fish-form-guide.png'))],
+    stills: [formGuide(require('../../../assets/images/exercises/yoga-fish-form-guide.webp'))],
     clips: [
       {
         url: 'https://www.youtube.com/watch?v=DEMd1dJTEpg',
@@ -1325,7 +1443,7 @@ export const EXERCISE_MEDIA: Record<string, ExerciseMedia> = {
     ],
   },
   'yg-legs-up-wall': {
-    stills: [formGuide(require('../../../assets/images/exercises/yoga-legs-up-wall-form-guide.png'))],
+    stills: [formGuide(require('../../../assets/images/exercises/yoga-legs-up-wall-form-guide.webp'))],
     clips: [
       {
         url: 'https://www.youtube.com/watch?v=xmcDj4Bf--0',
@@ -1335,7 +1453,7 @@ export const EXERCISE_MEDIA: Record<string, ExerciseMedia> = {
     ],
   },
   'yg-final-relaxation': {
-    stills: [formGuide(require('../../../assets/images/exercises/yoga-relaxation-form-guide.png'))],
+    stills: [formGuide(require('../../../assets/images/exercises/yoga-relaxation-form-guide.webp'))],
     clips: [
       {
         url: 'https://www.youtube.com/watch?v=w7cGoJwUTkc',
@@ -1345,6 +1463,7 @@ export const EXERCISE_MEDIA: Record<string, ExerciseMedia> = {
     ],
   },
   'fr-calves': {
+    stills: [formGuide(require('../../../assets/images/exercises/foam-roll-calves-form-guide.webp'))],
     clips: [
       {
         url: 'https://www.youtube.com/watch?v=_1CagXeazig',
@@ -1354,6 +1473,7 @@ export const EXERCISE_MEDIA: Record<string, ExerciseMedia> = {
     ],
   },
   'fr-quads': {
+    stills: [formGuide(require('../../../assets/images/exercises/foam-roll-quads-form-guide.webp'))],
     clips: [
       {
         url: 'https://www.youtube.com/watch?v=7FoLY0EgdqI',
@@ -1363,6 +1483,7 @@ export const EXERCISE_MEDIA: Record<string, ExerciseMedia> = {
     ],
   },
   'fr-hamstrings': {
+    stills: [formGuide(require('../../../assets/images/exercises/foam-roll-hamstrings-form-guide.webp'))],
     clips: [
       {
         url: 'https://www.youtube.com/watch?v=jV9SSJ3OkcA',
@@ -1372,6 +1493,7 @@ export const EXERCISE_MEDIA: Record<string, ExerciseMedia> = {
     ],
   },
   'fr-glutes': {
+    stills: [formGuide(require('../../../assets/images/exercises/foam-roll-glutes-form-guide.webp'))],
     clips: [
       {
         url: 'https://www.youtube.com/watch?v=4sJtt9c55MI',
@@ -1381,6 +1503,7 @@ export const EXERCISE_MEDIA: Record<string, ExerciseMedia> = {
     ],
   },
   'fr-lats': {
+    stills: [formGuide(require('../../../assets/images/exercises/foam-roll-lats-form-guide.webp'))],
     clips: [
       {
         url: 'https://www.youtube.com/watch?v=aaoVNwkYi1s',
@@ -1390,6 +1513,7 @@ export const EXERCISE_MEDIA: Record<string, ExerciseMedia> = {
     ],
   },
   'fr-upper-back': {
+    stills: [formGuide(require('../../../assets/images/exercises/foam-roll-upper-back-form-guide.webp'))],
     clips: [
       {
         url: 'https://www.youtube.com/watch?v=X8P9KSaYOkE',
@@ -1399,6 +1523,7 @@ export const EXERCISE_MEDIA: Record<string, ExerciseMedia> = {
     ],
   },
   'fr-it-band': {
+    stills: [formGuide(require('../../../assets/images/exercises/foam-roll-it-band-form-guide.webp'))],
     clips: [
       {
         url: 'https://www.youtube.com/watch?v=Xl_L0o5N0bw',
@@ -1408,6 +1533,7 @@ export const EXERCISE_MEDIA: Record<string, ExerciseMedia> = {
     ],
   },
   'fr-adductors': {
+    stills: [formGuide(require('../../../assets/images/exercises/foam-roll-adductors-form-guide.webp'))],
     clips: [
       {
         url: 'https://www.youtube.com/watch?v=hSxQuAYlPrE',
@@ -1417,6 +1543,7 @@ export const EXERCISE_MEDIA: Record<string, ExerciseMedia> = {
     ],
   },
   'hi-rdl-db': {
+    stills: [formGuide(require('../../../assets/images/exercises/hi-rdl-db-form-guide.webp'))],
     clips: [
       {
         url: 'https://www.youtube.com/shorts/hu3jRvTc_po',
@@ -1432,8 +1559,9 @@ export const EXERCISE_MEDIA: Record<string, ExerciseMedia> = {
   },
   'hi-hip-bridge': {
     stills: [
+      formGuide(require('../../../assets/images/exercises/hi-hip-bridge-form-guide.webp')),
       {
-        file: require('../../../assets/images/exercises/hinge-hip-bridge.jpg'),
+        file: require('../../../assets/images/exercises/hinge-hip-bridge.webp'),
         license: 'cc-by-sa',
         attribution: 'Everkinetic, CC BY-SA 3.0',
         sourceUrl: 'https://commons.wikimedia.org/wiki/File:Bridging_2.svg',
@@ -1454,14 +1582,15 @@ export const EXERCISE_MEDIA: Record<string, ExerciseMedia> = {
   },
   'hi-single-leg-bridge': {
     stills: [
+      formGuide(require('../../../assets/images/exercises/hi-single-leg-bridge-form-guide.webp')),
       {
-        file: require('../../../assets/images/exercises/hi-single-leg-bridge-fedb-0.jpg'),
+        file: require('../../../assets/images/exercises/hi-single-leg-bridge-fedb-0.webp'),
         license: 'public-domain',
         attribution: 'free-exercise-db (The Unlicense)',
         sourceUrl: 'https://github.com/yuhonas/free-exercise-db/blob/main/exercises/Single_Leg_Glute_Bridge/0.jpg',
       },
       {
-        file: require('../../../assets/images/exercises/hi-single-leg-bridge-fedb-1.jpg'),
+        file: require('../../../assets/images/exercises/hi-single-leg-bridge-fedb-1.webp'),
         license: 'public-domain',
         attribution: 'free-exercise-db (The Unlicense)',
         sourceUrl: 'https://github.com/yuhonas/free-exercise-db/blob/main/exercises/Single_Leg_Glute_Bridge/1.jpg',
@@ -1482,8 +1611,9 @@ export const EXERCISE_MEDIA: Record<string, ExerciseMedia> = {
   },
   'hi-db-deadlift': {
     stills: [
+      formGuide(require('../../../assets/images/exercises/hi-db-deadlift-form-guide.webp')),
       {
-        file: require('../../../assets/images/exercises/hinge-db-deadlift.jpg'),
+        file: require('../../../assets/images/exercises/hinge-db-deadlift.webp'),
         license: 'cc-by-sa',
         attribution: 'Everkinetic, CC BY-SA 3.0',
         sourceUrl: 'https://commons.wikimedia.org/wiki/File:Dumbbell_dead_lifts_2.svg',
@@ -1498,6 +1628,7 @@ export const EXERCISE_MEDIA: Record<string, ExerciseMedia> = {
     ],
   },
   'hi-db-sumo-deadlift': {
+    stills: [formGuide(require('../../../assets/images/exercises/hi-db-sumo-deadlift-form-guide.webp'))],
     clips: [
       {
         url: 'https://www.youtube.com/watch?v=xgb_WrJ_xtw',
@@ -1507,6 +1638,7 @@ export const EXERCISE_MEDIA: Record<string, ExerciseMedia> = {
     ],
   },
   'hi-db-single-rdl': {
+    stills: [formGuide(require('../../../assets/images/exercises/hi-db-single-rdl-form-guide.webp'))],
     clips: [
       {
         url: 'https://www.youtube.com/watch?v=18CzQrq-Z7I',
@@ -1516,6 +1648,7 @@ export const EXERCISE_MEDIA: Record<string, ExerciseMedia> = {
     ],
   },
   'hi-db-good-morning': {
+    stills: [formGuide(require('../../../assets/images/exercises/hi-db-good-morning-form-guide.webp'))],
     clips: [
       {
         url: 'https://www.youtube.com/watch?v=7mrKMteISXs',
@@ -1525,6 +1658,7 @@ export const EXERCISE_MEDIA: Record<string, ExerciseMedia> = {
     ],
   },
   'hi-db-staggered-rdl': {
+    stills: [formGuide(require('../../../assets/images/exercises/hi-db-staggered-rdl-form-guide.webp'))],
     clips: [
       {
         url: 'https://www.youtube.com/watch?v=Li9jJhbSxBA',
@@ -1535,20 +1669,21 @@ export const EXERCISE_MEDIA: Record<string, ExerciseMedia> = {
   },
   'hi-bb-deadlift': {
     stills: [
+      formGuide(require('../../../assets/images/exercises/hi-bb-deadlift-form-guide.webp')),
       {
-        file: require('../../../assets/images/exercises/hi-bb-deadlift-fedb-0.jpg'),
+        file: require('../../../assets/images/exercises/hi-bb-deadlift-fedb-0.webp'),
         license: 'public-domain',
         attribution: 'free-exercise-db (The Unlicense)',
         sourceUrl: 'https://github.com/yuhonas/free-exercise-db/blob/main/exercises/Barbell_Deadlift/0.jpg',
       },
       {
-        file: require('../../../assets/images/exercises/hi-bb-deadlift-fedb-1.jpg'),
+        file: require('../../../assets/images/exercises/hi-bb-deadlift-fedb-1.webp'),
         license: 'public-domain',
         attribution: 'free-exercise-db (The Unlicense)',
         sourceUrl: 'https://github.com/yuhonas/free-exercise-db/blob/main/exercises/Barbell_Deadlift/1.jpg',
       },
       {
-        file: require('../../../assets/images/exercises/hinge-bb-deadlift.jpg'),
+        file: require('../../../assets/images/exercises/hinge-bb-deadlift.webp'),
         license: 'cc-by-sa',
         attribution: 'Everkinetic, CC BY-SA 3.0',
         sourceUrl: 'https://commons.wikimedia.org/wiki/File:Barbell_dead_lifts_2.svg',
@@ -1568,6 +1703,7 @@ export const EXERCISE_MEDIA: Record<string, ExerciseMedia> = {
     ],
   },
   'hi-bb-sumo-deadlift': {
+    stills: [formGuide(require('../../../assets/images/exercises/hi-bb-sumo-deadlift-form-guide.webp'))],
     clips: [
       {
         url: 'https://www.youtube.com/watch?v=JbY72Him34Q',
@@ -1578,8 +1714,9 @@ export const EXERCISE_MEDIA: Record<string, ExerciseMedia> = {
   },
   'hi-bb-rdl': {
     stills: [
+      formGuide(require('../../../assets/images/exercises/hi-bb-rdl-form-guide.webp')),
       {
-        file: require('../../../assets/images/exercises/hinge-bb-rdl.jpg'),
+        file: require('../../../assets/images/exercises/hinge-bb-rdl.webp'),
         license: 'cc-by-sa',
         attribution: 'Everkinetic, CC BY-SA 3.0',
         sourceUrl: 'https://commons.wikimedia.org/wiki/File:Romanian_dead_lift_2.svg',
@@ -1595,8 +1732,9 @@ export const EXERCISE_MEDIA: Record<string, ExerciseMedia> = {
   },
   'hi-bb-good-morning': {
     stills: [
+      formGuide(require('../../../assets/images/exercises/hi-bb-good-morning-form-guide.webp')),
       {
-        file: require('../../../assets/images/exercises/hinge-bb-good-morning.jpg'),
+        file: require('../../../assets/images/exercises/hinge-bb-good-morning.webp'),
         license: 'cc-by-sa',
         attribution: 'Everkinetic, CC BY-SA 3.0',
         sourceUrl: 'https://commons.wikimedia.org/wiki/File:Barbell_good_mornings_2.svg',
@@ -1611,6 +1749,7 @@ export const EXERCISE_MEDIA: Record<string, ExerciseMedia> = {
     ],
   },
   'hi-bb-rack-pull': {
+    stills: [formGuide(require('../../../assets/images/exercises/hi-bb-rack-pull-form-guide.webp'))],
     clips: [
       {
         url: 'https://www.youtube.com/watch?v=Y99s0dNWpUw',
@@ -1620,6 +1759,7 @@ export const EXERCISE_MEDIA: Record<string, ExerciseMedia> = {
     ],
   },
   'hi-kb-deadlift': {
+    stills: [formGuide(require('../../../assets/images/exercises/hi-kb-deadlift-form-guide.webp'))],
     clips: [
       {
         url: 'https://www.youtube.com/watch?v=MJPGkNqAXzg',
@@ -1630,8 +1770,9 @@ export const EXERCISE_MEDIA: Record<string, ExerciseMedia> = {
   },
   'hi-kb-swing': {
     stills: [
+      formGuide(require('../../../assets/images/exercises/hi-kb-swing-form-guide.webp')),
       {
-        file: require('../../../assets/images/exercises/kettlebell-swing.jpg'),
+        file: require('../../../assets/images/exercises/kettlebell-swing.webp'),
         license: 'cc-by-sa',
         attribution: 'Taco fleur, CC BY-SA 4.0',
         sourceUrl:
@@ -1653,14 +1794,15 @@ export const EXERCISE_MEDIA: Record<string, ExerciseMedia> = {
   },
   'hi-kb-single-arm-swing': {
     stills: [
+      formGuide(require('../../../assets/images/exercises/hi-kb-single-arm-swing-form-guide.webp')),
       {
-        file: require('../../../assets/images/exercises/hi-kb-single-arm-swing-fedb-0.jpg'),
+        file: require('../../../assets/images/exercises/hi-kb-single-arm-swing-fedb-0.webp'),
         license: 'public-domain',
         attribution: 'free-exercise-db (The Unlicense)',
         sourceUrl: 'https://github.com/yuhonas/free-exercise-db/blob/main/exercises/One-Arm_Kettlebell_Swings/0.jpg',
       },
       {
-        file: require('../../../assets/images/exercises/hi-kb-single-arm-swing-fedb-1.jpg'),
+        file: require('../../../assets/images/exercises/hi-kb-single-arm-swing-fedb-1.webp'),
         license: 'public-domain',
         attribution: 'free-exercise-db (The Unlicense)',
         sourceUrl: 'https://github.com/yuhonas/free-exercise-db/blob/main/exercises/One-Arm_Kettlebell_Swings/1.jpg',
@@ -1675,6 +1817,7 @@ export const EXERCISE_MEDIA: Record<string, ExerciseMedia> = {
     ],
   },
   'hi-kb-single-rdl': {
+    stills: [formGuide(require('../../../assets/images/exercises/hi-kb-single-rdl-form-guide.webp'))],
     clips: [
       {
         url: 'https://www.youtube.com/watch?v=Nenu2LI9_dw',
@@ -1684,6 +1827,7 @@ export const EXERCISE_MEDIA: Record<string, ExerciseMedia> = {
     ],
   },
   'hi-kb-sumo-deadlift': {
+    stills: [formGuide(require('../../../assets/images/exercises/hi-kb-sumo-deadlift-form-guide.webp'))],
     clips: [
       {
         url: 'https://www.youtube.com/watch?v=sGNMEtZCkRY',
@@ -1693,6 +1837,7 @@ export const EXERCISE_MEDIA: Record<string, ExerciseMedia> = {
     ],
   },
   'hi-bw-good-morning': {
+    stills: [formGuide(require('../../../assets/images/exercises/hi-bw-good-morning-form-guide.webp'))],
     clips: [
       {
         url: 'https://www.youtube.com/watch?v=61zbhuRiwQg',
@@ -1702,6 +1847,7 @@ export const EXERCISE_MEDIA: Record<string, ExerciseMedia> = {
     ],
   },
   'hi-band-deadlift': {
+    stills: [formGuide(require('../../../assets/images/exercises/hi-band-deadlift-form-guide.webp'))],
     clips: [
       {
         url: 'https://www.youtube.com/watch?v=DzgMIPH9_sw',
@@ -1712,14 +1858,15 @@ export const EXERCISE_MEDIA: Record<string, ExerciseMedia> = {
   },
   'hi-band-good-morning': {
     stills: [
+      formGuide(require('../../../assets/images/exercises/hi-band-good-morning-form-guide.webp')),
       {
-        file: require('../../../assets/images/exercises/hi-band-good-morning-fedb-0.jpg'),
+        file: require('../../../assets/images/exercises/hi-band-good-morning-fedb-0.webp'),
         license: 'public-domain',
         attribution: 'free-exercise-db (The Unlicense)',
         sourceUrl: 'https://github.com/yuhonas/free-exercise-db/blob/main/exercises/Band_Good_Morning/0.jpg',
       },
       {
-        file: require('../../../assets/images/exercises/hi-band-good-morning-fedb-1.jpg'),
+        file: require('../../../assets/images/exercises/hi-band-good-morning-fedb-1.webp'),
         license: 'public-domain',
         attribution: 'free-exercise-db (The Unlicense)',
         sourceUrl: 'https://github.com/yuhonas/free-exercise-db/blob/main/exercises/Band_Good_Morning/1.jpg',
@@ -1734,6 +1881,7 @@ export const EXERCISE_MEDIA: Record<string, ExerciseMedia> = {
     ],
   },
   'hi-band-hip-thrust': {
+    stills: [formGuide(require('../../../assets/images/exercises/hi-band-hip-thrust-form-guide.webp'))],
     clips: [
       {
         url: 'https://www.youtube.com/watch?v=CaepDtuABlQ',
@@ -1743,6 +1891,7 @@ export const EXERCISE_MEDIA: Record<string, ExerciseMedia> = {
     ],
   },
   'hi-hip-thrust-bench': {
+    stills: [formGuide(require('../../../assets/images/exercises/hi-hip-thrust-bench-form-guide.webp'))],
     clips: [
       {
         url: 'https://www.youtube.com/watch?v=pF17m_CXfL0',
@@ -1752,6 +1901,7 @@ export const EXERCISE_MEDIA: Record<string, ExerciseMedia> = {
     ],
   },
   'hi-single-leg-hip-thrust': {
+    stills: [formGuide(require('../../../assets/images/exercises/hi-single-leg-hip-thrust-form-guide.webp'))],
     clips: [
       {
         url: 'https://www.youtube.com/watch?v=DdXdKrpPtTo',
@@ -1761,6 +1911,7 @@ export const EXERCISE_MEDIA: Record<string, ExerciseMedia> = {
     ],
   },
   'hi-cable-pull-through': {
+    stills: [formGuide(require('../../../assets/images/exercises/hi-cable-pull-through-form-guide.webp'))],
     clips: [
       {
         url: 'https://www.youtube.com/watch?v=yXopOhzEoeo',
@@ -1770,6 +1921,7 @@ export const EXERCISE_MEDIA: Record<string, ExerciseMedia> = {
     ],
   },
   'lu-forward-bw': {
+    stills: [formGuide(require('../../../assets/images/exercises/lu-forward-bw-form-guide.webp'))],
     clips: [
       {
         url: 'https://www.youtube.com/shorts/zriYMBKtgbI',
@@ -1789,6 +1941,7 @@ export const EXERCISE_MEDIA: Record<string, ExerciseMedia> = {
     ],
   },
   'lu-reverse-bw': {
+    stills: [formGuide(require('../../../assets/images/exercises/lu-reverse-bw-form-guide.webp'))],
     clips: [
       {
         url: 'https://www.youtube.com/watch?v=HXs8u1251ss',
@@ -1804,8 +1957,9 @@ export const EXERCISE_MEDIA: Record<string, ExerciseMedia> = {
   },
   'lu-walking-bw': {
     stills: [
+      formGuide(require('../../../assets/images/exercises/lu-walking-bw-form-guide.webp')),
       {
-        file: require('../../../assets/images/exercises/walking-lunge-bw.jpg'),
+        file: require('../../../assets/images/exercises/walking-lunge-bw.webp'),
         license: 'public-domain',
         attribution: 'MC2 Derek A. Harkins / U.S. Navy',
         sourceUrl:
@@ -1821,6 +1975,7 @@ export const EXERCISE_MEDIA: Record<string, ExerciseMedia> = {
     ],
   },
   'lu-lateral-bw': {
+    stills: [formGuide(require('../../../assets/images/exercises/lu-lateral-bw-form-guide.webp'))],
     clips: [
       {
         url: 'https://www.youtube.com/watch?v=sGZn1_WK6gc',
@@ -1835,6 +1990,7 @@ export const EXERCISE_MEDIA: Record<string, ExerciseMedia> = {
     ],
   },
   'lu-curtsy-bw': {
+    stills: [formGuide(require('../../../assets/images/exercises/lu-curtsy-bw-form-guide.webp'))],
     clips: [
       {
         url: 'https://www.youtube.com/watch?v=rUD0rPjlxdQ',
@@ -1849,6 +2005,7 @@ export const EXERCISE_MEDIA: Record<string, ExerciseMedia> = {
     ],
   },
   'lu-step-up-bw': {
+    stills: [formGuide(require('../../../assets/images/exercises/lu-step-up-bw-form-guide.webp'))],
     clips: [
       {
         url: 'https://www.youtube.com/watch?v=vOiHvzj5XhA',
@@ -1863,6 +2020,7 @@ export const EXERCISE_MEDIA: Record<string, ExerciseMedia> = {
     ],
   },
   'lu-bulgarian-bw': {
+    stills: [formGuide(require('../../../assets/images/exercises/lu-bulgarian-bw-form-guide.webp'))],
     clips: [
       {
         url: 'https://www.youtube.com/watch?v=yewlXtRs3K4',
@@ -1872,6 +2030,7 @@ export const EXERCISE_MEDIA: Record<string, ExerciseMedia> = {
     ],
   },
   'lu-jump-lunge': {
+    stills: [formGuide(require('../../../assets/images/exercises/lu-jump-lunge-form-guide.webp'))],
     clips: [
       {
         url: 'https://www.youtube.com/watch?v=_5kDxC0flg0',
@@ -1886,6 +2045,7 @@ export const EXERCISE_MEDIA: Record<string, ExerciseMedia> = {
     ],
   },
   'lu-db-forward': {
+    stills: [formGuide(require('../../../assets/images/exercises/lu-db-forward-form-guide.webp'))],
     clips: [
       {
         url: 'https://www.youtube.com/watch?v=3TM-vVWuLYE',
@@ -1896,14 +2056,15 @@ export const EXERCISE_MEDIA: Record<string, ExerciseMedia> = {
   },
   'lu-db-reverse': {
     stills: [
+      formGuide(require('../../../assets/images/exercises/lu-db-reverse-form-guide.webp')),
       {
-        file: require('../../../assets/images/exercises/lu-db-reverse-fedb-0.jpg'),
+        file: require('../../../assets/images/exercises/lu-db-reverse-fedb-0.webp'),
         license: 'public-domain',
         attribution: 'free-exercise-db (The Unlicense)',
         sourceUrl: 'https://github.com/yuhonas/free-exercise-db/blob/main/exercises/Dumbbell_Rear_Lunge/0.jpg',
       },
       {
-        file: require('../../../assets/images/exercises/lu-db-reverse-fedb-1.jpg'),
+        file: require('../../../assets/images/exercises/lu-db-reverse-fedb-1.webp'),
         license: 'public-domain',
         attribution: 'free-exercise-db (The Unlicense)',
         sourceUrl: 'https://github.com/yuhonas/free-exercise-db/blob/main/exercises/Dumbbell_Rear_Lunge/1.jpg',
@@ -1919,8 +2080,9 @@ export const EXERCISE_MEDIA: Record<string, ExerciseMedia> = {
   },
   'lu-db-walking': {
     stills: [
+      formGuide(require('../../../assets/images/exercises/lu-db-walking-form-guide.webp')),
       {
-        file: require('../../../assets/images/exercises/lunge-db-walking.jpg'),
+        file: require('../../../assets/images/exercises/lunge-db-walking.webp'),
         license: 'cc-by-sa',
         attribution: 'Everkinetic, CC BY-SA 3.0',
         sourceUrl: 'https://commons.wikimedia.org/wiki/File:Walking_lunges_2.svg',
@@ -1935,6 +2097,7 @@ export const EXERCISE_MEDIA: Record<string, ExerciseMedia> = {
     ],
   },
   'lu-db-lateral': {
+    stills: [formGuide(require('../../../assets/images/exercises/lu-db-lateral-form-guide.webp'))],
     clips: [
       {
         url: 'https://www.youtube.com/watch?v=R8jArZG2J6Q',
@@ -1944,6 +2107,7 @@ export const EXERCISE_MEDIA: Record<string, ExerciseMedia> = {
     ],
   },
   'lu-db-bulgarian': {
+    stills: [formGuide(require('../../../assets/images/exercises/lu-db-bulgarian-form-guide.webp'))],
     clips: [
       {
         url: 'https://www.youtube.com/watch?v=vLuhN_glFZ8',
@@ -1954,20 +2118,21 @@ export const EXERCISE_MEDIA: Record<string, ExerciseMedia> = {
   },
   'lu-db-step-up': {
     stills: [
+      formGuide(require('../../../assets/images/exercises/lu-db-step-up-form-guide.webp')),
       {
-        file: require('../../../assets/images/exercises/lu-db-step-up-fedb-0.jpg'),
+        file: require('../../../assets/images/exercises/lu-db-step-up-fedb-0.webp'),
         license: 'public-domain',
         attribution: 'free-exercise-db (The Unlicense)',
         sourceUrl: 'https://github.com/yuhonas/free-exercise-db/blob/main/exercises/Dumbbell_Step_Ups/0.jpg',
       },
       {
-        file: require('../../../assets/images/exercises/lu-db-step-up-fedb-1.jpg'),
+        file: require('../../../assets/images/exercises/lu-db-step-up-fedb-1.webp'),
         license: 'public-domain',
         attribution: 'free-exercise-db (The Unlicense)',
         sourceUrl: 'https://github.com/yuhonas/free-exercise-db/blob/main/exercises/Dumbbell_Step_Ups/1.jpg',
       },
       {
-        file: require('../../../assets/images/exercises/lunge-db-step-up.jpg'),
+        file: require('../../../assets/images/exercises/lunge-db-step-up.webp'),
         license: 'cc-by-sa',
         attribution: 'Everkinetic, CC BY-SA 3.0',
         sourceUrl: 'https://commons.wikimedia.org/wiki/File:Step_ups_with_dumbbells_2.svg',
@@ -1982,6 +2147,7 @@ export const EXERCISE_MEDIA: Record<string, ExerciseMedia> = {
     ],
   },
   'lu-db-curtsy': {
+    stills: [formGuide(require('../../../assets/images/exercises/lu-db-curtsy-form-guide.webp'))],
     clips: [
       {
         url: 'https://www.youtube.com/watch?v=C6gq15ulRQU',
@@ -1992,14 +2158,15 @@ export const EXERCISE_MEDIA: Record<string, ExerciseMedia> = {
   },
   'lu-bb-walking': {
     stills: [
+      formGuide(require('../../../assets/images/exercises/lu-bb-walking-form-guide.webp')),
       {
-        file: require('../../../assets/images/exercises/lu-bb-walking-fedb-0.jpg'),
+        file: require('../../../assets/images/exercises/lu-bb-walking-fedb-0.webp'),
         license: 'public-domain',
         attribution: 'free-exercise-db (The Unlicense)',
         sourceUrl: 'https://github.com/yuhonas/free-exercise-db/blob/main/exercises/Barbell_Walking_Lunge/0.jpg',
       },
       {
-        file: require('../../../assets/images/exercises/lu-bb-walking-fedb-1.jpg'),
+        file: require('../../../assets/images/exercises/lu-bb-walking-fedb-1.webp'),
         license: 'public-domain',
         attribution: 'free-exercise-db (The Unlicense)',
         sourceUrl: 'https://github.com/yuhonas/free-exercise-db/blob/main/exercises/Barbell_Walking_Lunge/1.jpg',
@@ -2015,8 +2182,9 @@ export const EXERCISE_MEDIA: Record<string, ExerciseMedia> = {
   },
   'lu-bb-reverse': {
     stills: [
+      formGuide(require('../../../assets/images/exercises/lu-bb-reverse-form-guide.webp')),
       {
-        file: require('../../../assets/images/exercises/lunge-bb-reverse.jpg'),
+        file: require('../../../assets/images/exercises/lunge-bb-reverse.webp'),
         license: 'cc-by-sa',
         attribution: 'Everkinetic, CC BY-SA 3.0',
         sourceUrl: 'https://commons.wikimedia.org/wiki/File:Rear_lunges_with_barbell_2.svg',
@@ -2031,6 +2199,7 @@ export const EXERCISE_MEDIA: Record<string, ExerciseMedia> = {
     ],
   },
   'lu-bb-bulgarian': {
+    stills: [formGuide(require('../../../assets/images/exercises/lu-bb-bulgarian-form-guide.webp'))],
     clips: [
       {
         url: 'https://www.youtube.com/watch?v=obUobGzBRUY',
@@ -2040,6 +2209,7 @@ export const EXERCISE_MEDIA: Record<string, ExerciseMedia> = {
     ],
   },
   'lu-kb-reverse': {
+    stills: [formGuide(require('../../../assets/images/exercises/lu-kb-reverse-form-guide.webp'))],
     clips: [
       {
         url: 'https://www.youtube.com/watch?v=2D4xApe-UFU',
@@ -2049,6 +2219,7 @@ export const EXERCISE_MEDIA: Record<string, ExerciseMedia> = {
     ],
   },
   'lu-kb-lateral': {
+    stills: [formGuide(require('../../../assets/images/exercises/lu-kb-lateral-form-guide.webp'))],
     clips: [
       {
         url: 'https://www.youtube.com/watch?v=OLyBsmkkn-8',
@@ -2058,6 +2229,7 @@ export const EXERCISE_MEDIA: Record<string, ExerciseMedia> = {
     ],
   },
   'lu-kb-step-up': {
+    stills: [formGuide(require('../../../assets/images/exercises/lu-kb-step-up-form-guide.webp'))],
     clips: [
       {
         url: 'https://www.youtube.com/watch?v=NGDPf5OIc1M',
@@ -2067,6 +2239,7 @@ export const EXERCISE_MEDIA: Record<string, ExerciseMedia> = {
     ],
   },
   'lu-kb-curtsy': {
+    stills: [formGuide(require('../../../assets/images/exercises/lu-kb-curtsy-form-guide.webp'))],
     clips: [
       {
         url: 'https://www.youtube.com/watch?v=DEE806Xr4V4',
@@ -2077,14 +2250,15 @@ export const EXERCISE_MEDIA: Record<string, ExerciseMedia> = {
   },
   'pu-incline-pushup': {
     stills: [
+      formGuide(require('../../../assets/images/exercises/pu-incline-pushup-form-guide.webp')),
       {
-        file: require('../../../assets/images/exercises/pu-incline-pushup-fedb-0.jpg'),
+        file: require('../../../assets/images/exercises/pu-incline-pushup-fedb-0.webp'),
         license: 'public-domain',
         attribution: 'free-exercise-db (The Unlicense)',
         sourceUrl: 'https://github.com/yuhonas/free-exercise-db/blob/main/exercises/Incline_Push-Up/0.jpg',
       },
       {
-        file: require('../../../assets/images/exercises/pu-incline-pushup-fedb-1.jpg'),
+        file: require('../../../assets/images/exercises/pu-incline-pushup-fedb-1.webp'),
         license: 'public-domain',
         attribution: 'free-exercise-db (The Unlicense)',
         sourceUrl: 'https://github.com/yuhonas/free-exercise-db/blob/main/exercises/Incline_Push-Up/1.jpg',
@@ -2105,20 +2279,21 @@ export const EXERCISE_MEDIA: Record<string, ExerciseMedia> = {
   },
   'pu-decline-pushup': {
     stills: [
+      formGuide(require('../../../assets/images/exercises/pu-decline-pushup-form-guide.webp')),
       {
-        file: require('../../../assets/images/exercises/pu-decline-pushup-fedb-0.jpg'),
+        file: require('../../../assets/images/exercises/pu-decline-pushup-fedb-0.webp'),
         license: 'public-domain',
         attribution: 'free-exercise-db (The Unlicense)',
         sourceUrl: 'https://github.com/yuhonas/free-exercise-db/blob/main/exercises/Decline_Push-Up/0.jpg',
       },
       {
-        file: require('../../../assets/images/exercises/pu-decline-pushup-fedb-1.jpg'),
+        file: require('../../../assets/images/exercises/pu-decline-pushup-fedb-1.webp'),
         license: 'public-domain',
         attribution: 'free-exercise-db (The Unlicense)',
         sourceUrl: 'https://github.com/yuhonas/free-exercise-db/blob/main/exercises/Decline_Push-Up/1.jpg',
       },
       {
-        file: require('../../../assets/images/exercises/push-decline-pushup.jpg'),
+        file: require('../../../assets/images/exercises/push-decline-pushup.webp'),
         license: 'cc-by-sa',
         attribution: 'Everkinetic, CC BY-SA 3.0',
         sourceUrl: 'https://commons.wikimedia.org/wiki/File:Push_up_feet_elevated_2_2.svg',
@@ -2134,8 +2309,9 @@ export const EXERCISE_MEDIA: Record<string, ExerciseMedia> = {
   },
   'pu-diamond-pushup': {
     stills: [
+      formGuide(require('../../../assets/images/exercises/pu-diamond-pushup-form-guide.webp')),
       {
-        file: require('../../../assets/images/exercises/push-diamond-pushup.jpg'),
+        file: require('../../../assets/images/exercises/push-diamond-pushup.webp'),
         license: 'cc-by-sa',
         attribution: 'Everkinetic, CC BY-SA 3.0',
         sourceUrl: 'https://commons.wikimedia.org/wiki/File:Close_triceps_pushup_2.svg',
@@ -2156,8 +2332,9 @@ export const EXERCISE_MEDIA: Record<string, ExerciseMedia> = {
   },
   'pu-wide-pushup': {
     stills: [
+      formGuide(require('../../../assets/images/exercises/pu-wide-pushup-form-guide.webp')),
       {
-        file: require('../../../assets/images/exercises/push-wide-pushup.jpg'),
+        file: require('../../../assets/images/exercises/push-wide-pushup.webp'),
         license: 'cc-by-sa',
         attribution: 'Everkinetic, CC BY-SA 3.0',
         sourceUrl: 'https://commons.wikimedia.org/wiki/File:Push_ups_close_and_wide_hand_versions_2.svg',
@@ -2177,6 +2354,7 @@ export const EXERCISE_MEDIA: Record<string, ExerciseMedia> = {
     ],
   },
   'pu-pike-pushup': {
+    stills: [formGuide(require('../../../assets/images/exercises/pu-pike-pushup-form-guide.webp'))],
     clips: [
       {
         url: 'https://www.youtube.com/watch?v=pHR5yG6xBps',
@@ -2186,6 +2364,7 @@ export const EXERCISE_MEDIA: Record<string, ExerciseMedia> = {
     ],
   },
   'pu-archer-pushup': {
+    stills: [formGuide(require('../../../assets/images/exercises/pu-archer-pushup-form-guide.webp'))],
     clips: [
       {
         url: 'https://www.youtube.com/watch?v=L109Ad4zCR4',
@@ -2195,6 +2374,7 @@ export const EXERCISE_MEDIA: Record<string, ExerciseMedia> = {
     ],
   },
   'pu-plyo-pushup': {
+    stills: [formGuide(require('../../../assets/images/exercises/pu-plyo-pushup-form-guide.webp'))],
     clips: [
       {
         url: 'https://www.youtube.com/watch?v=MH4gcTKQiEc',
@@ -2205,20 +2385,21 @@ export const EXERCISE_MEDIA: Record<string, ExerciseMedia> = {
   },
   'pu-bench-dip': {
     stills: [
+      formGuide(require('../../../assets/images/exercises/pu-bench-dip-form-guide.webp')),
       {
-        file: require('../../../assets/images/exercises/pu-bench-dip-fedb-0.jpg'),
+        file: require('../../../assets/images/exercises/pu-bench-dip-fedb-0.webp'),
         license: 'public-domain',
         attribution: 'free-exercise-db (The Unlicense)',
         sourceUrl: 'https://github.com/yuhonas/free-exercise-db/blob/main/exercises/Bench_Dips/0.jpg',
       },
       {
-        file: require('../../../assets/images/exercises/pu-bench-dip-fedb-1.jpg'),
+        file: require('../../../assets/images/exercises/pu-bench-dip-fedb-1.webp'),
         license: 'public-domain',
         attribution: 'free-exercise-db (The Unlicense)',
         sourceUrl: 'https://github.com/yuhonas/free-exercise-db/blob/main/exercises/Bench_Dips/1.jpg',
       },
       {
-        file: require('../../../assets/images/exercises/push-bench-dip.jpg'),
+        file: require('../../../assets/images/exercises/push-bench-dip.webp'),
         license: 'cc-by-sa',
         attribution: 'Everkinetic, CC BY-SA 3.0',
         sourceUrl: 'https://commons.wikimedia.org/wiki/File:Bench_dips_2.svg',
@@ -2234,20 +2415,21 @@ export const EXERCISE_MEDIA: Record<string, ExerciseMedia> = {
   },
   'pu-db-bench': {
     stills: [
+      formGuide(require('../../../assets/images/exercises/pu-db-bench-form-guide.webp')),
       {
-        file: require('../../../assets/images/exercises/pu-db-bench-fedb-0.jpg'),
+        file: require('../../../assets/images/exercises/pu-db-bench-fedb-0.webp'),
         license: 'public-domain',
         attribution: 'free-exercise-db (The Unlicense)',
         sourceUrl: 'https://github.com/yuhonas/free-exercise-db/blob/main/exercises/Dumbbell_Bench_Press/0.jpg',
       },
       {
-        file: require('../../../assets/images/exercises/pu-db-bench-fedb-1.jpg'),
+        file: require('../../../assets/images/exercises/pu-db-bench-fedb-1.webp'),
         license: 'public-domain',
         attribution: 'free-exercise-db (The Unlicense)',
         sourceUrl: 'https://github.com/yuhonas/free-exercise-db/blob/main/exercises/Dumbbell_Bench_Press/1.jpg',
       },
       {
-        file: require('../../../assets/images/exercises/push-db-bench.jpg'),
+        file: require('../../../assets/images/exercises/push-db-bench.webp'),
         license: 'cc-by-sa',
         attribution: 'Everkinetic, CC BY-SA 3.0',
         sourceUrl: 'https://commons.wikimedia.org/wiki/File:Bench_press_dumbbell_2.svg',
@@ -2268,8 +2450,9 @@ export const EXERCISE_MEDIA: Record<string, ExerciseMedia> = {
   },
   'pu-db-incline-bench': {
     stills: [
+      formGuide(require('../../../assets/images/exercises/pu-db-incline-bench-form-guide.webp')),
       {
-        file: require('../../../assets/images/exercises/push-db-incline-bench.jpg'),
+        file: require('../../../assets/images/exercises/push-db-incline-bench.webp'),
         license: 'cc-by-sa',
         attribution: 'Everkinetic, CC BY-SA 3.0',
         sourceUrl: 'https://commons.wikimedia.org/wiki/File:Dumbbell_incline_bench_press_2.svg',
@@ -2285,14 +2468,15 @@ export const EXERCISE_MEDIA: Record<string, ExerciseMedia> = {
   },
   'pu-db-floor-press': {
     stills: [
+      formGuide(require('../../../assets/images/exercises/pu-db-floor-press-form-guide.webp')),
       {
-        file: require('../../../assets/images/exercises/pu-db-floor-press-fedb-0.jpg'),
+        file: require('../../../assets/images/exercises/pu-db-floor-press-fedb-0.webp'),
         license: 'public-domain',
         attribution: 'free-exercise-db (The Unlicense)',
         sourceUrl: 'https://github.com/yuhonas/free-exercise-db/blob/main/exercises/Dumbbell_Floor_Press/0.jpg',
       },
       {
-        file: require('../../../assets/images/exercises/pu-db-floor-press-fedb-1.jpg'),
+        file: require('../../../assets/images/exercises/pu-db-floor-press-fedb-1.webp'),
         license: 'public-domain',
         attribution: 'free-exercise-db (The Unlicense)',
         sourceUrl: 'https://github.com/yuhonas/free-exercise-db/blob/main/exercises/Dumbbell_Floor_Press/1.jpg',
@@ -2308,8 +2492,9 @@ export const EXERCISE_MEDIA: Record<string, ExerciseMedia> = {
   },
   'pu-db-ohp': {
     stills: [
+      formGuide(require('../../../assets/images/exercises/pu-db-ohp-form-guide.webp')),
       {
-        file: require('../../../assets/images/exercises/push-db-ohp.jpg'),
+        file: require('../../../assets/images/exercises/push-db-ohp.webp'),
         license: 'cc-by-sa',
         attribution: 'Everkinetic, CC BY-SA 3.0',
         sourceUrl: 'https://commons.wikimedia.org/wiki/File:Dumbbell_shoulder_press_2.svg',
@@ -2330,14 +2515,15 @@ export const EXERCISE_MEDIA: Record<string, ExerciseMedia> = {
   },
   'pu-db-seated-ohp': {
     stills: [
+      formGuide(require('../../../assets/images/exercises/pu-db-seated-ohp-form-guide.webp')),
       {
-        file: require('../../../assets/images/exercises/pu-db-seated-ohp-fedb-0.jpg'),
+        file: require('../../../assets/images/exercises/pu-db-seated-ohp-fedb-0.webp'),
         license: 'public-domain',
         attribution: 'free-exercise-db (The Unlicense)',
         sourceUrl: 'https://github.com/yuhonas/free-exercise-db/blob/main/exercises/Seated_Dumbbell_Press/0.jpg',
       },
       {
-        file: require('../../../assets/images/exercises/pu-db-seated-ohp-fedb-1.jpg'),
+        file: require('../../../assets/images/exercises/pu-db-seated-ohp-fedb-1.webp'),
         license: 'public-domain',
         attribution: 'free-exercise-db (The Unlicense)',
         sourceUrl: 'https://github.com/yuhonas/free-exercise-db/blob/main/exercises/Seated_Dumbbell_Press/1.jpg',
@@ -2353,8 +2539,9 @@ export const EXERCISE_MEDIA: Record<string, ExerciseMedia> = {
   },
   'pu-db-arnold-press': {
     stills: [
+      formGuide(require('../../../assets/images/exercises/pu-db-arnold-press-form-guide.webp')),
       {
-        file: require('../../../assets/images/exercises/push-db-arnold-press.jpg'),
+        file: require('../../../assets/images/exercises/push-db-arnold-press.webp'),
         license: 'cc-by-sa',
         attribution: 'Everkinetic, CC BY-SA 3.0',
         sourceUrl: 'https://commons.wikimedia.org/wiki/File:Arnold_press_2.svg',
@@ -2370,8 +2557,9 @@ export const EXERCISE_MEDIA: Record<string, ExerciseMedia> = {
   },
   'pu-db-single-arm-press': {
     stills: [
+      formGuide(require('../../../assets/images/exercises/pu-db-single-arm-press-form-guide.webp')),
       {
-        file: require('../../../assets/images/exercises/push-db-single-arm-press.jpg'),
+        file: require('../../../assets/images/exercises/push-db-single-arm-press.webp'),
         license: 'cc-by-sa',
         attribution: 'Everkinetic, CC BY-SA 3.0',
         sourceUrl: 'https://commons.wikimedia.org/wiki/File:One_arm_dumbbell_shoulder_press_2.svg',
@@ -2387,8 +2575,9 @@ export const EXERCISE_MEDIA: Record<string, ExerciseMedia> = {
   },
   'pu-db-fly': {
     stills: [
+      formGuide(require('../../../assets/images/exercises/pu-db-fly-form-guide.webp')),
       {
-        file: require('../../../assets/images/exercises/push-db-fly.jpg'),
+        file: require('../../../assets/images/exercises/push-db-fly.webp'),
         license: 'cc-by-sa',
         attribution: 'Everkinetic, CC BY-SA 3.0',
         sourceUrl: 'https://commons.wikimedia.org/wiki/File:Dumbbell_flys_2.svg',
@@ -2404,8 +2593,9 @@ export const EXERCISE_MEDIA: Record<string, ExerciseMedia> = {
   },
   'pu-db-incline-fly': {
     stills: [
+      formGuide(require('../../../assets/images/exercises/pu-db-incline-fly-form-guide.webp')),
       {
-        file: require('../../../assets/images/exercises/push-db-incline-fly.jpg'),
+        file: require('../../../assets/images/exercises/push-db-incline-fly.webp'),
         license: 'cc-by-sa',
         attribution: 'Everkinetic, CC BY-SA 3.0',
         sourceUrl: 'https://commons.wikimedia.org/wiki/File:Incline_dumbbell_flys_2.svg',
@@ -2420,6 +2610,7 @@ export const EXERCISE_MEDIA: Record<string, ExerciseMedia> = {
     ],
   },
   'pu-db-neutral-press': {
+    stills: [formGuide(require('../../../assets/images/exercises/pu-db-neutral-press-form-guide.webp'))],
     clips: [
       {
         url: 'https://www.youtube.com/watch?v=fZuQpjhaR_M',
@@ -2430,8 +2621,9 @@ export const EXERCISE_MEDIA: Record<string, ExerciseMedia> = {
   },
   'pu-bb-bench': {
     stills: [
+      formGuide(require('../../../assets/images/exercises/pu-bb-bench-form-guide.webp')),
       {
-        file: require('../../../assets/images/exercises/push-bb-bench.jpg'),
+        file: require('../../../assets/images/exercises/push-bb-bench.webp'),
         license: 'cc-by-sa',
         attribution: 'Everkinetic, CC BY-SA 3.0',
         sourceUrl: 'https://commons.wikimedia.org/wiki/File:Bench_press_2.svg',
@@ -2447,8 +2639,9 @@ export const EXERCISE_MEDIA: Record<string, ExerciseMedia> = {
   },
   'pu-bb-incline-bench': {
     stills: [
+      formGuide(require('../../../assets/images/exercises/pu-bb-incline-bench-form-guide.webp')),
       {
-        file: require('../../../assets/images/exercises/push-bb-incline-bench.jpg'),
+        file: require('../../../assets/images/exercises/push-bb-incline-bench.webp'),
         license: 'cc-by-sa',
         attribution: 'Everkinetic, CC BY-SA 3.0',
         sourceUrl: 'https://commons.wikimedia.org/wiki/File:Incline_bench_press_2.svg',
@@ -2464,8 +2657,9 @@ export const EXERCISE_MEDIA: Record<string, ExerciseMedia> = {
   },
   'pu-bb-ohp': {
     stills: [
+      formGuide(require('../../../assets/images/exercises/pu-bb-ohp-form-guide.webp')),
       {
-        file: require('../../../assets/images/exercises/push-bb-ohp.jpg'),
+        file: require('../../../assets/images/exercises/push-bb-ohp.webp'),
         license: 'cc-by-sa',
         attribution: 'Everkinetic, CC BY-SA 3.0',
         sourceUrl: 'https://commons.wikimedia.org/wiki/File:Barbell_shoulder_press_2.svg',
@@ -2480,6 +2674,7 @@ export const EXERCISE_MEDIA: Record<string, ExerciseMedia> = {
     ],
   },
   'pu-bb-push-press': {
+    stills: [formGuide(require('../../../assets/images/exercises/pu-bb-push-press-form-guide.webp'))],
     clips: [
       {
         url: 'https://www.youtube.com/watch?v=Hqxjk5Z35SM',
@@ -2490,8 +2685,9 @@ export const EXERCISE_MEDIA: Record<string, ExerciseMedia> = {
   },
   'pu-bb-close-grip-bench': {
     stills: [
+      formGuide(require('../../../assets/images/exercises/pu-bb-close-grip-bench-form-guide.webp')),
       {
-        file: require('../../../assets/images/exercises/push-bb-close-grip-bench.jpg'),
+        file: require('../../../assets/images/exercises/push-bb-close-grip-bench.webp'),
         license: 'cc-by-sa',
         attribution: 'Everkinetic, CC BY-SA 3.0',
         sourceUrl: 'https://commons.wikimedia.org/wiki/File:Close_grip_barbell_bench_press_2.svg',
@@ -2506,6 +2702,7 @@ export const EXERCISE_MEDIA: Record<string, ExerciseMedia> = {
     ],
   },
   'pu-bb-floor-press': {
+    stills: [formGuide(require('../../../assets/images/exercises/pu-bb-floor-press-form-guide.webp'))],
     clips: [
       {
         url: 'https://www.youtube.com/watch?v=gacJl2rHwtg',
@@ -2516,14 +2713,15 @@ export const EXERCISE_MEDIA: Record<string, ExerciseMedia> = {
   },
   'pu-cable-chest-press': {
     stills: [
+      formGuide(require('../../../assets/images/exercises/pu-cable-chest-press-form-guide.webp')),
       {
-        file: require('../../../assets/images/exercises/pu-cable-chest-press-fedb-0.jpg'),
+        file: require('../../../assets/images/exercises/pu-cable-chest-press-fedb-0.webp'),
         license: 'public-domain',
         attribution: 'free-exercise-db (The Unlicense)',
         sourceUrl: 'https://github.com/yuhonas/free-exercise-db/blob/main/exercises/Cable_Chest_Press/0.jpg',
       },
       {
-        file: require('../../../assets/images/exercises/pu-cable-chest-press-fedb-1.jpg'),
+        file: require('../../../assets/images/exercises/pu-cable-chest-press-fedb-1.webp'),
         license: 'public-domain',
         attribution: 'free-exercise-db (The Unlicense)',
         sourceUrl: 'https://github.com/yuhonas/free-exercise-db/blob/main/exercises/Cable_Chest_Press/1.jpg',
@@ -2538,6 +2736,7 @@ export const EXERCISE_MEDIA: Record<string, ExerciseMedia> = {
     ],
   },
   'pu-cable-incline-press': {
+    stills: [formGuide(require('../../../assets/images/exercises/pu-cable-incline-press-form-guide.webp'))],
     clips: [
       {
         url: 'https://www.youtube.com/watch?v=qctZmqNhkfU',
@@ -2548,8 +2747,9 @@ export const EXERCISE_MEDIA: Record<string, ExerciseMedia> = {
   },
   'pu-cable-fly': {
     stills: [
+      formGuide(require('../../../assets/images/exercises/pu-cable-fly-form-guide.webp')),
       {
-        file: require('../../../assets/images/exercises/push-cable-fly.jpg'),
+        file: require('../../../assets/images/exercises/push-cable-fly.webp'),
         license: 'cc-by-sa',
         attribution: 'Everkinetic, CC BY-SA 3.0',
         sourceUrl: 'https://commons.wikimedia.org/wiki/File:Cable_crossover_2.svg',
@@ -2564,6 +2764,7 @@ export const EXERCISE_MEDIA: Record<string, ExerciseMedia> = {
     ],
   },
   'pu-cable-ohp': {
+    stills: [formGuide(require('../../../assets/images/exercises/pu-cable-ohp-form-guide.webp'))],
     clips: [
       {
         url: 'https://www.youtube.com/watch?v=7LVUvRVexo8',
@@ -2573,6 +2774,7 @@ export const EXERCISE_MEDIA: Record<string, ExerciseMedia> = {
     ],
   },
   'pu-cable-single-arm-press': {
+    stills: [formGuide(require('../../../assets/images/exercises/pu-cable-single-arm-press-form-guide.webp'))],
     clips: [
       {
         url: 'https://www.youtube.com/watch?v=D9e8ZBlFPBw',
@@ -2582,6 +2784,7 @@ export const EXERCISE_MEDIA: Record<string, ExerciseMedia> = {
     ],
   },
   'pu-cable-low-to-high-fly': {
+    stills: [formGuide(require('../../../assets/images/exercises/pu-cable-low-to-high-fly-form-guide.webp'))],
     clips: [
       {
         url: 'https://www.youtube.com/watch?v=eQ_NBB6OBH4',
@@ -2591,6 +2794,7 @@ export const EXERCISE_MEDIA: Record<string, ExerciseMedia> = {
     ],
   },
   'pu-band-chest-press': {
+    stills: [formGuide(require('../../../assets/images/exercises/pu-band-chest-press-form-guide.webp'))],
     clips: [
       {
         url: 'https://www.youtube.com/watch?v=9NGo4lZd65o',
@@ -2600,6 +2804,7 @@ export const EXERCISE_MEDIA: Record<string, ExerciseMedia> = {
     ],
   },
   'pu-band-ohp': {
+    stills: [formGuide(require('../../../assets/images/exercises/pu-band-ohp-form-guide.webp'))],
     clips: [
       {
         url: 'https://www.youtube.com/watch?v=SoKGZpyXUMY',
@@ -2610,14 +2815,15 @@ export const EXERCISE_MEDIA: Record<string, ExerciseMedia> = {
   },
   'pu-kb-floor-press': {
     stills: [
+      formGuide(require('../../../assets/images/exercises/pu-kb-floor-press-form-guide.webp')),
       {
-        file: require('../../../assets/images/exercises/pu-kb-floor-press-fedb-0.jpg'),
+        file: require('../../../assets/images/exercises/pu-kb-floor-press-fedb-0.webp'),
         license: 'public-domain',
         attribution: 'free-exercise-db (The Unlicense)',
         sourceUrl: 'https://github.com/yuhonas/free-exercise-db/blob/main/exercises/One-Arm_Kettlebell_Floor_Press/0.jpg',
       },
       {
-        file: require('../../../assets/images/exercises/pu-kb-floor-press-fedb-1.jpg'),
+        file: require('../../../assets/images/exercises/pu-kb-floor-press-fedb-1.webp'),
         license: 'public-domain',
         attribution: 'free-exercise-db (The Unlicense)',
         sourceUrl: 'https://github.com/yuhonas/free-exercise-db/blob/main/exercises/One-Arm_Kettlebell_Floor_Press/1.jpg',
@@ -2632,6 +2838,7 @@ export const EXERCISE_MEDIA: Record<string, ExerciseMedia> = {
     ],
   },
   'pu-kb-ohp': {
+    stills: [formGuide(require('../../../assets/images/exercises/pu-kb-ohp-form-guide.webp'))],
     clips: [
       {
         url: 'https://www.youtube.com/watch?v=X-uFqWtjpGI',
@@ -2641,6 +2848,7 @@ export const EXERCISE_MEDIA: Record<string, ExerciseMedia> = {
     ],
   },
   'pu-kb-push-press': {
+    stills: [formGuide(require('../../../assets/images/exercises/pu-kb-push-press-form-guide.webp'))],
     clips: [
       {
         url: 'https://www.youtube.com/watch?v=k4q6HkT99iA',
@@ -2650,6 +2858,7 @@ export const EXERCISE_MEDIA: Record<string, ExerciseMedia> = {
     ],
   },
   'pu-landmine-press': {
+    stills: [formGuide(require('../../../assets/images/exercises/pu-landmine-press-form-guide.webp'))],
     clips: [
       {
         url: 'https://www.youtube.com/watch?v=3gYz0bLG-wY',
@@ -2660,20 +2869,21 @@ export const EXERCISE_MEDIA: Record<string, ExerciseMedia> = {
   },
   'tr-cable-pushdown': {
     stills: [
+      formGuide(require('../../../assets/images/exercises/tr-cable-pushdown-form-guide.webp')),
       {
-        file: require('../../../assets/images/exercises/tr-cable-pushdown-fedb-0.jpg'),
+        file: require('../../../assets/images/exercises/tr-cable-pushdown-fedb-0.webp'),
         license: 'public-domain',
         attribution: 'free-exercise-db (The Unlicense)',
         sourceUrl: 'https://github.com/yuhonas/free-exercise-db/blob/main/exercises/Triceps_Pushdown/0.jpg',
       },
       {
-        file: require('../../../assets/images/exercises/tr-cable-pushdown-fedb-1.jpg'),
+        file: require('../../../assets/images/exercises/tr-cable-pushdown-fedb-1.webp'),
         license: 'public-domain',
         attribution: 'free-exercise-db (The Unlicense)',
         sourceUrl: 'https://github.com/yuhonas/free-exercise-db/blob/main/exercises/Triceps_Pushdown/1.jpg',
       },
       {
-        file: require('../../../assets/images/exercises/tricep-cable-pushdown.jpg'),
+        file: require('../../../assets/images/exercises/tricep-cable-pushdown.webp'),
         license: 'cc-by-sa',
         attribution: 'Everkinetic, CC BY-SA 3.0',
         sourceUrl: 'https://commons.wikimedia.org/wiki/File:Triceps_pushdown_with_cable_2.svg',
@@ -2688,6 +2898,7 @@ export const EXERCISE_MEDIA: Record<string, ExerciseMedia> = {
     ],
   },
   'tr-band-pushdown': {
+    stills: [formGuide(require('../../../assets/images/exercises/tr-band-pushdown-form-guide.webp'))],
     clips: [
       {
         url: 'https://www.youtube.com/watch?v=qjPN6ElNqpc',
@@ -2697,6 +2908,7 @@ export const EXERCISE_MEDIA: Record<string, ExerciseMedia> = {
     ],
   },
   'tr-db-overhead-extension': {
+    stills: [formGuide(require('../../../assets/images/exercises/tr-db-overhead-extension-form-guide.webp'))],
     clips: [
       {
         url: 'https://www.youtube.com/watch?v=X-iV-cG8cYs',
@@ -2712,8 +2924,9 @@ export const EXERCISE_MEDIA: Record<string, ExerciseMedia> = {
   },
   'tr-db-skull-crusher': {
     stills: [
+      formGuide(require('../../../assets/images/exercises/tr-db-skull-crusher-form-guide.webp')),
       {
-        file: require('../../../assets/images/exercises/tricep-db-skull-crusher.jpg'),
+        file: require('../../../assets/images/exercises/tricep-db-skull-crusher.webp'),
         license: 'cc-by-sa',
         attribution: 'Everkinetic, CC BY-SA 3.0',
         sourceUrl: 'https://commons.wikimedia.org/wiki/File:Lying_triceps_extension_with_dumbbells_2.svg',
@@ -2729,8 +2942,9 @@ export const EXERCISE_MEDIA: Record<string, ExerciseMedia> = {
   },
   'tr-db-kickback': {
     stills: [
+      formGuide(require('../../../assets/images/exercises/tr-db-kickback-form-guide.webp')),
       {
-        file: require('../../../assets/images/exercises/tricep-db-kickback.jpg'),
+        file: require('../../../assets/images/exercises/tricep-db-kickback.webp'),
         license: 'cc-by-sa',
         attribution: 'Everkinetic, CC BY-SA 3.0',
         sourceUrl: 'https://commons.wikimedia.org/wiki/File:Triceps_kickback_with_dumbbell_2.svg',
@@ -2746,8 +2960,9 @@ export const EXERCISE_MEDIA: Record<string, ExerciseMedia> = {
   },
   'de-db-lateral-raise': {
     stills: [
+      formGuide(require('../../../assets/images/exercises/de-db-lateral-raise-form-guide.webp')),
       {
-        file: require('../../../assets/images/exercises/delt-db-lateral-raise.jpg'),
+        file: require('../../../assets/images/exercises/delt-db-lateral-raise.webp'),
         license: 'cc-by-sa',
         attribution: 'Everkinetic, CC BY-SA 3.0',
         sourceUrl: 'https://commons.wikimedia.org/wiki/File:Lateral_dumbbell_raises_2.svg',
@@ -2763,20 +2978,21 @@ export const EXERCISE_MEDIA: Record<string, ExerciseMedia> = {
   },
   'de-db-front-raise': {
     stills: [
+      formGuide(require('../../../assets/images/exercises/de-db-front-raise-form-guide.webp')),
       {
-        file: require('../../../assets/images/exercises/de-db-front-raise-fedb-0.jpg'),
+        file: require('../../../assets/images/exercises/de-db-front-raise-fedb-0.webp'),
         license: 'public-domain',
         attribution: 'free-exercise-db (The Unlicense)',
         sourceUrl: 'https://github.com/yuhonas/free-exercise-db/blob/main/exercises/Dumbbell_Raise/0.jpg',
       },
       {
-        file: require('../../../assets/images/exercises/de-db-front-raise-fedb-1.jpg'),
+        file: require('../../../assets/images/exercises/de-db-front-raise-fedb-1.webp'),
         license: 'public-domain',
         attribution: 'free-exercise-db (The Unlicense)',
         sourceUrl: 'https://github.com/yuhonas/free-exercise-db/blob/main/exercises/Dumbbell_Raise/1.jpg',
       },
       {
-        file: require('../../../assets/images/exercises/delt-db-front-raise.jpg'),
+        file: require('../../../assets/images/exercises/delt-db-front-raise.webp'),
         license: 'cc-by-sa',
         attribution: 'Everkinetic, CC BY-SA 3.0',
         sourceUrl: 'https://commons.wikimedia.org/wiki/File:Front_dumbbell_raise_2.svg',
@@ -2791,6 +3007,7 @@ export const EXERCISE_MEDIA: Record<string, ExerciseMedia> = {
     ],
   },
   'de-cable-lateral-raise': {
+    stills: [formGuide(require('../../../assets/images/exercises/de-cable-lateral-raise-form-guide.webp'))],
     clips: [
       {
         url: 'https://www.youtube.com/watch?v=zpbm-xRHB6k',
@@ -2800,6 +3017,7 @@ export const EXERCISE_MEDIA: Record<string, ExerciseMedia> = {
     ],
   },
   'de-band-lateral-raise': {
+    stills: [formGuide(require('../../../assets/images/exercises/de-band-lateral-raise-form-guide.webp'))],
     clips: [
       {
         url: 'https://www.youtube.com/watch?v=gfEyrmxbCbw',
@@ -2810,8 +3028,9 @@ export const EXERCISE_MEDIA: Record<string, ExerciseMedia> = {
   },
   'de-db-rear-delt-fly': {
     stills: [
+      formGuide(require('../../../assets/images/exercises/de-db-rear-delt-fly-form-guide.webp')),
       {
-        file: require('../../../assets/images/exercises/delt-db-rear-fly.jpg'),
+        file: require('../../../assets/images/exercises/delt-db-rear-fly.webp'),
         license: 'cc-by-sa',
         attribution: 'Everkinetic, CC BY-SA 3.0',
         sourceUrl: 'https://commons.wikimedia.org/wiki/File:Bent_over_rear_deltoid_raise_with_head_on_bench_2.svg',
@@ -2826,6 +3045,7 @@ export const EXERCISE_MEDIA: Record<string, ExerciseMedia> = {
     ],
   },
   'de-band-front-raise': {
+    stills: [formGuide(require('../../../assets/images/exercises/de-band-front-raise-form-guide.webp'))],
     clips: [
       {
         url: 'https://www.youtube.com/watch?v=mPNvwT0Lq04',
@@ -2835,6 +3055,7 @@ export const EXERCISE_MEDIA: Record<string, ExerciseMedia> = {
     ],
   },
   'pl-db-row': {
+    stills: [formGuide(require('../../../assets/images/exercises/pl-db-row-form-guide.webp'))],
     clips: [
       {
         url: 'https://www.youtube.com/shorts/R8y16opVx9c',
@@ -2849,6 +3070,7 @@ export const EXERCISE_MEDIA: Record<string, ExerciseMedia> = {
     ],
   },
   'pl-band-row': {
+    stills: [formGuide(require('../../../assets/images/exercises/pl-band-row-form-guide.webp'))],
     clips: [
       {
         url: 'https://www.youtube.com/watch?v=TBNt2DBvkl4',
@@ -2859,20 +3081,21 @@ export const EXERCISE_MEDIA: Record<string, ExerciseMedia> = {
   },
   'pl-chinup': {
     stills: [
+      formGuide(require('../../../assets/images/exercises/pl-chinup-form-guide.webp')),
       {
-        file: require('../../../assets/images/exercises/pl-chinup-fedb-0.jpg'),
+        file: require('../../../assets/images/exercises/pl-chinup-fedb-0.webp'),
         license: 'public-domain',
         attribution: 'free-exercise-db (The Unlicense)',
         sourceUrl: 'https://github.com/yuhonas/free-exercise-db/blob/main/exercises/Chin-Up/0.jpg',
       },
       {
-        file: require('../../../assets/images/exercises/pl-chinup-fedb-1.jpg'),
+        file: require('../../../assets/images/exercises/pl-chinup-fedb-1.webp'),
         license: 'public-domain',
         attribution: 'free-exercise-db (The Unlicense)',
         sourceUrl: 'https://github.com/yuhonas/free-exercise-db/blob/main/exercises/Chin-Up/1.jpg',
       },
       {
-        file: require('../../../assets/images/exercises/pl-chinup.jpg'),
+        file: require('../../../assets/images/exercises/pl-chinup.webp'),
         license: 'cc-by-sa',
         attribution: 'Everkinetic, CC BY-SA 3.0',
         sourceUrl: 'https://commons.wikimedia.org/wiki/File:Chin_ups_2.svg',
@@ -2887,6 +3110,7 @@ export const EXERCISE_MEDIA: Record<string, ExerciseMedia> = {
     ],
   },
   'pl-wide-pullup': {
+    stills: [formGuide(require('../../../assets/images/exercises/pl-wide-pullup-form-guide.webp'))],
     clips: [
       {
         url: 'https://www.youtube.com/watch?v=9A6NPVPzkqQ',
@@ -2896,6 +3120,7 @@ export const EXERCISE_MEDIA: Record<string, ExerciseMedia> = {
     ],
   },
   'pl-neutral-pullup': {
+    stills: [formGuide(require('../../../assets/images/exercises/pl-neutral-pullup-form-guide.webp'))],
     clips: [
       {
         url: 'https://www.youtube.com/watch?v=cd_38C6LuvY',
@@ -2905,6 +3130,7 @@ export const EXERCISE_MEDIA: Record<string, ExerciseMedia> = {
     ],
   },
   'pl-negative-pullup': {
+    stills: [formGuide(require('../../../assets/images/exercises/pl-negative-pullup-form-guide.webp'))],
     clips: [
       {
         url: 'https://www.youtube.com/watch?v=gbPURTSxQLY',
@@ -2914,6 +3140,7 @@ export const EXERCISE_MEDIA: Record<string, ExerciseMedia> = {
     ],
   },
   'pl-commando-pullup': {
+    stills: [formGuide(require('../../../assets/images/exercises/pl-commando-pullup-form-guide.webp'))],
     clips: [
       {
         url: 'https://www.youtube.com/watch?v=nxuS98hb3B4',
@@ -2924,20 +3151,21 @@ export const EXERCISE_MEDIA: Record<string, ExerciseMedia> = {
   },
   'pl-inverted-row': {
     stills: [
+      formGuide(require('../../../assets/images/exercises/pl-inverted-row-form-guide.webp')),
       {
-        file: require('../../../assets/images/exercises/pl-inverted-row-fedb-0.jpg'),
+        file: require('../../../assets/images/exercises/pl-inverted-row-fedb-0.webp'),
         license: 'public-domain',
         attribution: 'free-exercise-db (The Unlicense)',
         sourceUrl: 'https://github.com/yuhonas/free-exercise-db/blob/main/exercises/Inverted_Row/0.jpg',
       },
       {
-        file: require('../../../assets/images/exercises/pl-inverted-row-fedb-1.jpg'),
+        file: require('../../../assets/images/exercises/pl-inverted-row-fedb-1.webp'),
         license: 'public-domain',
         attribution: 'free-exercise-db (The Unlicense)',
         sourceUrl: 'https://github.com/yuhonas/free-exercise-db/blob/main/exercises/Inverted_Row/1.jpg',
       },
       {
-        file: require('../../../assets/images/exercises/pl-inverted-row.jpg'),
+        file: require('../../../assets/images/exercises/pl-inverted-row.webp'),
         license: 'cc-by-sa',
         attribution: 'Everkinetic, CC BY-SA 3.0',
         sourceUrl: 'https://commons.wikimedia.org/wiki/File:Body_row_2.svg',
@@ -2952,6 +3180,7 @@ export const EXERCISE_MEDIA: Record<string, ExerciseMedia> = {
     ],
   },
   'pl-table-row': {
+    stills: [formGuide(require('../../../assets/images/exercises/pl-table-row-form-guide.webp'))],
     clips: [
       {
         url: 'https://www.youtube.com/watch?v=7mNiAdNdcZs',
@@ -2961,6 +3190,7 @@ export const EXERCISE_MEDIA: Record<string, ExerciseMedia> = {
     ],
   },
   'pl-doorframe-row': {
+    stills: [formGuide(require('../../../assets/images/exercises/pl-doorframe-row-form-guide.webp'))],
     clips: [
       {
         url: 'https://www.youtube.com/watch?v=g8wWFlr2gQU',
@@ -2970,6 +3200,7 @@ export const EXERCISE_MEDIA: Record<string, ExerciseMedia> = {
     ],
   },
   'pl-prone-y-raise': {
+    stills: [formGuide(require('../../../assets/images/exercises/pl-prone-y-raise-form-guide.webp'))],
     clips: [
       {
         url: 'https://www.youtube.com/watch?v=w1AWGKubE5U',
@@ -2979,6 +3210,7 @@ export const EXERCISE_MEDIA: Record<string, ExerciseMedia> = {
     ],
   },
   'pl-hanging-scap-pull': {
+    stills: [formGuide(require('../../../assets/images/exercises/pl-hanging-scap-pull-form-guide.webp'))],
     clips: [
       {
         url: 'https://www.youtube.com/watch?v=1I9JZz8iNFA',
@@ -2989,14 +3221,15 @@ export const EXERCISE_MEDIA: Record<string, ExerciseMedia> = {
   },
   'pl-db-single-arm-row': {
     stills: [
+      formGuide(require('../../../assets/images/exercises/pl-db-single-arm-row-form-guide.webp')),
       {
-        file: require('../../../assets/images/exercises/pl-db-single-arm-row-fedb-0.jpg'),
+        file: require('../../../assets/images/exercises/pl-db-single-arm-row-fedb-0.webp'),
         license: 'public-domain',
         attribution: 'free-exercise-db (The Unlicense)',
         sourceUrl: 'https://github.com/yuhonas/free-exercise-db/blob/main/exercises/One-Arm_Dumbbell_Row/0.jpg',
       },
       {
-        file: require('../../../assets/images/exercises/pl-db-single-arm-row-fedb-1.jpg'),
+        file: require('../../../assets/images/exercises/pl-db-single-arm-row-fedb-1.webp'),
         license: 'public-domain',
         attribution: 'free-exercise-db (The Unlicense)',
         sourceUrl: 'https://github.com/yuhonas/free-exercise-db/blob/main/exercises/One-Arm_Dumbbell_Row/1.jpg',
@@ -3011,6 +3244,7 @@ export const EXERCISE_MEDIA: Record<string, ExerciseMedia> = {
     ],
   },
   'pl-db-renegade-row': {
+    stills: [formGuide(require('../../../assets/images/exercises/pl-db-renegade-row-form-guide.webp'))],
     clips: [
       {
         url: 'https://www.youtube.com/watch?v=F68p7cJFtOI',
@@ -3021,8 +3255,9 @@ export const EXERCISE_MEDIA: Record<string, ExerciseMedia> = {
   },
   'pl-db-reverse-fly': {
     stills: [
+      formGuide(require('../../../assets/images/exercises/pl-db-reverse-fly-form-guide.webp')),
       {
-        file: require('../../../assets/images/exercises/delt-db-rear-fly.jpg'),
+        file: require('../../../assets/images/exercises/delt-db-rear-fly.webp'),
         license: 'cc-by-sa',
         attribution: 'Everkinetic, CC BY-SA 3.0',
         sourceUrl: 'https://commons.wikimedia.org/wiki/File:Bent_over_rear_deltoid_raise_with_head_on_bench_2.svg',
@@ -3038,20 +3273,21 @@ export const EXERCISE_MEDIA: Record<string, ExerciseMedia> = {
   },
   'pl-db-shrug': {
     stills: [
+      formGuide(require('../../../assets/images/exercises/pl-db-shrug-form-guide.webp')),
       {
-        file: require('../../../assets/images/exercises/pl-db-shrug-fedb-0.jpg'),
+        file: require('../../../assets/images/exercises/pl-db-shrug-fedb-0.webp'),
         license: 'public-domain',
         attribution: 'free-exercise-db (The Unlicense)',
         sourceUrl: 'https://github.com/yuhonas/free-exercise-db/blob/main/exercises/Dumbbell_Shrug/0.jpg',
       },
       {
-        file: require('../../../assets/images/exercises/pl-db-shrug-fedb-1.jpg'),
+        file: require('../../../assets/images/exercises/pl-db-shrug-fedb-1.webp'),
         license: 'public-domain',
         attribution: 'free-exercise-db (The Unlicense)',
         sourceUrl: 'https://github.com/yuhonas/free-exercise-db/blob/main/exercises/Dumbbell_Shrug/1.jpg',
       },
       {
-        file: require('../../../assets/images/exercises/pl-db-shrug.jpg'),
+        file: require('../../../assets/images/exercises/pl-db-shrug.webp'),
         license: 'cc-by-sa',
         attribution: 'Everkinetic, CC BY-SA 3.0',
         sourceUrl: 'https://commons.wikimedia.org/wiki/File:Dumbbell-shrugs-2.png',
@@ -3066,6 +3302,7 @@ export const EXERCISE_MEDIA: Record<string, ExerciseMedia> = {
     ],
   },
   'pl-db-high-pull': {
+    stills: [formGuide(require('../../../assets/images/exercises/pl-db-high-pull-form-guide.webp'))],
     clips: [
       {
         url: 'https://www.youtube.com/watch?v=2oq8CDNM8ww',
@@ -3075,6 +3312,7 @@ export const EXERCISE_MEDIA: Record<string, ExerciseMedia> = {
     ],
   },
   'pl-db-chest-supported-row': {
+    stills: [formGuide(require('../../../assets/images/exercises/pl-db-chest-supported-row-form-guide.webp'))],
     clips: [
       {
         url: 'https://www.youtube.com/watch?v=_b6ch2nIchk',
@@ -3084,6 +3322,7 @@ export const EXERCISE_MEDIA: Record<string, ExerciseMedia> = {
     ],
   },
   'pl-db-incline-row': {
+    stills: [formGuide(require('../../../assets/images/exercises/pl-db-incline-row-form-guide.webp'))],
     clips: [
       {
         url: 'https://www.youtube.com/watch?v=tvk5Fb2K0Ns',
@@ -3093,6 +3332,7 @@ export const EXERCISE_MEDIA: Record<string, ExerciseMedia> = {
     ],
   },
   'pl-bb-row': {
+    stills: [formGuide(require('../../../assets/images/exercises/pl-bb-row-form-guide.webp'))],
     clips: [
       {
         url: 'https://www.youtube.com/watch?v=rqTOAM8WoeM',
@@ -3102,6 +3342,7 @@ export const EXERCISE_MEDIA: Record<string, ExerciseMedia> = {
     ],
   },
   'pl-bb-pendlay-row': {
+    stills: [formGuide(require('../../../assets/images/exercises/pl-bb-pendlay-row-form-guide.webp'))],
     clips: [
       {
         url: 'https://www.youtube.com/watch?v=C_p-s66KBpg',
@@ -3112,20 +3353,21 @@ export const EXERCISE_MEDIA: Record<string, ExerciseMedia> = {
   },
   'pl-bb-shrug': {
     stills: [
+      formGuide(require('../../../assets/images/exercises/pl-bb-shrug-form-guide.webp')),
       {
-        file: require('../../../assets/images/exercises/pl-bb-shrug-fedb-0.jpg'),
+        file: require('../../../assets/images/exercises/pl-bb-shrug-fedb-0.webp'),
         license: 'public-domain',
         attribution: 'free-exercise-db (The Unlicense)',
         sourceUrl: 'https://github.com/yuhonas/free-exercise-db/blob/main/exercises/Barbell_Shrug/0.jpg',
       },
       {
-        file: require('../../../assets/images/exercises/pl-bb-shrug-fedb-1.jpg'),
+        file: require('../../../assets/images/exercises/pl-bb-shrug-fedb-1.webp'),
         license: 'public-domain',
         attribution: 'free-exercise-db (The Unlicense)',
         sourceUrl: 'https://github.com/yuhonas/free-exercise-db/blob/main/exercises/Barbell_Shrug/1.jpg',
       },
       {
-        file: require('../../../assets/images/exercises/pl-bb-shrug.jpg'),
+        file: require('../../../assets/images/exercises/pl-bb-shrug.webp'),
         license: 'cc-by-sa',
         attribution: 'Everkinetic, CC BY-SA 3.0',
         sourceUrl: 'https://commons.wikimedia.org/wiki/File:Barbell_shrugs_2.svg',
@@ -3141,8 +3383,9 @@ export const EXERCISE_MEDIA: Record<string, ExerciseMedia> = {
   },
   'pl-bb-upright-row': {
     stills: [
+      formGuide(require('../../../assets/images/exercises/pl-bb-upright-row-form-guide.webp')),
       {
-        file: require('../../../assets/images/exercises/pl-bb-upright-row.jpg'),
+        file: require('../../../assets/images/exercises/pl-bb-upright-row.webp'),
         license: 'cc-by-sa',
         attribution: 'Everkinetic, CC BY-SA 3.0',
         sourceUrl: 'https://commons.wikimedia.org/wiki/File:Upright_barbell_rows_2.svg',
@@ -3157,6 +3400,7 @@ export const EXERCISE_MEDIA: Record<string, ExerciseMedia> = {
     ],
   },
   'pl-bb-high-pull': {
+    stills: [formGuide(require('../../../assets/images/exercises/pl-bb-high-pull-form-guide.webp'))],
     clips: [
       {
         url: 'https://www.youtube.com/watch?v=y9d3jCocliI',
@@ -3166,6 +3410,7 @@ export const EXERCISE_MEDIA: Record<string, ExerciseMedia> = {
     ],
   },
   'pl-bb-landmine-row': {
+    stills: [formGuide(require('../../../assets/images/exercises/pl-bb-landmine-row-form-guide.webp'))],
     clips: [
       {
         url: 'https://www.youtube.com/watch?v=tiETx7VNDf0',
@@ -3176,20 +3421,21 @@ export const EXERCISE_MEDIA: Record<string, ExerciseMedia> = {
   },
   'pl-cable-row': {
     stills: [
+      formGuide(require('../../../assets/images/exercises/pl-cable-row-form-guide.webp')),
       {
-        file: require('../../../assets/images/exercises/pl-cable-row-fedb-0.jpg'),
+        file: require('../../../assets/images/exercises/pl-cable-row-fedb-0.webp'),
         license: 'public-domain',
         attribution: 'free-exercise-db (The Unlicense)',
         sourceUrl: 'https://github.com/yuhonas/free-exercise-db/blob/main/exercises/Seated_Cable_Rows/0.jpg',
       },
       {
-        file: require('../../../assets/images/exercises/pl-cable-row-fedb-1.jpg'),
+        file: require('../../../assets/images/exercises/pl-cable-row-fedb-1.webp'),
         license: 'public-domain',
         attribution: 'free-exercise-db (The Unlicense)',
         sourceUrl: 'https://github.com/yuhonas/free-exercise-db/blob/main/exercises/Seated_Cable_Rows/1.jpg',
       },
       {
-        file: require('../../../assets/images/exercises/pl-cable-row.jpg'),
+        file: require('../../../assets/images/exercises/pl-cable-row.webp'),
         license: 'cc-by-sa',
         attribution: 'Everkinetic, CC BY-SA 3.0',
         sourceUrl: 'https://commons.wikimedia.org/wiki/File:Seated_cable_rows_2.svg',
@@ -3205,8 +3451,9 @@ export const EXERCISE_MEDIA: Record<string, ExerciseMedia> = {
   },
   'pl-lat-pulldown': {
     stills: [
+      formGuide(require('../../../assets/images/exercises/pl-lat-pulldown-form-guide.webp')),
       {
-        file: require('../../../assets/images/exercises/pl-lat-pulldown.jpg'),
+        file: require('../../../assets/images/exercises/pl-lat-pulldown.webp'),
         license: 'cc-by-sa',
         attribution: 'Everkinetic, CC BY-SA 3.0',
         sourceUrl: 'https://commons.wikimedia.org/wiki/File:Wide_grip_lat_pull_down_2.svg',
@@ -3221,6 +3468,7 @@ export const EXERCISE_MEDIA: Record<string, ExerciseMedia> = {
     ],
   },
   'pl-cable-face-pull': {
+    stills: [formGuide(require('../../../assets/images/exercises/pl-cable-face-pull-form-guide.webp'))],
     clips: [
       {
         url: 'https://www.youtube.com/watch?v=eTCBSFlCJ_s',
@@ -3231,20 +3479,21 @@ export const EXERCISE_MEDIA: Record<string, ExerciseMedia> = {
   },
   'pl-cable-rear-delt-fly': {
     stills: [
+      formGuide(require('../../../assets/images/exercises/pl-cable-rear-delt-fly-form-guide.webp')),
       {
-        file: require('../../../assets/images/exercises/pl-cable-rear-delt-fly-fedb-0.jpg'),
+        file: require('../../../assets/images/exercises/pl-cable-rear-delt-fly-fedb-0.webp'),
         license: 'public-domain',
         attribution: 'free-exercise-db (The Unlicense)',
         sourceUrl: 'https://github.com/yuhonas/free-exercise-db/blob/main/exercises/Cable_Rear_Delt_Fly/0.jpg',
       },
       {
-        file: require('../../../assets/images/exercises/pl-cable-rear-delt-fly-fedb-1.jpg'),
+        file: require('../../../assets/images/exercises/pl-cable-rear-delt-fly-fedb-1.webp'),
         license: 'public-domain',
         attribution: 'free-exercise-db (The Unlicense)',
         sourceUrl: 'https://github.com/yuhonas/free-exercise-db/blob/main/exercises/Cable_Rear_Delt_Fly/1.jpg',
       },
       {
-        file: require('../../../assets/images/exercises/pl-cable-rear-delt-fly.jpg'),
+        file: require('../../../assets/images/exercises/pl-cable-rear-delt-fly.webp'),
         license: 'cc-by-sa',
         attribution: 'Everkinetic, CC BY-SA 3.0',
         sourceUrl: 'https://commons.wikimedia.org/wiki/File:Bent_over_lateral_cable_raises_2.svg',
@@ -3259,6 +3508,7 @@ export const EXERCISE_MEDIA: Record<string, ExerciseMedia> = {
     ],
   },
   'pl-cable-single-arm-row': {
+    stills: [formGuide(require('../../../assets/images/exercises/pl-cable-single-arm-row-form-guide.webp'))],
     clips: [
       {
         url: 'https://www.youtube.com/watch?v=CrylzZHfO1c',
@@ -3269,14 +3519,15 @@ export const EXERCISE_MEDIA: Record<string, ExerciseMedia> = {
   },
   'pl-cable-straight-arm-pulldown': {
     stills: [
+      formGuide(require('../../../assets/images/exercises/pl-cable-straight-arm-pulldown-form-guide.webp')),
       {
-        file: require('../../../assets/images/exercises/pl-cable-straight-arm-pulldown-fedb-0.jpg'),
+        file: require('../../../assets/images/exercises/pl-cable-straight-arm-pulldown-fedb-0.webp'),
         license: 'public-domain',
         attribution: 'free-exercise-db (The Unlicense)',
         sourceUrl: 'https://github.com/yuhonas/free-exercise-db/blob/main/exercises/Straight-Arm_Pulldown/0.jpg',
       },
       {
-        file: require('../../../assets/images/exercises/pl-cable-straight-arm-pulldown-fedb-1.jpg'),
+        file: require('../../../assets/images/exercises/pl-cable-straight-arm-pulldown-fedb-1.webp'),
         license: 'public-domain',
         attribution: 'free-exercise-db (The Unlicense)',
         sourceUrl: 'https://github.com/yuhonas/free-exercise-db/blob/main/exercises/Straight-Arm_Pulldown/1.jpg',
@@ -3291,6 +3542,7 @@ export const EXERCISE_MEDIA: Record<string, ExerciseMedia> = {
     ],
   },
   'pl-band-face-pull': {
+    stills: [formGuide(require('../../../assets/images/exercises/pl-band-face-pull-form-guide.webp'))],
     clips: [
       {
         url: 'https://www.youtube.com/watch?v=JBpj9-3tP0c',
@@ -3301,14 +3553,15 @@ export const EXERCISE_MEDIA: Record<string, ExerciseMedia> = {
   },
   'pl-band-pull-apart': {
     stills: [
+      formGuide(require('../../../assets/images/exercises/pl-band-pull-apart-form-guide.webp')),
       {
-        file: require('../../../assets/images/exercises/pl-band-pull-apart-fedb-0.jpg'),
+        file: require('../../../assets/images/exercises/pl-band-pull-apart-fedb-0.webp'),
         license: 'public-domain',
         attribution: 'free-exercise-db (The Unlicense)',
         sourceUrl: 'https://github.com/yuhonas/free-exercise-db/blob/main/exercises/Band_Pull_Apart/0.jpg',
       },
       {
-        file: require('../../../assets/images/exercises/pl-band-pull-apart-fedb-1.jpg'),
+        file: require('../../../assets/images/exercises/pl-band-pull-apart-fedb-1.webp'),
         license: 'public-domain',
         attribution: 'free-exercise-db (The Unlicense)',
         sourceUrl: 'https://github.com/yuhonas/free-exercise-db/blob/main/exercises/Band_Pull_Apart/1.jpg',
@@ -3323,6 +3576,7 @@ export const EXERCISE_MEDIA: Record<string, ExerciseMedia> = {
     ],
   },
   'pl-band-lat-pulldown': {
+    stills: [formGuide(require('../../../assets/images/exercises/pl-band-lat-pulldown-form-guide.webp'))],
     clips: [
       {
         url: 'https://www.youtube.com/watch?v=VxCt-KKvzBQ',
@@ -3332,6 +3586,7 @@ export const EXERCISE_MEDIA: Record<string, ExerciseMedia> = {
     ],
   },
   'pl-band-shrug': {
+    stills: [formGuide(require('../../../assets/images/exercises/pl-band-shrug-form-guide.webp'))],
     clips: [
       {
         url: 'https://www.youtube.com/watch?v=JcgLXCqSpKQ',
@@ -3341,6 +3596,7 @@ export const EXERCISE_MEDIA: Record<string, ExerciseMedia> = {
     ],
   },
   'pl-kb-row': {
+    stills: [formGuide(require('../../../assets/images/exercises/pl-kb-row-form-guide.webp'))],
     clips: [
       {
         url: 'https://www.youtube.com/watch?v=IyQAMOV0WAc',
@@ -3350,6 +3606,7 @@ export const EXERCISE_MEDIA: Record<string, ExerciseMedia> = {
     ],
   },
   'pl-kb-high-pull': {
+    stills: [formGuide(require('../../../assets/images/exercises/pl-kb-high-pull-form-guide.webp'))],
     clips: [
       {
         url: 'https://www.youtube.com/watch?v=OkLpueSAKrY',
@@ -3359,6 +3616,7 @@ export const EXERCISE_MEDIA: Record<string, ExerciseMedia> = {
     ],
   },
   'pl-kb-renegade-row': {
+    stills: [formGuide(require('../../../assets/images/exercises/pl-kb-renegade-row-form-guide.webp'))],
     clips: [
       {
         url: 'https://www.youtube.com/watch?v=JGDdzQdRZns',
@@ -3368,6 +3626,7 @@ export const EXERCISE_MEDIA: Record<string, ExerciseMedia> = {
     ],
   },
   'pl-db-pullover': {
+    stills: [formGuide(require('../../../assets/images/exercises/pl-db-pullover-form-guide.webp'))],
     clips: [
       {
         url: 'https://www.youtube.com/watch?v=Qc4L9I3pHnw',
@@ -3379,7 +3638,7 @@ export const EXERCISE_MEDIA: Record<string, ExerciseMedia> = {
   'bi-bb-curl': {
     stills: [
       {
-        file: require('../../../assets/images/exercises/bi-bb-curl.jpg'),
+        file: require('../../../assets/images/exercises/bi-bb-curl.webp'),
         license: 'cc-by-sa',
         attribution: 'Everkinetic, CC BY-SA 3.0',
         sourceUrl: 'https://commons.wikimedia.org/wiki/File:Bicep_curls_with_barbell_2.svg',
@@ -3396,19 +3655,19 @@ export const EXERCISE_MEDIA: Record<string, ExerciseMedia> = {
   'bi-hammer-curl': {
     stills: [
       {
-        file: require('../../../assets/images/exercises/bi-hammer-curl-fedb-0.jpg'),
+        file: require('../../../assets/images/exercises/bi-hammer-curl-fedb-0.webp'),
         license: 'public-domain',
         attribution: 'free-exercise-db (The Unlicense)',
         sourceUrl: 'https://github.com/yuhonas/free-exercise-db/blob/main/exercises/Hammer_Curls/0.jpg',
       },
       {
-        file: require('../../../assets/images/exercises/bi-hammer-curl-fedb-1.jpg'),
+        file: require('../../../assets/images/exercises/bi-hammer-curl-fedb-1.webp'),
         license: 'public-domain',
         attribution: 'free-exercise-db (The Unlicense)',
         sourceUrl: 'https://github.com/yuhonas/free-exercise-db/blob/main/exercises/Hammer_Curls/1.jpg',
       },
       {
-        file: require('../../../assets/images/exercises/bi-hammer-curl.jpg'),
+        file: require('../../../assets/images/exercises/bi-hammer-curl.webp'),
         license: 'cc-by-sa',
         attribution: 'Everkinetic, CC BY-SA 3.0',
         sourceUrl: 'https://commons.wikimedia.org/wiki/File:Bicep_hammer_curl_with_dumbbell_2.svg',
@@ -3425,19 +3684,19 @@ export const EXERCISE_MEDIA: Record<string, ExerciseMedia> = {
   'bi-concentration-curl': {
     stills: [
       {
-        file: require('../../../assets/images/exercises/bi-concentration-curl-fedb-0.jpg'),
+        file: require('../../../assets/images/exercises/bi-concentration-curl-fedb-0.webp'),
         license: 'public-domain',
         attribution: 'free-exercise-db (The Unlicense)',
         sourceUrl: 'https://github.com/yuhonas/free-exercise-db/blob/main/exercises/Concentration_Curls/0.jpg',
       },
       {
-        file: require('../../../assets/images/exercises/bi-concentration-curl-fedb-1.jpg'),
+        file: require('../../../assets/images/exercises/bi-concentration-curl-fedb-1.webp'),
         license: 'public-domain',
         attribution: 'free-exercise-db (The Unlicense)',
         sourceUrl: 'https://github.com/yuhonas/free-exercise-db/blob/main/exercises/Concentration_Curls/1.jpg',
       },
       {
-        file: require('../../../assets/images/exercises/bi-concentration-curl.jpg'),
+        file: require('../../../assets/images/exercises/bi-concentration-curl.webp'),
         license: 'cc-by-sa',
         attribution: 'Everkinetic, CC BY-SA 3.0',
         sourceUrl: 'https://commons.wikimedia.org/wiki/File:Concentration_curls_with_dumbbell_2.svg',
@@ -3463,7 +3722,7 @@ export const EXERCISE_MEDIA: Record<string, ExerciseMedia> = {
   'bi-cable-curl': {
     stills: [
       {
-        file: require('../../../assets/images/exercises/bi-cable-curl.jpg'),
+        file: require('../../../assets/images/exercises/bi-cable-curl.webp'),
         license: 'cc-by-sa',
         attribution: 'Everkinetic, CC BY-SA 3.0',
         sourceUrl: 'https://commons.wikimedia.org/wiki/File:Standing_biceps_curl_with_cable_2.svg',
@@ -3489,19 +3748,19 @@ export const EXERCISE_MEDIA: Record<string, ExerciseMedia> = {
   'bi-db-incline-curl': {
     stills: [
       {
-        file: require('../../../assets/images/exercises/bi-db-incline-curl-fedb-0.jpg'),
+        file: require('../../../assets/images/exercises/bi-db-incline-curl-fedb-0.webp'),
         license: 'public-domain',
         attribution: 'free-exercise-db (The Unlicense)',
         sourceUrl: 'https://github.com/yuhonas/free-exercise-db/blob/main/exercises/Incline_Dumbbell_Curl/0.jpg',
       },
       {
-        file: require('../../../assets/images/exercises/bi-db-incline-curl-fedb-1.jpg'),
+        file: require('../../../assets/images/exercises/bi-db-incline-curl-fedb-1.webp'),
         license: 'public-domain',
         attribution: 'free-exercise-db (The Unlicense)',
         sourceUrl: 'https://github.com/yuhonas/free-exercise-db/blob/main/exercises/Incline_Dumbbell_Curl/1.jpg',
       },
       {
-        file: require('../../../assets/images/exercises/bi-db-incline-curl.jpg'),
+        file: require('../../../assets/images/exercises/bi-db-incline-curl.webp'),
         license: 'cc-by-sa',
         attribution: 'Everkinetic, CC BY-SA 3.0',
         sourceUrl: 'https://commons.wikimedia.org/wiki/File:Alternating_incline_curl_with_dumbbell_2.svg',
@@ -3518,19 +3777,19 @@ export const EXERCISE_MEDIA: Record<string, ExerciseMedia> = {
   'bi-cross-body-hammer-curl': {
     stills: [
       {
-        file: require('../../../assets/images/exercises/bi-cross-body-hammer-curl-fedb-0.jpg'),
+        file: require('../../../assets/images/exercises/bi-cross-body-hammer-curl-fedb-0.webp'),
         license: 'public-domain',
         attribution: 'free-exercise-db (The Unlicense)',
         sourceUrl: 'https://github.com/yuhonas/free-exercise-db/blob/main/exercises/Cross_Body_Hammer_Curl/0.jpg',
       },
       {
-        file: require('../../../assets/images/exercises/bi-cross-body-hammer-curl-fedb-1.jpg'),
+        file: require('../../../assets/images/exercises/bi-cross-body-hammer-curl-fedb-1.webp'),
         license: 'public-domain',
         attribution: 'free-exercise-db (The Unlicense)',
         sourceUrl: 'https://github.com/yuhonas/free-exercise-db/blob/main/exercises/Cross_Body_Hammer_Curl/1.jpg',
       },
       {
-        file: require('../../../assets/images/exercises/bi-cross-body-hammer-curl.jpg'),
+        file: require('../../../assets/images/exercises/bi-cross-body-hammer-curl.webp'),
         license: 'cc-by-sa',
         attribution: 'Everkinetic, CC BY-SA 3.0',
         sourceUrl: 'https://commons.wikimedia.org/wiki/File:Cross_body_hammer_curl_with_dumbbell_2.svg',
@@ -3637,19 +3896,19 @@ export const EXERCISE_MEDIA: Record<string, ExerciseMedia> = {
   'co-plank': {
     stills: [
       {
-        file: require('../../../assets/images/exercises/co-plank-fedb-0.jpg'),
+        file: require('../../../assets/images/exercises/co-plank-fedb-0.webp'),
         license: 'public-domain',
         attribution: 'free-exercise-db (The Unlicense)',
         sourceUrl: 'https://github.com/yuhonas/free-exercise-db/blob/main/exercises/Plank/0.jpg',
       },
       {
-        file: require('../../../assets/images/exercises/co-plank-fedb-1.jpg'),
+        file: require('../../../assets/images/exercises/co-plank-fedb-1.webp'),
         license: 'public-domain',
         attribution: 'free-exercise-db (The Unlicense)',
         sourceUrl: 'https://github.com/yuhonas/free-exercise-db/blob/main/exercises/Plank/1.jpg',
       },
       {
-        file: require('../../../assets/images/exercises/plank.jpg'),
+        file: require('../../../assets/images/exercises/plank.webp'),
         license: 'cc-by-sa',
         attribution: 'Jaykayfit, CC BY-SA 3.0',
         sourceUrl: 'https://commons.wikimedia.org/wiki/File:Plank.jpg',
@@ -3712,13 +3971,13 @@ export const EXERCISE_MEDIA: Record<string, ExerciseMedia> = {
   'co-deadbug': {
     stills: [
       {
-        file: require('../../../assets/images/exercises/co-deadbug-fedb-0.jpg'),
+        file: require('../../../assets/images/exercises/co-deadbug-fedb-0.webp'),
         license: 'public-domain',
         attribution: 'free-exercise-db (The Unlicense)',
         sourceUrl: 'https://github.com/yuhonas/free-exercise-db/blob/main/exercises/Dead_Bug/0.jpg',
       },
       {
-        file: require('../../../assets/images/exercises/co-deadbug-fedb-1.jpg'),
+        file: require('../../../assets/images/exercises/co-deadbug-fedb-1.webp'),
         license: 'public-domain',
         attribution: 'free-exercise-db (The Unlicense)',
         sourceUrl: 'https://github.com/yuhonas/free-exercise-db/blob/main/exercises/Dead_Bug/1.jpg',
@@ -3763,13 +4022,13 @@ export const EXERCISE_MEDIA: Record<string, ExerciseMedia> = {
   'co-hanging-leg-raise': {
     stills: [
       {
-        file: require('../../../assets/images/exercises/co-hanging-leg-raise-fedb-0.jpg'),
+        file: require('../../../assets/images/exercises/co-hanging-leg-raise-fedb-0.webp'),
         license: 'public-domain',
         attribution: 'free-exercise-db (The Unlicense)',
         sourceUrl: 'https://github.com/yuhonas/free-exercise-db/blob/main/exercises/Hanging_Leg_Raise/0.jpg',
       },
       {
-        file: require('../../../assets/images/exercises/co-hanging-leg-raise-fedb-1.jpg'),
+        file: require('../../../assets/images/exercises/co-hanging-leg-raise-fedb-1.webp'),
         license: 'public-domain',
         attribution: 'free-exercise-db (The Unlicense)',
         sourceUrl: 'https://github.com/yuhonas/free-exercise-db/blob/main/exercises/Hanging_Leg_Raise/1.jpg',
@@ -3814,13 +4073,13 @@ export const EXERCISE_MEDIA: Record<string, ExerciseMedia> = {
   'co-reverse-crunch': {
     stills: [
       {
-        file: require('../../../assets/images/exercises/co-reverse-crunch-fedb-0.jpg'),
+        file: require('../../../assets/images/exercises/co-reverse-crunch-fedb-0.webp'),
         license: 'public-domain',
         attribution: 'free-exercise-db (The Unlicense)',
         sourceUrl: 'https://github.com/yuhonas/free-exercise-db/blob/main/exercises/Reverse_Crunch/0.jpg',
       },
       {
-        file: require('../../../assets/images/exercises/co-reverse-crunch-fedb-1.jpg'),
+        file: require('../../../assets/images/exercises/co-reverse-crunch-fedb-1.webp'),
         license: 'public-domain',
         attribution: 'free-exercise-db (The Unlicense)',
         sourceUrl: 'https://github.com/yuhonas/free-exercise-db/blob/main/exercises/Reverse_Crunch/1.jpg',
@@ -3837,19 +4096,19 @@ export const EXERCISE_MEDIA: Record<string, ExerciseMedia> = {
   'co-crunch': {
     stills: [
       {
-        file: require('../../../assets/images/exercises/co-crunch-fedb-0.jpg'),
+        file: require('../../../assets/images/exercises/co-crunch-fedb-0.webp'),
         license: 'public-domain',
         attribution: 'free-exercise-db (The Unlicense)',
         sourceUrl: 'https://github.com/yuhonas/free-exercise-db/blob/main/exercises/Crunches/0.jpg',
       },
       {
-        file: require('../../../assets/images/exercises/co-crunch-fedb-1.jpg'),
+        file: require('../../../assets/images/exercises/co-crunch-fedb-1.webp'),
         license: 'public-domain',
         attribution: 'free-exercise-db (The Unlicense)',
         sourceUrl: 'https://github.com/yuhonas/free-exercise-db/blob/main/exercises/Crunches/1.jpg',
       },
       {
-        file: require('../../../assets/images/exercises/co-crunch.jpg'),
+        file: require('../../../assets/images/exercises/co-crunch.webp'),
         license: 'cc-by-sa',
         attribution: 'Everkinetic, CC BY-SA 3.0',
         sourceUrl: 'https://commons.wikimedia.org/wiki/File:Crunches_2.svg',
@@ -3871,13 +4130,13 @@ export const EXERCISE_MEDIA: Record<string, ExerciseMedia> = {
   'co-situp': {
     stills: [
       {
-        file: require('../../../assets/images/exercises/co-situp-fedb-0.jpg'),
+        file: require('../../../assets/images/exercises/co-situp-fedb-0.webp'),
         license: 'public-domain',
         attribution: 'free-exercise-db (The Unlicense)',
         sourceUrl: 'https://github.com/yuhonas/free-exercise-db/blob/main/exercises/Sit-Up/0.jpg',
       },
       {
-        file: require('../../../assets/images/exercises/co-situp-fedb-1.jpg'),
+        file: require('../../../assets/images/exercises/co-situp-fedb-1.webp'),
         license: 'public-domain',
         attribution: 'free-exercise-db (The Unlicense)',
         sourceUrl: 'https://github.com/yuhonas/free-exercise-db/blob/main/exercises/Sit-Up/1.jpg',
@@ -3913,13 +4172,13 @@ export const EXERCISE_MEDIA: Record<string, ExerciseMedia> = {
   'co-flutter-kicks': {
     stills: [
       {
-        file: require('../../../assets/images/exercises/co-flutter-kicks-fedb-0.jpg'),
+        file: require('../../../assets/images/exercises/co-flutter-kicks-fedb-0.webp'),
         license: 'public-domain',
         attribution: 'free-exercise-db (The Unlicense)',
         sourceUrl: 'https://github.com/yuhonas/free-exercise-db/blob/main/exercises/Flutter_Kicks/0.jpg',
       },
       {
-        file: require('../../../assets/images/exercises/co-flutter-kicks-fedb-1.jpg'),
+        file: require('../../../assets/images/exercises/co-flutter-kicks-fedb-1.webp'),
         license: 'public-domain',
         attribution: 'free-exercise-db (The Unlicense)',
         sourceUrl: 'https://github.com/yuhonas/free-exercise-db/blob/main/exercises/Flutter_Kicks/1.jpg',
@@ -3936,19 +4195,19 @@ export const EXERCISE_MEDIA: Record<string, ExerciseMedia> = {
   'co-superman': {
     stills: [
       {
-        file: require('../../../assets/images/exercises/co-superman-fedb-0.jpg'),
+        file: require('../../../assets/images/exercises/co-superman-fedb-0.webp'),
         license: 'public-domain',
         attribution: 'free-exercise-db (The Unlicense)',
         sourceUrl: 'https://github.com/yuhonas/free-exercise-db/blob/main/exercises/Superman/0.jpg',
       },
       {
-        file: require('../../../assets/images/exercises/co-superman-fedb-1.jpg'),
+        file: require('../../../assets/images/exercises/co-superman-fedb-1.webp'),
         license: 'public-domain',
         attribution: 'free-exercise-db (The Unlicense)',
         sourceUrl: 'https://github.com/yuhonas/free-exercise-db/blob/main/exercises/Superman/1.jpg',
       },
       {
-        file: require('../../../assets/images/exercises/co-superman.jpg'),
+        file: require('../../../assets/images/exercises/co-superman.webp'),
         license: 'cc-by-sa',
         attribution: 'Everkinetic, CC BY-SA 3.0',
         sourceUrl: 'https://commons.wikimedia.org/wiki/File:Supermans_2.svg',
@@ -3970,13 +4229,13 @@ export const EXERCISE_MEDIA: Record<string, ExerciseMedia> = {
   'co-russian-twist-bw': {
     stills: [
       {
-        file: require('../../../assets/images/exercises/co-russian-twist-bw-fedb-0.jpg'),
+        file: require('../../../assets/images/exercises/co-russian-twist-bw-fedb-0.webp'),
         license: 'public-domain',
         attribution: 'free-exercise-db (The Unlicense)',
         sourceUrl: 'https://github.com/yuhonas/free-exercise-db/blob/main/exercises/Russian_Twist/0.jpg',
       },
       {
-        file: require('../../../assets/images/exercises/co-russian-twist-bw-fedb-1.jpg'),
+        file: require('../../../assets/images/exercises/co-russian-twist-bw-fedb-1.webp'),
         license: 'public-domain',
         attribution: 'free-exercise-db (The Unlicense)',
         sourceUrl: 'https://github.com/yuhonas/free-exercise-db/blob/main/exercises/Russian_Twist/1.jpg',
@@ -3993,13 +4252,13 @@ export const EXERCISE_MEDIA: Record<string, ExerciseMedia> = {
   'co-toe-touch': {
     stills: [
       {
-        file: require('../../../assets/images/exercises/co-toe-touch-fedb-0.jpg'),
+        file: require('../../../assets/images/exercises/co-toe-touch-fedb-0.webp'),
         license: 'public-domain',
         attribution: 'free-exercise-db (The Unlicense)',
         sourceUrl: 'https://github.com/yuhonas/free-exercise-db/blob/main/exercises/Toe_Touchers/0.jpg',
       },
       {
-        file: require('../../../assets/images/exercises/co-toe-touch-fedb-1.jpg'),
+        file: require('../../../assets/images/exercises/co-toe-touch-fedb-1.webp'),
         license: 'public-domain',
         attribution: 'free-exercise-db (The Unlicense)',
         sourceUrl: 'https://github.com/yuhonas/free-exercise-db/blob/main/exercises/Toe_Touchers/1.jpg',
@@ -4016,13 +4275,13 @@ export const EXERCISE_MEDIA: Record<string, ExerciseMedia> = {
   'co-scissor-kick': {
     stills: [
       {
-        file: require('../../../assets/images/exercises/co-scissor-kick-fedb-0.jpg'),
+        file: require('../../../assets/images/exercises/co-scissor-kick-fedb-0.webp'),
         license: 'public-domain',
         attribution: 'free-exercise-db (The Unlicense)',
         sourceUrl: 'https://github.com/yuhonas/free-exercise-db/blob/main/exercises/Scissor_Kick/0.jpg',
       },
       {
-        file: require('../../../assets/images/exercises/co-scissor-kick-fedb-1.jpg'),
+        file: require('../../../assets/images/exercises/co-scissor-kick-fedb-1.webp'),
         license: 'public-domain',
         attribution: 'free-exercise-db (The Unlicense)',
         sourceUrl: 'https://github.com/yuhonas/free-exercise-db/blob/main/exercises/Scissor_Kick/1.jpg',
@@ -4062,13 +4321,13 @@ export const EXERCISE_MEDIA: Record<string, ExerciseMedia> = {
   'co-mountain-climber': {
     stills: [
       {
-        file: require('../../../assets/images/exercises/co-mountain-climber-fedb-0.jpg'),
+        file: require('../../../assets/images/exercises/co-mountain-climber-fedb-0.webp'),
         license: 'public-domain',
         attribution: 'free-exercise-db (The Unlicense)',
         sourceUrl: 'https://github.com/yuhonas/free-exercise-db/blob/main/exercises/Mountain_Climbers/0.jpg',
       },
       {
-        file: require('../../../assets/images/exercises/co-mountain-climber-fedb-1.jpg'),
+        file: require('../../../assets/images/exercises/co-mountain-climber-fedb-1.webp'),
         license: 'public-domain',
         attribution: 'free-exercise-db (The Unlicense)',
         sourceUrl: 'https://github.com/yuhonas/free-exercise-db/blob/main/exercises/Mountain_Climbers/1.jpg',
@@ -4094,19 +4353,19 @@ export const EXERCISE_MEDIA: Record<string, ExerciseMedia> = {
   'co-db-side-bend': {
     stills: [
       {
-        file: require('../../../assets/images/exercises/co-db-side-bend-fedb-0.jpg'),
+        file: require('../../../assets/images/exercises/co-db-side-bend-fedb-0.webp'),
         license: 'public-domain',
         attribution: 'free-exercise-db (The Unlicense)',
         sourceUrl: 'https://github.com/yuhonas/free-exercise-db/blob/main/exercises/Dumbbell_Side_Bend/0.jpg',
       },
       {
-        file: require('../../../assets/images/exercises/co-db-side-bend-fedb-1.jpg'),
+        file: require('../../../assets/images/exercises/co-db-side-bend-fedb-1.webp'),
         license: 'public-domain',
         attribution: 'free-exercise-db (The Unlicense)',
         sourceUrl: 'https://github.com/yuhonas/free-exercise-db/blob/main/exercises/Dumbbell_Side_Bend/1.jpg',
       },
       {
-        file: require('../../../assets/images/exercises/co-db-side-bend.jpg'),
+        file: require('../../../assets/images/exercises/co-db-side-bend.webp'),
         license: 'cc-by-sa',
         attribution: 'Everkinetic, CC BY-SA 3.0',
         sourceUrl: 'https://commons.wikimedia.org/wiki/File:Side_bend_with_dumbbell_2.svg',
@@ -4132,13 +4391,13 @@ export const EXERCISE_MEDIA: Record<string, ExerciseMedia> = {
   'co-kb-windmill': {
     stills: [
       {
-        file: require('../../../assets/images/exercises/co-kb-windmill-fedb-0.jpg'),
+        file: require('../../../assets/images/exercises/co-kb-windmill-fedb-0.webp'),
         license: 'public-domain',
         attribution: 'free-exercise-db (The Unlicense)',
         sourceUrl: 'https://github.com/yuhonas/free-exercise-db/blob/main/exercises/Kettlebell_Windmill/0.jpg',
       },
       {
-        file: require('../../../assets/images/exercises/co-kb-windmill-fedb-1.jpg'),
+        file: require('../../../assets/images/exercises/co-kb-windmill-fedb-1.webp'),
         license: 'public-domain',
         attribution: 'free-exercise-db (The Unlicense)',
         sourceUrl: 'https://github.com/yuhonas/free-exercise-db/blob/main/exercises/Kettlebell_Windmill/1.jpg',
@@ -4173,19 +4432,19 @@ export const EXERCISE_MEDIA: Record<string, ExerciseMedia> = {
   'co-cable-crunch': {
     stills: [
       {
-        file: require('../../../assets/images/exercises/co-cable-crunch-fedb-0.jpg'),
+        file: require('../../../assets/images/exercises/co-cable-crunch-fedb-0.webp'),
         license: 'public-domain',
         attribution: 'free-exercise-db (The Unlicense)',
         sourceUrl: 'https://github.com/yuhonas/free-exercise-db/blob/main/exercises/Cable_Crunch/0.jpg',
       },
       {
-        file: require('../../../assets/images/exercises/co-cable-crunch-fedb-1.jpg'),
+        file: require('../../../assets/images/exercises/co-cable-crunch-fedb-1.webp'),
         license: 'public-domain',
         attribution: 'free-exercise-db (The Unlicense)',
         sourceUrl: 'https://github.com/yuhonas/free-exercise-db/blob/main/exercises/Cable_Crunch/1.jpg',
       },
       {
-        file: require('../../../assets/images/exercises/co-cable-crunch.jpg'),
+        file: require('../../../assets/images/exercises/co-cable-crunch.webp'),
         license: 'cc-by-sa',
         attribution: 'Everkinetic, CC BY-SA 3.0',
         sourceUrl: 'https://commons.wikimedia.org/wiki/File:Seated_ab_crunch_with_cable_2.svg',
@@ -4211,13 +4470,13 @@ export const EXERCISE_MEDIA: Record<string, ExerciseMedia> = {
   'co-band-pallof-press': {
     stills: [
       {
-        file: require('../../../assets/images/exercises/co-band-pallof-press-fedb-0.jpg'),
+        file: require('../../../assets/images/exercises/co-band-pallof-press-fedb-0.webp'),
         license: 'public-domain',
         attribution: 'free-exercise-db (The Unlicense)',
         sourceUrl: 'https://github.com/yuhonas/free-exercise-db/blob/main/exercises/Pallof_Press/0.jpg',
       },
       {
-        file: require('../../../assets/images/exercises/co-band-pallof-press-fedb-1.jpg'),
+        file: require('../../../assets/images/exercises/co-band-pallof-press-fedb-1.webp'),
         license: 'public-domain',
         attribution: 'free-exercise-db (The Unlicense)',
         sourceUrl: 'https://github.com/yuhonas/free-exercise-db/blob/main/exercises/Pallof_Press/1.jpg',
@@ -4261,19 +4520,19 @@ export const EXERCISE_MEDIA: Record<string, ExerciseMedia> = {
   'co-decline-crunch': {
     stills: [
       {
-        file: require('../../../assets/images/exercises/co-decline-crunch-fedb-0.jpg'),
+        file: require('../../../assets/images/exercises/co-decline-crunch-fedb-0.webp'),
         license: 'public-domain',
         attribution: 'free-exercise-db (The Unlicense)',
         sourceUrl: 'https://github.com/yuhonas/free-exercise-db/blob/main/exercises/Decline_Crunch/0.jpg',
       },
       {
-        file: require('../../../assets/images/exercises/co-decline-crunch-fedb-1.jpg'),
+        file: require('../../../assets/images/exercises/co-decline-crunch-fedb-1.webp'),
         license: 'public-domain',
         attribution: 'free-exercise-db (The Unlicense)',
         sourceUrl: 'https://github.com/yuhonas/free-exercise-db/blob/main/exercises/Decline_Crunch/1.jpg',
       },
       {
-        file: require('../../../assets/images/exercises/co-decline-crunch.jpg'),
+        file: require('../../../assets/images/exercises/co-decline-crunch.webp'),
         license: 'cc-by-sa',
         attribution: 'Everkinetic, CC BY-SA 3.0',
         sourceUrl: 'https://commons.wikimedia.org/wiki/File:Decline_crunch_2.svg',
@@ -4290,7 +4549,7 @@ export const EXERCISE_MEDIA: Record<string, ExerciseMedia> = {
   'co-back-extension': {
     stills: [
       {
-        file: require('../../../assets/images/exercises/co-back-extension.jpg'),
+        file: require('../../../assets/images/exercises/co-back-extension.webp'),
         license: 'cc-by-sa',
         attribution: 'Everkinetic, CC BY-SA 3.0',
         sourceUrl: 'https://commons.wikimedia.org/wiki/File:Hyperextensions_2.svg',
@@ -4342,6 +4601,7 @@ export const EXERCISE_MEDIA: Record<string, ExerciseMedia> = {
   },
   // ---- DAREBEE Exercise Library & Exercise of the Day ----
   'ca-burpees': {
+    stills: [formGuide(require('../../../assets/images/exercises/cardio-burpee-form-guide.webp'))],
     clips: [
       {
         url: 'https://www.youtube.com/watch?v=dr3LUT0VK_I',
@@ -4351,6 +4611,7 @@ export const EXERCISE_MEDIA: Record<string, ExerciseMedia> = {
     ],
   },
   'ca-march-high-knees-steady': {
+    stills: [formGuide(require('../../../assets/images/exercises/cardio-steady-high-knee-march-form-guide.webp'))],
     clips: [
       {
         url: 'https://www.youtube.com/shorts/7IOmh_rxyKA',
@@ -4361,14 +4622,15 @@ export const EXERCISE_MEDIA: Record<string, ExerciseMedia> = {
   },
   'mob-standing-hip-circles': {
     stills: [
+      formGuide(require('../../../assets/images/exercises/stretch-standing-hip-circles-form-guide.webp')),
       {
-        file: require('../../../assets/images/exercises/mob-standing-hip-circles-fedb-0.jpg'),
+        file: require('../../../assets/images/exercises/mob-standing-hip-circles-fedb-0.webp'),
         license: 'public-domain',
         attribution: 'free-exercise-db (The Unlicense)',
         sourceUrl: 'https://github.com/yuhonas/free-exercise-db/blob/main/exercises/Standing_Hip_Circles/0.jpg',
       },
       {
-        file: require('../../../assets/images/exercises/mob-standing-hip-circles-fedb-1.jpg'),
+        file: require('../../../assets/images/exercises/mob-standing-hip-circles-fedb-1.webp'),
         license: 'public-domain',
         attribution: 'free-exercise-db (The Unlicense)',
         sourceUrl: 'https://github.com/yuhonas/free-exercise-db/blob/main/exercises/Standing_Hip_Circles/1.jpg',
@@ -4384,14 +4646,15 @@ export const EXERCISE_MEDIA: Record<string, ExerciseMedia> = {
   },
   'ca-star-jumps': {
     stills: [
+      formGuide(require('../../../assets/images/exercises/cardio-star-jumps-form-guide.webp')),
       {
-        file: require('../../../assets/images/exercises/ca-star-jumps-fedb-0.jpg'),
+        file: require('../../../assets/images/exercises/ca-star-jumps-fedb-0.webp'),
         license: 'public-domain',
         attribution: 'free-exercise-db (The Unlicense)',
         sourceUrl: 'https://github.com/yuhonas/free-exercise-db/blob/main/exercises/Star_Jump/0.jpg',
       },
       {
-        file: require('../../../assets/images/exercises/ca-star-jumps-fedb-1.jpg'),
+        file: require('../../../assets/images/exercises/ca-star-jumps-fedb-1.webp'),
         license: 'public-domain',
         attribution: 'free-exercise-db (The Unlicense)',
         sourceUrl: 'https://github.com/yuhonas/free-exercise-db/blob/main/exercises/Star_Jump/1.jpg',
@@ -4407,14 +4670,15 @@ export const EXERCISE_MEDIA: Record<string, ExerciseMedia> = {
   },
   'mob-active-hamstring-stretch': {
     stills: [
+      formGuide(require('../../../assets/images/exercises/stretch-active-hamstring-form-guide.webp')),
       {
-        file: require('../../../assets/images/exercises/mob-active-hamstring-stretch-fedb-0.jpg'),
+        file: require('../../../assets/images/exercises/mob-active-hamstring-stretch-fedb-0.webp'),
         license: 'public-domain',
         attribution: 'free-exercise-db (The Unlicense)',
         sourceUrl: 'https://github.com/yuhonas/free-exercise-db/blob/main/exercises/Hamstring_Stretch/0.jpg',
       },
       {
-        file: require('../../../assets/images/exercises/mob-active-hamstring-stretch-fedb-1.jpg'),
+        file: require('../../../assets/images/exercises/mob-active-hamstring-stretch-fedb-1.webp'),
         license: 'public-domain',
         attribution: 'free-exercise-db (The Unlicense)',
         sourceUrl: 'https://github.com/yuhonas/free-exercise-db/blob/main/exercises/Hamstring_Stretch/1.jpg',
@@ -4430,14 +4694,15 @@ export const EXERCISE_MEDIA: Record<string, ExerciseMedia> = {
   },
   'ca-mountain-climbers-fast': {
     stills: [
+      formGuide(require('../../../assets/images/exercises/cardio-fast-mountain-climbers-form-guide.webp')),
       {
-        file: require('../../../assets/images/exercises/ca-mountain-climbers-fast-fedb-0.jpg'),
+        file: require('../../../assets/images/exercises/ca-mountain-climbers-fast-fedb-0.webp'),
         license: 'public-domain',
         attribution: 'free-exercise-db (The Unlicense)',
         sourceUrl: 'https://github.com/yuhonas/free-exercise-db/blob/main/exercises/Mountain_Climbers/0.jpg',
       },
       {
-        file: require('../../../assets/images/exercises/ca-mountain-climbers-fast-fedb-1.jpg'),
+        file: require('../../../assets/images/exercises/ca-mountain-climbers-fast-fedb-1.webp'),
         license: 'public-domain',
         attribution: 'free-exercise-db (The Unlicense)',
         sourceUrl: 'https://github.com/yuhonas/free-exercise-db/blob/main/exercises/Mountain_Climbers/1.jpg',
@@ -4461,6 +4726,7 @@ export const EXERCISE_MEDIA: Record<string, ExerciseMedia> = {
     ],
   },
   'ca-butt-kickers': {
+    stills: [formGuide(require('../../../assets/images/exercises/cardio-butt-kickers-form-guide.webp'))],
     clips: [
       {
         url: 'https://www.youtube.com/watch?v=OjDm3CJiy2Y',
@@ -4470,6 +4736,7 @@ export const EXERCISE_MEDIA: Record<string, ExerciseMedia> = {
     ],
   },
   'ca-high-knees': {
+    stills: [formGuide(require('../../../assets/images/exercises/cardio-high-knees-form-guide.webp'))],
     clips: [
       {
         url: 'https://www.youtube.com/watch?v=gDjAHX1G2uc',
@@ -4478,7 +4745,32 @@ export const EXERCISE_MEDIA: Record<string, ExerciseMedia> = {
       },
     ],
   },
+  'pl-centering-breath': {
+    stills: [formGuide(require('../../../assets/images/exercises/pilates-centering-breath-form-guide.webp'))],
+  },
+  'pl-pelvic-tilt': {
+    stills: [formGuide(require('../../../assets/images/exercises/pilates-pelvic-tilt-form-guide.webp'))],
+  },
+  'pl-cat-cow-warmup': {
+    stills: [formGuide(require('../../../assets/images/exercises/pilates-cat-cow-form-guide.webp'))],
+  },
+  'pl-standing-roll-down': {
+    stills: [formGuide(require('../../../assets/images/exercises/pilates-standing-roll-down-form-guide.webp'))],
+  },
+  'pl-cobra-prep': {
+    stills: [formGuide(require('../../../assets/images/exercises/pilates-cobra-prep-form-guide.webp'))],
+  },
+  'pl-standing-leg-circle': {
+    stills: [formGuide(require('../../../assets/images/exercises/pilates-standing-leg-circle-form-guide.webp'))],
+  },
+  'pl-standing-side-bend': {
+    stills: [formGuide(require('../../../assets/images/exercises/pilates-standing-side-bend-form-guide.webp'))],
+  },
+  'pl-saw-stretch': {
+    stills: [formGuide(require('../../../assets/images/exercises/pilates-saw-form-guide.webp'))],
+  },
   'ca-kb-snatch-intervals': {
+    stills: [formGuide(require('../../../assets/images/exercises/cardio-kettlebell-snatch-form-guide.webp'))],
     clips: [
       {
         url: 'https://www.youtube.com/watch?v=MQDl5-xN5QI',
@@ -4488,6 +4780,7 @@ export const EXERCISE_MEDIA: Record<string, ExerciseMedia> = {
     ],
   },
   'ca-kb-swing-intervals': {
+    stills: [formGuide(require('../../../assets/images/exercises/cardio-kettlebell-swing-form-guide.webp'))],
     clips: [
       {
         url: 'https://www.youtube.com/watch?v=UOsT9jqbcn4',
@@ -4497,6 +4790,7 @@ export const EXERCISE_MEDIA: Record<string, ExerciseMedia> = {
     ],
   },
   'ca-lateral-shuffle': {
+    stills: [formGuide(require('../../../assets/images/exercises/cardio-lateral-shuffle-form-guide.webp'))],
     clips: [
       {
         url: 'https://www.youtube.com/watch?v=4_zywuECg84',
@@ -4506,6 +4800,7 @@ export const EXERCISE_MEDIA: Record<string, ExerciseMedia> = {
     ],
   },
   'ca-plank-jacks': {
+    stills: [formGuide(require('../../../assets/images/exercises/cardio-plank-jacks-form-guide.webp'))],
     clips: [
       {
         url: 'https://www.youtube.com/watch?v=nf2qXVNp-mI',
@@ -4515,6 +4810,7 @@ export const EXERCISE_MEDIA: Record<string, ExerciseMedia> = {
     ],
   },
   'ca-squat-jumps': {
+    stills: [formGuide(require('../../../assets/images/exercises/cardio-squat-jumps-form-guide.webp'))],
     clips: [
       {
         url: 'https://www.youtube.com/watch?v=d5UrisnCA90',
@@ -4524,6 +4820,7 @@ export const EXERCISE_MEDIA: Record<string, ExerciseMedia> = {
     ],
   },
   'ca-tuck-jumps': {
+    stills: [formGuide(require('../../../assets/images/exercises/cardio-tuck-jumps-form-guide.webp'))],
     clips: [
       {
         url: 'https://www.youtube.com/watch?v=2svqJ2lJtZA',
@@ -4533,6 +4830,7 @@ export const EXERCISE_MEDIA: Record<string, ExerciseMedia> = {
     ],
   },
   'mob-couch-stretch': {
+    stills: [formGuide(require('../../../assets/images/exercises/stretch-couch-form-guide.webp'))],
     clips: [
       {
         url: 'https://www.youtube.com/watch?v=JUKW9kNNzhY',
@@ -4542,6 +4840,7 @@ export const EXERCISE_MEDIA: Record<string, ExerciseMedia> = {
     ],
   },
   'mob-cross-body-shoulder-stretch': {
+    stills: [formGuide(require('../../../assets/images/exercises/stretch-cross-body-shoulder-form-guide.webp'))],
     clips: [
       {
         url: 'https://www.youtube.com/watch?v=0fSwtWk6BcY',
@@ -4551,6 +4850,7 @@ export const EXERCISE_MEDIA: Record<string, ExerciseMedia> = {
     ],
   },
   'mob-frog-stretch': {
+    stills: [formGuide(require('../../../assets/images/exercises/stretch-frog-form-guide.webp'))],
     clips: [
       {
         url: 'https://www.youtube.com/watch?v=c6DEFLUqEA0',
@@ -4560,6 +4860,7 @@ export const EXERCISE_MEDIA: Record<string, ExerciseMedia> = {
     ],
   },
   'mob-pendulum-shoulder': {
+    stills: [formGuide(require('../../../assets/images/exercises/stretch-pendulum-shoulder-form-guide.webp'))],
     clips: [
       {
         url: 'https://www.youtube.com/watch?v=RyK5j026WNo',
@@ -4569,6 +4870,7 @@ export const EXERCISE_MEDIA: Record<string, ExerciseMedia> = {
     ],
   },
   'mob-squat-to-stand': {
+    stills: [formGuide(require('../../../assets/images/exercises/stretch-squat-to-stand-form-guide.webp'))],
     clips: [
       {
         url: 'https://www.youtube.com/watch?v=2xT68Yq5twI',
@@ -4578,6 +4880,7 @@ export const EXERCISE_MEDIA: Record<string, ExerciseMedia> = {
     ],
   },
   'mob-standing-side-bend': {
+    stills: [formGuide(require('../../../assets/images/exercises/stretch-standing-side-bend-form-guide.webp'))],
     clips: [
       {
         url: 'https://www.youtube.com/watch?v=a6Y6ZlAmvIg',
@@ -4587,6 +4890,7 @@ export const EXERCISE_MEDIA: Record<string, ExerciseMedia> = {
     ],
   },
   'mob-supine-figure-4': {
+    stills: [formGuide(require('../../../assets/images/exercises/stretch-supine-figure-four-form-guide.webp'))],
     clips: [
       {
         url: 'https://www.youtube.com/watch?v=Iaoh_fQ8BhI',
@@ -4596,6 +4900,7 @@ export const EXERCISE_MEDIA: Record<string, ExerciseMedia> = {
     ],
   },
   'mob-supine-hamstring-stretch': {
+    stills: [formGuide(require('../../../assets/images/exercises/stretch-supine-hamstring-strap-form-guide.webp'))],
     clips: [
       {
         url: 'https://www.youtube.com/watch?v=4pdDG7kHml0',
@@ -4605,6 +4910,7 @@ export const EXERCISE_MEDIA: Record<string, ExerciseMedia> = {
     ],
   },
   'mob-wall-angel': {
+    stills: [formGuide(require('../../../assets/images/exercises/stretch-wall-angel-form-guide.webp'))],
     clips: [
       {
         url: 'https://www.youtube.com/watch?v=hGhoH8qK-7s',
@@ -4614,7 +4920,7 @@ export const EXERCISE_MEDIA: Record<string, ExerciseMedia> = {
     ],
   },
   'mob-worlds-greatest': {
-    stills: [formGuide(require('../../../assets/images/exercises/stretch-worlds-greatest-form-guide.png'))],
+    stills: [formGuide(require('../../../assets/images/exercises/stretch-worlds-greatest-form-guide.webp'))],
     clips: [
       {
         url: 'https://www.youtube.com/watch?v=F-glWKg3xFI',
@@ -4624,6 +4930,7 @@ export const EXERCISE_MEDIA: Record<string, ExerciseMedia> = {
     ],
   },
   'mob-wrist-flexor-stretch': {
+    stills: [formGuide(require('../../../assets/images/exercises/stretch-wrist-flexor-form-guide.webp'))],
     clips: [
       {
         url: 'https://www.youtube.com/watch?v=owLMGFNj73k',
@@ -4633,6 +4940,7 @@ export const EXERCISE_MEDIA: Record<string, ExerciseMedia> = {
     ],
   },
   'mob-it-band-wall': {
+    stills: [formGuide(require('../../../assets/images/exercises/stretch-it-band-wall-form-guide.webp'))],
     clips: [
       {
         url: 'https://www.youtube.com/watch?v=WcbGdkY_oDc',
@@ -4642,6 +4950,7 @@ export const EXERCISE_MEDIA: Record<string, ExerciseMedia> = {
     ],
   },
   'mob-it-band-forward-fold': {
+    stills: [formGuide(require('../../../assets/images/exercises/stretch-it-band-forward-fold-form-guide.webp'))],
     clips: [
       {
         url: 'https://www.youtube.com/watch?v=pZRaXtwVtws',
@@ -4651,6 +4960,7 @@ export const EXERCISE_MEDIA: Record<string, ExerciseMedia> = {
     ],
   },
   'mob-it-band-supine': {
+    stills: [formGuide(require('../../../assets/images/exercises/stretch-it-band-supine-form-guide.webp'))],
     clips: [
       {
         url: 'https://www.youtube.com/watch?v=bJuV3ZQVfJ4',
@@ -4660,6 +4970,7 @@ export const EXERCISE_MEDIA: Record<string, ExerciseMedia> = {
     ],
   },
   'mob-it-band-strap': {
+    stills: [formGuide(require('../../../assets/images/exercises/stretch-it-band-strap-form-guide.webp'))],
     clips: [
       {
         url: 'https://www.youtube.com/watch?v=5QBTyyeC6Xs',
@@ -4669,6 +4980,7 @@ export const EXERCISE_MEDIA: Record<string, ExerciseMedia> = {
     ],
   },
   'mob-it-band-side-lying': {
+    stills: [formGuide(require('../../../assets/images/exercises/stretch-it-band-side-lying-form-guide.webp'))],
     clips: [
       {
         url: 'https://www.youtube.com/watch?v=dJvw6reGKKk',
@@ -4678,6 +4990,7 @@ export const EXERCISE_MEDIA: Record<string, ExerciseMedia> = {
     ],
   },
   'mob-plantar-toe-stretch': {
+    stills: [formGuide(require('../../../assets/images/exercises/stretch-plantar-toe-form-guide.webp'))],
     clips: [
       {
         url: 'https://www.youtube.com/shorts/ta2D40d22ZI',
@@ -4687,6 +5000,7 @@ export const EXERCISE_MEDIA: Record<string, ExerciseMedia> = {
     ],
   },
   'mob-plantar-stair-stretch': {
+    stills: [formGuide(require('../../../assets/images/exercises/stretch-stair-achilles-form-guide.webp'))],
     clips: [
       {
         url: 'https://www.youtube.com/shorts/lGbomAClz4w',
@@ -4696,6 +5010,7 @@ export const EXERCISE_MEDIA: Record<string, ExerciseMedia> = {
     ],
   },
   'fr-plantar-fascia': {
+    stills: [formGuide(require('../../../assets/images/exercises/foam-roll-foot-arch-form-guide.webp'))],
     clips: [
       {
         url: 'https://www.youtube.com/shorts/UUM78E3YWbk',
@@ -4705,6 +5020,7 @@ export const EXERCISE_MEDIA: Record<string, ExerciseMedia> = {
     ],
   },
   'mob-wrist-extensor-stretch': {
+    stills: [formGuide(require('../../../assets/images/exercises/stretch-wrist-extensor-form-guide.webp'))],
     clips: [
       {
         url: 'https://www.youtube.com/shorts/yZcvTeLFx4U',
@@ -4714,6 +5030,7 @@ export const EXERCISE_MEDIA: Record<string, ExerciseMedia> = {
     ],
   },
   'mob-forearm-rotation-stretch': {
+    stills: [formGuide(require('../../../assets/images/exercises/stretch-forearm-rotation-form-guide.webp'))],
     clips: [
       {
         url: 'https://www.youtube.com/shorts/Mq2AO9n5k4o',
@@ -4723,6 +5040,7 @@ export const EXERCISE_MEDIA: Record<string, ExerciseMedia> = {
     ],
   },
   'mob-knee-to-shoulder': {
+    stills: [formGuide(require('../../../assets/images/exercises/stretch-knee-to-shoulder-form-guide.webp'))],
     clips: [
       {
         url: 'https://www.youtube.com/shorts/z_iDs0MZVQ4',
@@ -4732,6 +5050,7 @@ export const EXERCISE_MEDIA: Record<string, ExerciseMedia> = {
     ],
   },
   'mob-seated-figure-4': {
+    stills: [formGuide(require('../../../assets/images/exercises/stretch-seated-figure-four-form-guide.webp'))],
     clips: [
       {
         url: 'https://www.youtube.com/shorts/x170rAbXvZc',
@@ -4741,6 +5060,7 @@ export const EXERCISE_MEDIA: Record<string, ExerciseMedia> = {
     ],
   },
   'mob-towel-shoulder-stretch': {
+    stills: [formGuide(require('../../../assets/images/exercises/stretch-towel-shoulder-form-guide.webp'))],
     clips: [
       {
         url: 'https://www.youtube.com/shorts/dAU3iv8aDLo',
@@ -4750,6 +5070,7 @@ export const EXERCISE_MEDIA: Record<string, ExerciseMedia> = {
     ],
   },
   'mob-wall-climb-shoulder': {
+    stills: [formGuide(require('../../../assets/images/exercises/stretch-wall-climb-shoulder-form-guide.webp'))],
     clips: [
       {
         url: 'https://www.youtube.com/shorts/ArB91ibx848',
@@ -4759,6 +5080,7 @@ export const EXERCISE_MEDIA: Record<string, ExerciseMedia> = {
     ],
   },
   'mob-cane-overhead-stretch': {
+    stills: [formGuide(require('../../../assets/images/exercises/stretch-cane-overhead-form-guide.webp'))],
     clips: [
       {
         url: 'https://www.youtube.com/shorts/jfMhuaQNX-g',
@@ -4768,6 +5090,7 @@ export const EXERCISE_MEDIA: Record<string, ExerciseMedia> = {
     ],
   },
   'mob-cane-behind-back-stretch': {
+    stills: [formGuide(require('../../../assets/images/exercises/stretch-cane-behind-back-form-guide.webp'))],
     clips: [
       {
         url: 'https://www.youtube.com/shorts/vqTPLseK3CA',
@@ -4777,6 +5100,7 @@ export const EXERCISE_MEDIA: Record<string, ExerciseMedia> = {
     ],
   },
   'mob-cane-external-rotation-stretch': {
+    stills: [formGuide(require('../../../assets/images/exercises/stretch-cane-external-rotation-form-guide.webp'))],
     clips: [
       {
         url: 'https://www.youtube.com/shorts/jMeQGk_qKbU',
@@ -4786,6 +5110,7 @@ export const EXERCISE_MEDIA: Record<string, ExerciseMedia> = {
     ],
   },
   'mob-tendon-glide': {
+    stills: [formGuide(require('../../../assets/images/exercises/stretch-finger-tendon-glide-form-guide.webp'))],
     clips: [
       {
         url: 'https://www.youtube.com/shorts/fDXOIM8WgX8',
@@ -4795,6 +5120,7 @@ export const EXERCISE_MEDIA: Record<string, ExerciseMedia> = {
     ],
   },
   'mob-thumb-opposition-stretch': {
+    stills: [formGuide(require('../../../assets/images/exercises/stretch-thumb-opposition-form-guide.webp'))],
     clips: [
       {
         url: 'https://www.youtube.com/shorts/w7XSn-TEMS4',
@@ -4804,6 +5130,7 @@ export const EXERCISE_MEDIA: Record<string, ExerciseMedia> = {
     ],
   },
   'mob-yogi-squat': {
+    stills: [formGuide(require('../../../assets/images/exercises/stretch-yogi-squat-form-guide.webp'))],
     clips: [
       {
         url: 'https://www.youtube.com/shorts/d-YleDG6Xu4',
@@ -4813,6 +5140,7 @@ export const EXERCISE_MEDIA: Record<string, ExerciseMedia> = {
     ],
   },
   'mob-lying-trunk-rotation': {
+    stills: [formGuide(require('../../../assets/images/exercises/stretch-lying-trunk-rotation-form-guide.webp'))],
     clips: [
       {
         url: 'https://www.youtube.com/shorts/LdLDEz9deYU',
@@ -4822,6 +5150,7 @@ export const EXERCISE_MEDIA: Record<string, ExerciseMedia> = {
     ],
   },
   'mob-seated-lumbar-extension': {
+    stills: [formGuide(require('../../../assets/images/exercises/stretch-seated-lumbar-extension-form-guide.webp'))],
     clips: [
       {
         url: 'https://www.youtube.com/shorts/4K4pQ_c1UZM',
@@ -4831,6 +5160,7 @@ export const EXERCISE_MEDIA: Record<string, ExerciseMedia> = {
     ],
   },
   'mob-active-calf-stretch': {
+    stills: [formGuide(require('../../../assets/images/exercises/stretch-active-calf-form-guide.webp'))],
     clips: [
       {
         url: 'https://www.youtube.com/shorts/FJyLjBQHVlI',
@@ -4840,6 +5170,7 @@ export const EXERCISE_MEDIA: Record<string, ExerciseMedia> = {
     ],
   },
   'mob-psoas-leg-dangle': {
+    stills: [formGuide(require('../../../assets/images/exercises/stretch-bed-edge-psoas-form-guide.webp'))],
     clips: [
       {
         url: 'https://www.youtube.com/shorts/PB4xHnr5qOo',
@@ -4849,6 +5180,7 @@ export const EXERCISE_MEDIA: Record<string, ExerciseMedia> = {
     ],
   },
   'mob-chin-tuck': {
+    stills: [formGuide(require('../../../assets/images/exercises/stretch-chin-tuck-form-guide.webp'))],
     clips: [
       {
         url: 'https://www.youtube.com/shorts/zlR5Gq2mclc',
@@ -4858,6 +5190,7 @@ export const EXERCISE_MEDIA: Record<string, ExerciseMedia> = {
     ],
   },
   'mob-pelvic-tilt': {
+    stills: [formGuide(require('../../../assets/images/exercises/stretch-pelvic-tilt-form-guide.webp'))],
     clips: [
       {
         url: 'https://www.youtube.com/shorts/7VMh43GLeww',
@@ -4867,6 +5200,7 @@ export const EXERCISE_MEDIA: Record<string, ExerciseMedia> = {
     ],
   },
   'ca-treadmill-walk': {
+    stills: [formGuide(require('../../../assets/images/exercises/cardio-treadmill-walk-form-guide.webp'))],
     clips: [
       {
         url: 'https://www.youtube.com/shorts/WpXrdwhEdDc',
@@ -4876,6 +5210,7 @@ export const EXERCISE_MEDIA: Record<string, ExerciseMedia> = {
     ],
   },
   'ca-treadmill-jog': {
+    stills: [formGuide(require('../../../assets/images/exercises/cardio-treadmill-jog-form-guide.webp'))],
     clips: [
       {
         url: 'https://www.youtube.com/shorts/zeS4qu6bXy4',
@@ -4885,6 +5220,7 @@ export const EXERCISE_MEDIA: Record<string, ExerciseMedia> = {
     ],
   },
   'ca-treadmill-incline-walk': {
+    stills: [formGuide(require('../../../assets/images/exercises/cardio-treadmill-incline-walk-form-guide.webp'))],
     clips: [
       {
         url: 'https://www.youtube.com/shorts/RO1IRfIKlWM',
@@ -4894,6 +5230,7 @@ export const EXERCISE_MEDIA: Record<string, ExerciseMedia> = {
     ],
   },
   'ca-bike-steady': {
+    stills: [formGuide(require('../../../assets/images/exercises/cardio-bike-steady-form-guide.webp'))],
     clips: [
       {
         url: 'https://www.youtube.com/shorts/w73jj7Vg-00',
@@ -4903,6 +5240,7 @@ export const EXERCISE_MEDIA: Record<string, ExerciseMedia> = {
     ],
   },
   'ca-rower-steady': {
+    stills: [formGuide(require('../../../assets/images/exercises/cardio-rower-steady-form-guide.webp'))],
     clips: [
       {
         url: 'https://www.youtube.com/shorts/1KV9MCDVYRs',
@@ -4912,6 +5250,7 @@ export const EXERCISE_MEDIA: Record<string, ExerciseMedia> = {
     ],
   },
   'ca-elliptical-steady': {
+    stills: [formGuide(require('../../../assets/images/exercises/cardio-elliptical-steady-form-guide.webp'))],
     clips: [
       {
         url: 'https://www.youtube.com/shorts/KRxofTVbTbM',
@@ -4921,6 +5260,7 @@ export const EXERCISE_MEDIA: Record<string, ExerciseMedia> = {
     ],
   },
   'ca-stairclimber-steady': {
+    stills: [formGuide(require('../../../assets/images/exercises/cardio-stairclimber-steady-form-guide.webp'))],
     clips: [
       {
         url: 'https://www.youtube.com/shorts/bJMM4nLGE4E',
@@ -4930,6 +5270,7 @@ export const EXERCISE_MEDIA: Record<string, ExerciseMedia> = {
     ],
   },
   'ca-low-impact-bw': {
+    stills: [formGuide(require('../../../assets/images/exercises/cardio-low-impact-march-form-guide.webp'))],
     clips: [
       {
         url: 'https://www.youtube.com/shorts/5l-A5_-BPUg',
@@ -4939,6 +5280,7 @@ export const EXERCISE_MEDIA: Record<string, ExerciseMedia> = {
     ],
   },
   'ca-step-up-steady': {
+    stills: [formGuide(require('../../../assets/images/exercises/cardio-steady-step-up-form-guide.webp'))],
     clips: [
       {
         url: 'https://www.youtube.com/shorts/ewpFS-Uxiy4',
@@ -4948,6 +5290,7 @@ export const EXERCISE_MEDIA: Record<string, ExerciseMedia> = {
     ],
   },
   'ca-shadow-boxing': {
+    stills: [formGuide(require('../../../assets/images/exercises/cardio-shadow-boxing-form-guide.webp'))],
     clips: [
       {
         url: 'https://www.youtube.com/shorts/CeFOZMBy7WY',
@@ -4957,6 +5300,7 @@ export const EXERCISE_MEDIA: Record<string, ExerciseMedia> = {
     ],
   },
   'ca-brisk-walk-bw': {
+    stills: [formGuide(require('../../../assets/images/exercises/cardio-brisk-walk-form-guide.webp'))],
     clips: [
       {
         url: 'https://www.youtube.com/shorts/PHFhXp6CH0k',
@@ -4966,6 +5310,7 @@ export const EXERCISE_MEDIA: Record<string, ExerciseMedia> = {
     ],
   },
   'ca-stair-walk-bw': {
+    stills: [formGuide(require('../../../assets/images/exercises/cardio-stair-walk-form-guide.webp'))],
     clips: [
       {
         url: 'https://www.youtube.com/shorts/1jcNa-dRHOk',
@@ -4975,6 +5320,7 @@ export const EXERCISE_MEDIA: Record<string, ExerciseMedia> = {
     ],
   },
   'ca-bike-recovery-spin': {
+    stills: [formGuide(require('../../../assets/images/exercises/cardio-bike-recovery-spin-form-guide.webp'))],
     clips: [
       {
         url: 'https://www.youtube.com/shorts/rKS4Kgex_1Q',
@@ -4993,6 +5339,7 @@ export const EXERCISE_MEDIA: Record<string, ExerciseMedia> = {
     ],
   },
   'ca-skater-hops': {
+    stills: [formGuide(require('../../../assets/images/exercises/cardio-skater-hops-form-guide.webp'))],
     clips: [
       {
         url: 'https://www.youtube.com/shorts/80q7m7lsiZc',
@@ -5002,6 +5349,7 @@ export const EXERCISE_MEDIA: Record<string, ExerciseMedia> = {
     ],
   },
   'ca-fast-feet': {
+    stills: [formGuide(require('../../../assets/images/exercises/cardio-fast-feet-form-guide.webp'))],
     clips: [
       {
         url: 'https://www.youtube.com/shorts/LK-EBdlG7Hg',
@@ -5011,6 +5359,7 @@ export const EXERCISE_MEDIA: Record<string, ExerciseMedia> = {
     ],
   },
   'ca-bike-sprints': {
+    stills: [formGuide(require('../../../assets/images/exercises/cardio-bike-sprints-form-guide.webp'))],
     clips: [
       {
         url: 'https://www.youtube.com/shorts/D4EMc0oEDyA',
@@ -5020,6 +5369,7 @@ export const EXERCISE_MEDIA: Record<string, ExerciseMedia> = {
     ],
   },
   'ca-rower-sprints': {
+    stills: [formGuide(require('../../../assets/images/exercises/cardio-rower-sprints-form-guide.webp'))],
     clips: [
       {
         url: 'https://www.youtube.com/shorts/GMeLchrYURQ',
@@ -5029,6 +5379,7 @@ export const EXERCISE_MEDIA: Record<string, ExerciseMedia> = {
     ],
   },
   'ca-db-thrusters-interval': {
+    stills: [formGuide(require('../../../assets/images/exercises/cardio-dumbbell-thruster-form-guide.webp'))],
     clips: [
       {
         url: 'https://www.youtube.com/shorts/buaJ_Za7IWA',
@@ -5038,6 +5389,7 @@ export const EXERCISE_MEDIA: Record<string, ExerciseMedia> = {
     ],
   },
   'ca-db-squat-press-interval': {
+    stills: [formGuide(require('../../../assets/images/exercises/cardio-dumbbell-squat-press-form-guide.webp'))],
     clips: [
       {
         url: 'https://www.youtube.com/shorts/1dcQR0wNTYI',
@@ -5047,6 +5399,7 @@ export const EXERCISE_MEDIA: Record<string, ExerciseMedia> = {
     ],
   },
   'ca-bear-crawl-interval': {
+    stills: [formGuide(require('../../../assets/images/exercises/cardio-bear-crawl-form-guide.webp'))],
     clips: [
       {
         url: 'https://www.youtube.com/shorts/j_YR2n8x1D8',
@@ -5258,6 +5611,7 @@ export const EXERCISE_MEDIA: Record<string, ExerciseMedia> = {
 
   // ---- Foam rolling / self-myofascial release (additional areas) --------------
   'fr-hip-flexors': {
+    stills: [formGuide(require('../../../assets/images/exercises/foam-roll-hip-flexors-form-guide.webp'))],
     clips: [
       {
         url: 'https://www.youtube.com/watch?v=U8JvMNg3eCE',
@@ -5267,6 +5621,7 @@ export const EXERCISE_MEDIA: Record<string, ExerciseMedia> = {
     ],
   },
   'fr-piriformis': {
+    stills: [formGuide(require('../../../assets/images/exercises/foam-roll-piriformis-form-guide.webp'))],
     clips: [
       {
         url: 'https://www.youtube.com/watch?v=mNQUujak3sE',
@@ -5276,6 +5631,7 @@ export const EXERCISE_MEDIA: Record<string, ExerciseMedia> = {
     ],
   },
   'fr-glute-medius': {
+    stills: [formGuide(require('../../../assets/images/exercises/foam-roll-glute-medius-form-guide.webp'))],
     clips: [
       {
         url: 'https://www.youtube.com/watch?v=XqU06LC0uvM',
@@ -5285,6 +5641,7 @@ export const EXERCISE_MEDIA: Record<string, ExerciseMedia> = {
     ],
   },
   'fr-obliques': {
+    stills: [formGuide(require('../../../assets/images/exercises/foam-roll-obliques-form-guide.webp'))],
     clips: [
       {
         url: 'https://www.youtube.com/watch?v=Mgua1zOzD0U',
@@ -5294,6 +5651,7 @@ export const EXERCISE_MEDIA: Record<string, ExerciseMedia> = {
     ],
   },
   'fr-chest': {
+    stills: [formGuide(require('../../../assets/images/exercises/foam-roll-chest-form-guide.webp'))],
     clips: [
       {
         url: 'https://www.youtube.com/watch?v=EfwRzjk-6Hs',
@@ -5303,6 +5661,7 @@ export const EXERCISE_MEDIA: Record<string, ExerciseMedia> = {
     ],
   },
   'fr-triceps': {
+    stills: [formGuide(require('../../../assets/images/exercises/foam-roll-triceps-form-guide.webp'))],
     clips: [
       {
         url: 'https://www.youtube.com/watch?v=Ccv83HlqqJ8',
@@ -5312,6 +5671,7 @@ export const EXERCISE_MEDIA: Record<string, ExerciseMedia> = {
     ],
   },
   'fr-forearms': {
+    stills: [formGuide(require('../../../assets/images/exercises/foam-roll-forearms-form-guide.webp'))],
     clips: [
       {
         url: 'https://www.youtube.com/watch?v=PwRPbdiifpA',
@@ -5321,6 +5681,7 @@ export const EXERCISE_MEDIA: Record<string, ExerciseMedia> = {
     ],
   },
   'fr-upper-traps': {
+    stills: [formGuide(require('../../../assets/images/exercises/foam-roll-upper-traps-form-guide.webp'))],
     clips: [
       {
         url: 'https://www.youtube.com/watch?v=PTyuyiRF34g',
@@ -5330,6 +5691,7 @@ export const EXERCISE_MEDIA: Record<string, ExerciseMedia> = {
     ],
   },
   'fr-rhomboids': {
+    stills: [formGuide(require('../../../assets/images/exercises/foam-roll-rhomboids-form-guide.webp'))],
     clips: [
       {
         url: 'https://www.youtube.com/watch?v=yYmzxoKnQRE',
@@ -5339,6 +5701,7 @@ export const EXERCISE_MEDIA: Record<string, ExerciseMedia> = {
     ],
   },
   'fr-thoracic-extension': {
+    stills: [formGuide(require('../../../assets/images/exercises/foam-roll-thoracic-extension-form-guide.webp'))],
     clips: [
       {
         url: 'https://www.youtube.com/watch?v=qCrYe698zJU',
@@ -5348,6 +5711,7 @@ export const EXERCISE_MEDIA: Record<string, ExerciseMedia> = {
     ],
   },
   'fr-shins': {
+    stills: [formGuide(require('../../../assets/images/exercises/foam-roll-shins-form-guide.webp'))],
     clips: [
       {
         url: 'https://www.youtube.com/watch?v=ogZzEw8jcxQ',
@@ -5357,6 +5721,7 @@ export const EXERCISE_MEDIA: Record<string, ExerciseMedia> = {
     ],
   },
   'cf-bb-standing': {
+    stills: [formGuide(require('../../../assets/images/exercises/cf-bb-standing-form-guide.webp'))],
     clips: [
       {
         url: 'https://www.youtube.com/watch?v=cG6YpyQKStI',
@@ -5366,6 +5731,7 @@ export const EXERCISE_MEDIA: Record<string, ExerciseMedia> = {
     ],
   },
   'cf-bb-seated': {
+    stills: [formGuide(require('../../../assets/images/exercises/cf-bb-seated-form-guide.webp'))],
     clips: [
       {
         url: 'https://www.youtube.com/watch?v=G3dn7RzAvV8',
@@ -5375,6 +5741,7 @@ export const EXERCISE_MEDIA: Record<string, ExerciseMedia> = {
     ],
   },
   'cf-band-standing': {
+    stills: [formGuide(require('../../../assets/images/exercises/cf-band-standing-form-guide.webp'))],
     clips: [
       {
         url: 'https://www.youtube.com/watch?v=qXCtsKexOvQ',
@@ -5384,6 +5751,7 @@ export const EXERCISE_MEDIA: Record<string, ExerciseMedia> = {
     ],
   },
   'cf-cable-standing': {
+    stills: [formGuide(require('../../../assets/images/exercises/cf-cable-standing-form-guide.webp'))],
     clips: [
       {
         url: 'https://www.youtube.com/watch?v=Z6l_MUXvonY',
@@ -5393,6 +5761,7 @@ export const EXERCISE_MEDIA: Record<string, ExerciseMedia> = {
     ],
   },
   'cf-rack-press': {
+    stills: [formGuide(require('../../../assets/images/exercises/cf-rack-press-form-guide.webp'))],
     clips: [
       {
         url: 'https://www.youtube.com/watch?v=hu99U6zN66c',
@@ -5402,6 +5771,7 @@ export const EXERCISE_MEDIA: Record<string, ExerciseMedia> = {
     ],
   },
   'cf-kb-single-leg': {
+    stills: [formGuide(require('../../../assets/images/exercises/cf-kb-single-leg-form-guide.webp'))],
     clips: [
       {
         url: 'https://www.youtube.com/watch?v=UYg36FzvoNQ',
@@ -5411,6 +5781,7 @@ export const EXERCISE_MEDIA: Record<string, ExerciseMedia> = {
     ],
   },
   'trx-calf-raise': {
+    stills: [formGuide(require('../../../assets/images/exercises/trx-calf-raise-form-guide.webp'))],
     clips: [
       {
         url: 'https://www.youtube.com/watch?v=CeJ7z16a_8A',
@@ -5420,6 +5791,7 @@ export const EXERCISE_MEDIA: Record<string, ExerciseMedia> = {
     ],
   },
   'hi-db-rack-pull': {
+    stills: [formGuide(require('../../../assets/images/exercises/hi-db-rack-pull-form-guide.webp'))],
     clips: [
       {
         url: 'https://www.youtube.com/watch?v=YFC_h0HF9FY',
@@ -5429,6 +5801,7 @@ export const EXERCISE_MEDIA: Record<string, ExerciseMedia> = {
     ],
   },
   'hi-kb-good-morning': {
+    stills: [formGuide(require('../../../assets/images/exercises/hi-kb-good-morning-form-guide.webp'))],
     clips: [
       {
         url: 'https://www.youtube.com/watch?v=pCbzsTSA3Z8',
@@ -5438,6 +5811,7 @@ export const EXERCISE_MEDIA: Record<string, ExerciseMedia> = {
     ],
   },
   'trx-assisted-good-morning': {
+    stills: [formGuide(require('../../../assets/images/exercises/trx-assisted-good-morning-form-guide.webp'))],
     clips: [
       {
         url: 'https://www.youtube.com/watch?v=DXlboJ0tAgE',
@@ -5447,6 +5821,7 @@ export const EXERCISE_MEDIA: Record<string, ExerciseMedia> = {
     ],
   },
   'co-weighted-back-extension': {
+    stills: [formGuide(require('../../../assets/images/exercises/co-weighted-back-extension-form-guide.webp'))],
     clips: [
       {
         url: 'https://www.youtube.com/watch?v=JOWrTUuvIF4',
@@ -5456,6 +5831,7 @@ export const EXERCISE_MEDIA: Record<string, ExerciseMedia> = {
     ],
   },
   'pu-explosive-pushup-bench': {
+    stills: [formGuide(require('../../../assets/images/exercises/pu-explosive-pushup-bench-form-guide.webp'))],
     clips: [
       {
         url: 'https://www.youtube.com/watch?v=g2K7iDDaOhI',
@@ -5465,6 +5841,7 @@ export const EXERCISE_MEDIA: Record<string, ExerciseMedia> = {
     ],
   },
   'tr-band-overhead-extension': {
+    stills: [formGuide(require('../../../assets/images/exercises/tr-band-overhead-extension-form-guide.webp'))],
     clips: [
       {
         url: 'https://www.youtube.com/watch?v=uXnYNighAIQ',
@@ -5789,6 +6166,7 @@ export const EXERCISE_MEDIA: Record<string, ExerciseMedia> = {
     ],
   },
   'ca-db-shadow-boxing-steady': {
+    stills: [formGuide(require('../../../assets/images/exercises/cardio-dumbbell-shadow-boxing-form-guide.webp'))],
     clips: [
       {
         url: 'https://www.youtube.com/watch?v=br8VDXWr0_8',
@@ -5798,6 +6176,7 @@ export const EXERCISE_MEDIA: Record<string, ExerciseMedia> = {
     ],
   },
   'ca-armbike-steady': {
+    stills: [formGuide(require('../../../assets/images/exercises/cardio-armbike-steady-form-guide.webp'))],
     clips: [
       {
         url: 'https://www.youtube.com/watch?v=u-79qnFnY98',
@@ -5807,6 +6186,7 @@ export const EXERCISE_MEDIA: Record<string, ExerciseMedia> = {
     ],
   },
   'ca-rope-skipping-intervals': {
+    stills: [formGuide(require('../../../assets/images/exercises/cardio-rope-skipping-form-guide.webp'))],
     clips: [
       {
         url: 'https://www.youtube.com/watch?v=ERG5PPDS_g8',
@@ -5816,6 +6196,7 @@ export const EXERCISE_MEDIA: Record<string, ExerciseMedia> = {
     ],
   },
   'ca-broad-jump-intervals': {
+    stills: [formGuide(require('../../../assets/images/exercises/cardio-broad-jump-form-guide.webp'))],
     clips: [
       {
         url: 'https://www.youtube.com/watch?v=AOkmLTD8J24',
@@ -5825,6 +6206,7 @@ export const EXERCISE_MEDIA: Record<string, ExerciseMedia> = {
     ],
   },
   'ca-ski-erg-sprint-intervals': {
+    stills: [formGuide(require('../../../assets/images/exercises/cardio-ski-erg-sprints-form-guide.webp'))],
     clips: [
       {
         url: 'https://www.youtube.com/watch?v=zD6R5hdE_8Y',
@@ -5834,6 +6216,7 @@ export const EXERCISE_MEDIA: Record<string, ExerciseMedia> = {
     ],
   },
   'ca-kb-single-arm-swing-intervals': {
+    stills: [formGuide(require('../../../assets/images/exercises/cardio-single-arm-kettlebell-swing-form-guide.webp'))],
     clips: [
       {
         url: 'https://www.youtube.com/watch?v=axaCQqM0R1k',
@@ -5842,7 +6225,56 @@ export const EXERCISE_MEDIA: Record<string, ExerciseMedia> = {
       },
     ],
   },
+  'ca-aero-step-touch': {
+    stills: [formGuide(require('../../../assets/images/exercises/cardio-aero-step-touch-form-guide.webp'))],
+  },
+  'ca-aero-grapevine': {
+    stills: [formGuide(require('../../../assets/images/exercises/cardio-aero-grapevine-form-guide.webp'))],
+  },
+  'ca-aero-box-step': {
+    stills: [formGuide(require('../../../assets/images/exercises/cardio-aero-box-step-form-guide.webp'))],
+  },
+  'ca-aero-heel-toe-tap': {
+    stills: [formGuide(require('../../../assets/images/exercises/cardio-aero-heel-toe-tap-form-guide.webp'))],
+  },
+  'ca-aero-knee-lift-twist': {
+    stills: [formGuide(require('../../../assets/images/exercises/cardio-aero-knee-lift-twist-form-guide.webp'))],
+  },
+  'ca-aero-low-impact-jack': {
+    stills: [formGuide(require('../../../assets/images/exercises/cardio-aero-low-impact-jack-form-guide.webp'))],
+  },
+  'ca-aero-reach-side-bend': {
+    stills: [formGuide(require('../../../assets/images/exercises/cardio-aero-reach-side-bend-form-guide.webp'))],
+  },
+  'ca-aero-step-basic': {
+    stills: [formGuide(require('../../../assets/images/exercises/cardio-aero-basic-step-form-guide.webp'))],
+  },
+  'ca-aero-step-touch-on-step': {
+    stills: [formGuide(require('../../../assets/images/exercises/cardio-aero-step-touch-on-step-form-guide.webp'))],
+  },
+  'ca-aero-step-knee-repeater': {
+    stills: [formGuide(require('../../../assets/images/exercises/cardio-aero-step-knee-repeater-form-guide.webp'))],
+  },
+  'ca-aero-step-straddle-down': {
+    stills: [formGuide(require('../../../assets/images/exercises/cardio-aero-straddle-down-form-guide.webp'))],
+  },
+  'ca-aero-step-v-step': {
+    stills: [formGuide(require('../../../assets/images/exercises/cardio-aero-v-step-form-guide.webp'))],
+  },
+  'ca-aero-kick-jab-cross': {
+    stills: [formGuide(require('../../../assets/images/exercises/cardio-aero-jab-cross-form-guide.webp'))],
+  },
+  'ca-aero-kick-front-kick': {
+    stills: [formGuide(require('../../../assets/images/exercises/cardio-aero-front-kick-form-guide.webp'))],
+  },
+  'ca-aero-kick-hook-knee': {
+    stills: [formGuide(require('../../../assets/images/exercises/cardio-aero-hook-knee-form-guide.webp'))],
+  },
+  'ca-aero-kick-squat-punch': {
+    stills: [formGuide(require('../../../assets/images/exercises/cardio-aero-squat-punch-form-guide.webp'))],
+  },
   'wu-jumping-jack-slow': {
+    stills: [formGuide(require('../../../assets/images/exercises/warmup-slow-jumping-jacks-form-guide.webp'))],
     clips: [
       {
         url: 'https://www.youtube.com/watch?v=RKwqhOcHLbE',
@@ -5852,7 +6284,7 @@ export const EXERCISE_MEDIA: Record<string, ExerciseMedia> = {
     ],
   },
   'mob-doorway-bicep-stretch': {
-    stills: [formGuide(require('../../../assets/images/exercises/stretch-doorway-biceps-form-guide.png'))],
+    stills: [formGuide(require('../../../assets/images/exercises/stretch-doorway-biceps-form-guide.webp'))],
     clips: [
       {
         url: 'https://www.youtube.com/watch?v=B9uY01NoqBg',
@@ -5862,7 +6294,7 @@ export const EXERCISE_MEDIA: Record<string, ExerciseMedia> = {
     ],
   },
   'yg-single-leg-balance-reach': {
-    stills: [formGuide(require('../../../assets/images/exercises/yoga-single-leg-balance-reach-form-guide.png'))],
+    stills: [formGuide(require('../../../assets/images/exercises/yoga-single-leg-balance-reach-form-guide.webp'))],
     clips: [
       {
         url: 'https://www.youtube.com/watch?v=TShLyAkKU9c',
@@ -5872,7 +6304,7 @@ export const EXERCISE_MEDIA: Record<string, ExerciseMedia> = {
     ],
   },
   'yf-warrior-3': {
-    stills: [formGuide(require('../../../assets/images/exercises/yoga-warrior3-form-guide.png'))],
+    stills: [formGuide(require('../../../assets/images/exercises/yoga-warrior3-form-guide.webp'))],
     clips: [
       {
         url: 'https://www.youtube.com/watch?v=L3BZeR_z2cQ',
@@ -5882,6 +6314,7 @@ export const EXERCISE_MEDIA: Record<string, ExerciseMedia> = {
     ],
   },
   'mob-figure4-balance-stretch': {
+    stills: [formGuide(require('../../../assets/images/exercises/stretch-standing-figure-four-form-guide.webp'))],
     clips: [
       {
         url: 'https://www.youtube.com/watch?v=uikhOx-AvxI',
@@ -5891,7 +6324,7 @@ export const EXERCISE_MEDIA: Record<string, ExerciseMedia> = {
     ],
   },
   'mob-childs-pose': {
-    stills: [formGuide(require('../../../assets/images/exercises/stretch-childs-pose-form-guide.png'))],
+    stills: [formGuide(require('../../../assets/images/exercises/stretch-childs-pose-form-guide.webp'))],
     clips: [
       {
         url: 'https://www.youtube.com/watch?v=kH12QrSGedM',
@@ -5901,6 +6334,7 @@ export const EXERCISE_MEDIA: Record<string, ExerciseMedia> = {
     ],
   },
   'mob-plantar-calf-stretch': {
+    stills: [formGuide(require('../../../assets/images/exercises/stretch-reverse-lunge-calf-form-guide.webp'))],
     clips: [
       {
         url: 'https://www.youtube.com/watch?v=Rxmg957qC_s',
@@ -5910,6 +6344,7 @@ export const EXERCISE_MEDIA: Record<string, ExerciseMedia> = {
     ],
   },
   'mob-doorway-lunge-stretch': {
+    stills: [formGuide(require('../../../assets/images/exercises/stretch-doorway-lunge-chest-form-guide.webp'))],
     clips: [
       {
         url: 'https://www.youtube.com/shorts/O8rJw_TmC1Y',
@@ -5928,6 +6363,7 @@ export const EXERCISE_MEDIA: Record<string, ExerciseMedia> = {
     ],
   },
   'ca-treadmill-sprints': {
+    stills: [formGuide(require('../../../assets/images/exercises/cardio-treadmill-sprints-form-guide.webp'))],
     clips: [
       {
         url: 'https://www.youtube.com/watch?v=GxkWIKuH21U',
@@ -5935,5 +6371,167 @@ export const EXERCISE_MEDIA: Record<string, ExerciseMedia> = {
         creator: 'Simple Speed Coach',
       },
     ],
+  },
+  'br-first-position-stance': {
+    stills: [formGuide(require('../../../assets/images/exercises/barre-first-position-form-guide.webp'))],
+  },
+  'br-arm-circles': {
+    stills: [formGuide(require('../../../assets/images/exercises/barre-arm-circles-form-guide.webp'))],
+  },
+  'br-marching-warmup': {
+    stills: [formGuide(require('../../../assets/images/exercises/barre-marching-form-guide.webp'))],
+  },
+  'br-seated-leg-circles': {
+    stills: [formGuide(require('../../../assets/images/exercises/barre-seated-leg-circles-form-guide.webp'))],
+  },
+  'br-standing-forward-fold': {
+    stills: [formGuide(require('../../../assets/images/exercises/barre-forward-fold-form-guide.webp'))],
+  },
+  'br-quad-stretch-barre': {
+    stills: [formGuide(require('../../../assets/images/exercises/barre-quad-stretch-form-guide.webp'))],
+  },
+  'hi-kb-vertical-high-pull': {
+    stills: [formGuide(require('../../../assets/images/exercises/hi-kb-vertical-high-pull-form-guide.webp'))],
+  },
+  'pl-band-high-low-pulldown': {
+    stills: [formGuide(require('../../../assets/images/exercises/pl-band-high-low-pulldown-form-guide.webp'))],
+  },
+  'trx-vertical-row': {
+    stills: [formGuide(require('../../../assets/images/exercises/trx-vertical-row-form-guide.webp'))],
+  },
+  'pl-db-single-arm-vertical-row': {
+    stills: [formGuide(require('../../../assets/images/exercises/pl-db-single-arm-vertical-row-form-guide.webp'))],
+  },
+  'ol-bb-hang-clean': {
+    stills: [formGuide(require('../../../assets/images/exercises/ol-bb-hang-clean-form-guide.webp'))],
+  },
+  'ol-bb-power-clean': {
+    stills: [formGuide(require('../../../assets/images/exercises/ol-bb-power-clean-form-guide.webp'))],
+  },
+  'ol-bb-muscle-snatch': {
+    stills: [formGuide(require('../../../assets/images/exercises/ol-bb-muscle-snatch-form-guide.webp'))],
+  },
+  'bi-db-curl': {
+    stills: [formGuide(require('../../../assets/images/exercises/bi-db-curl-form-guide.webp'))],
+  },
+  'ol-db-hang-clean': {
+    stills: [formGuide(require('../../../assets/images/exercises/ol-db-hang-clean-form-guide.webp'))],
+  },
+  'bi-bb-curl': {
+    stills: [formGuide(require('../../../assets/images/exercises/bi-bb-curl-form-guide.webp'))],
+  },
+  'bi-hammer-curl': {
+    stills: [formGuide(require('../../../assets/images/exercises/bi-hammer-curl-form-guide.webp'))],
+  },
+  'bi-concentration-curl': {
+    stills: [formGuide(require('../../../assets/images/exercises/bi-concentration-curl-form-guide.webp'))],
+  },
+  'bi-band-curl': {
+    stills: [formGuide(require('../../../assets/images/exercises/bi-band-curl-form-guide.webp'))],
+  },
+  'bi-cable-curl': {
+    stills: [formGuide(require('../../../assets/images/exercises/bi-cable-curl-form-guide.webp'))],
+  },
+  'bi-kb-curl': {
+    stills: [formGuide(require('../../../assets/images/exercises/bi-kb-curl-form-guide.webp'))],
+  },
+  'bi-db-incline-curl': {
+    stills: [formGuide(require('../../../assets/images/exercises/bi-db-incline-curl-form-guide.webp'))],
+  },
+  'bi-cross-body-hammer-curl': {
+    stills: [formGuide(require('../../../assets/images/exercises/bi-cross-body-hammer-curl-form-guide.webp'))],
+  },
+  'fa-db-wrist-curl': {
+    stills: [formGuide(require('../../../assets/images/exercises/fa-db-wrist-curl-form-guide.webp'))],
+  },
+  'fa-db-reverse-wrist-curl': {
+    stills: [formGuide(require('../../../assets/images/exercises/fa-db-reverse-wrist-curl-form-guide.webp'))],
+  },
+  'fa-dead-hang': {
+    stills: [formGuide(require('../../../assets/images/exercises/fa-dead-hang-form-guide.webp'))],
+  },
+  'fa-db-pinch-hold': {
+    stills: [formGuide(require('../../../assets/images/exercises/fa-db-pinch-hold-form-guide.webp'))],
+  },
+  'fa-fingertip-plank': {
+    stills: [formGuide(require('../../../assets/images/exercises/fa-fingertip-plank-form-guide.webp'))],
+  },
+  'fa-bb-wrist-curl': {
+    stills: [formGuide(require('../../../assets/images/exercises/fa-bb-wrist-curl-form-guide.webp'))],
+  },
+  'fa-bb-reverse-wrist-curl': {
+    stills: [formGuide(require('../../../assets/images/exercises/fa-bb-reverse-wrist-curl-form-guide.webp'))],
+  },
+  'fa-band-wrist-curl': {
+    stills: [formGuide(require('../../../assets/images/exercises/fa-band-wrist-curl-form-guide.webp'))],
+  },
+  'fa-band-reverse-wrist-curl': {
+    stills: [formGuide(require('../../../assets/images/exercises/fa-band-reverse-wrist-curl-form-guide.webp'))],
+  },
+  'nk-manual-flexion': {
+    stills: [formGuide(require('../../../assets/images/exercises/nk-manual-flexion-form-guide.webp'))],
+  },
+  'nk-manual-extension': {
+    stills: [formGuide(require('../../../assets/images/exercises/nk-manual-extension-form-guide.webp'))],
+  },
+  'nk-manual-lateral': {
+    stills: [formGuide(require('../../../assets/images/exercises/nk-manual-lateral-form-guide.webp'))],
+  },
+  'nk-band-flexion': {
+    stills: [formGuide(require('../../../assets/images/exercises/nk-band-flexion-form-guide.webp'))],
+  },
+  'nk-weighted-extension': {
+    stills: [formGuide(require('../../../assets/images/exercises/nk-weighted-extension-form-guide.webp'))],
+  },
+  'cr-db-farmers': {
+    stills: [formGuide(require('../../../assets/images/exercises/cr-db-farmers-form-guide.webp'))],
+  },
+  'cr-db-front-rack': {
+    stills: [formGuide(require('../../../assets/images/exercises/cr-db-front-rack-form-guide.webp'))],
+  },
+  'nk-band-extension': {
+    stills: [formGuide(require('../../../assets/images/exercises/nk-band-extension-form-guide.webp'))],
+  },
+  'cr-db-suitcase': {
+    stills: [formGuide(require('../../../assets/images/exercises/cr-db-suitcase-form-guide.webp'))],
+  },
+  'cr-db-overhead': {
+    stills: [formGuide(require('../../../assets/images/exercises/cr-db-overhead-form-guide.webp'))],
+  },
+  'cr-kb-farmers': {
+    stills: [formGuide(require('../../../assets/images/exercises/cr-kb-farmers-form-guide.webp'))],
+  },
+  'cr-kb-suitcase': {
+    stills: [formGuide(require('../../../assets/images/exercises/cr-kb-suitcase-form-guide.webp'))],
+  },
+  'cr-kb-overhead': {
+    stills: [formGuide(require('../../../assets/images/exercises/cr-kb-overhead-form-guide.webp'))],
+  },
+  'cr-kb-goblet-carry': {
+    stills: [formGuide(require('../../../assets/images/exercises/cr-kb-goblet-carry-form-guide.webp'))],
+  },
+  'co-plank': {
+    stills: [formGuide(require('../../../assets/images/exercises/co-plank-form-guide.webp'))],
+  },
+  'co-hundred': {
+    stills: [formGuide(require('../../../assets/images/exercises/co-hundred-form-guide.webp'))],
+  },
+  'co-roll-up': {
+    stills: [formGuide(require('../../../assets/images/exercises/co-roll-up-form-guide.webp'))],
+  },
+  'co-single-leg-stretch': {
+    stills: [formGuide(require('../../../assets/images/exercises/co-single-leg-stretch-form-guide.webp'))],
+  },
+  'co-double-leg-stretch': {
+    stills: [formGuide(require('../../../assets/images/exercises/co-double-leg-stretch-form-guide.webp'))],
+  },
+  'co-swimming': {
+    stills: [formGuide(require('../../../assets/images/exercises/co-swimming-form-guide.webp'))],
+  },
+  'co-saw': {
+    stills: [formGuide(require('../../../assets/images/exercises/co-saw-form-guide.webp'))],
+  },
+  'co-teaser': {
+    stills: [formGuide(require('../../../assets/images/exercises/co-teaser-form-guide.webp'))],
   },
 };

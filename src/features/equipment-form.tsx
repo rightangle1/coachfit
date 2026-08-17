@@ -1,23 +1,26 @@
 /**
- * Equipment form — what the user owns / can access, with a couple of
- * high-value recommendations tied to goals (ADR-0109). Shared body used both
- * by the mandatory first-run flow (`app/equipment.tsx`) and the "Edit
- * equipment" sheet reached from Settings (prefilled from the existing
+ * Equipment form — what the user owns / can access. Shared body used both by
+ * the mandatory first-run flow (`app/equipment.tsx`) and the "Equipment
+ * settings" sheet reached from Settings (prefilled from the existing
  * inventory).
  */
 
 import { useEffect, useMemo, useState } from 'react';
 import { View } from 'react-native';
 
-import { Button, Card, Chip, GoalHero, Row, SavedPill, Text, TextField, useTheme } from '@/design';
-import { getAthleteProfile } from '@/services/athlete';
+import { Button, Card, CheckToggle, Chip, GoalHero, Row, SavedPill, Text, TextField, useTheme } from '@/design';
+import { TermsSheet } from '@/features/terms-sheet';
+import { TERMS_VERSION } from '@/app-lib/terms';
+import { PrivacySheet } from '@/features/privacy-sheet';
+import { PRIVACY_VERSION } from '@/app-lib/privacy';
+import { markAppTourComplete } from '@/app-lib/app-tour';
+import { getAthleteProfile, saveAthleteProfile } from '@/services/athlete';
 import { getEquipmentInventory, saveEquipmentInventory } from '@/services/equipment';
 import {
   completeFirstRunEquipmentSetup,
   getEquipmentProfile,
   saveEquipmentProfileInventory,
 } from '@/services/equipment-profiles';
-import { recommendEquipment } from '@/domain/engine';
 import type { EquipmentType, WeightedEquipmentType } from '@/domain/types';
 import { WEIGHTED_EQUIPMENT_TYPES } from '@/domain/types';
 import {
@@ -34,7 +37,10 @@ export function EquipmentForm({
   onSaved,
   profileId,
 }: {
-  onSaved: () => void;
+  /** `destination === 'tour'` when the athlete chose the walkthrough;
+   * omitted (go straight to Today) otherwise. Only ever called from the
+   * pure first-run path — editing from Settings never calls this. */
+  onSaved: (destination?: 'tour') => void;
   /** Edit a specific profile's equipment instead of the active one — used
    * when setting up a brand-new profile (ADR-0135). */
   profileId?: string;
@@ -53,6 +59,15 @@ export function EquipmentForm({
     new Set(existing ? existing.items.map((i) => i.type) : ['bodyweight']),
   );
 
+  // One checkbox gates both documents — each still gets its own timestamp/
+  // version so a future content change to just one of them can prompt
+  // re-acceptance on its own. Only ever shown on the mandatory first-run
+  // path (see `!isEditing` below) — editing equipment later never re-asks.
+  const alreadyAcceptedLegal = profile?.termsAcceptedAt != null && profile?.privacyAcceptedAt != null;
+  const [legalAccepted, setLegalAccepted] = useState(alreadyAcceptedLegal);
+  const [showTerms, setShowTerms] = useState(false);
+  const [showPrivacy, setShowPrivacy] = useState(false);
+
   // Owned weights per weighted-equipment type (ADR-0115), canonical kg. Only
   // constrains recommendations when the athlete has actually specified any —
   // otherwise the engine stays unconstrained (existing behavior).
@@ -70,11 +85,6 @@ export function EquipmentForm({
     resistance_bands_tube: '',
     resistance_bands_loop: '',
   });
-
-  const recommendations = useMemo(() => {
-    if (!profile) return [];
-    return recommendEquipment(profile.goals, { items: [...selected].map((type) => ({ type })) });
-  }, [profile, selected]);
 
   function toggle(type: EquipmentType) {
     if (type === 'bodyweight') return; // everyone has this
@@ -136,11 +146,23 @@ export function EquipmentForm({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selected, weightsByType]);
 
-  function onContinue() {
-    // Only reachable when !isEditing, i.e. pure first-run (no profileId, no
-    // active profile yet) — creates and activates the first profile.
+  // Only reachable when !isEditing, i.e. pure first-run (no profileId, no
+  // active profile yet) — creates and activates the first profile, records
+  // legal acceptance, and optionally marks the app tour skipped, all in the
+  // one atomic save behind whichever of the two final buttons was tapped.
+  function finishFirstRun(markTourComplete: boolean) {
+    if (!legalAccepted || !profile) return;
     completeFirstRunEquipmentSetup(buildInventory());
-    onSaved();
+    const now = Date.now();
+    const withLegal = {
+      ...profile,
+      termsAcceptedAt: profile.termsAcceptedAt ?? now,
+      termsVersion: profile.termsAcceptedAt ? profile.termsVersion : TERMS_VERSION,
+      privacyAcceptedAt: profile.privacyAcceptedAt ?? now,
+      privacyVersion: profile.privacyAcceptedAt ? profile.privacyVersion : PRIVACY_VERSION,
+    };
+    saveAthleteProfile(markTourComplete ? markAppTourComplete(withLegal, now) : withLegal);
+    onSaved(markTourComplete ? undefined : 'tour');
   }
 
   return (
@@ -232,25 +254,38 @@ export function EquipmentForm({
         );
       })}
 
-      {recommendations.length > 0 && (
-        <Card tone="primarySoft">
-          <Text variant="heading" color="primaryTextSoft">
-            Helpful additions
+      {!isEditing && !alreadyAcceptedLegal && (
+        <Row gap="sm" style={{ alignItems: 'flex-start' }}>
+          <CheckToggle
+            checked={legalAccepted}
+            onPress={() => setLegalAccepted((v) => !v)}
+            label="I accept the Terms & Conditions and Privacy Policy"
+            shape="box"
+            size={26}
+          />
+          <Text variant="body" color="textMuted" style={{ flex: 1 }}>
+            I&apos;ve read and accept the{' '}
+            <Text variant="body" color="primary" weight="semibold" onPress={() => setShowTerms(true)}>
+              Terms & Conditions
+            </Text>
+            {' '}and{' '}
+            <Text variant="body" color="primary" weight="semibold" onPress={() => setShowPrivacy(true)}>
+              Privacy Policy
+            </Text>
+            .
           </Text>
-          {recommendations.map((r) => (
-            <View key={r.type} style={{ marginTop: spacing.sm }}>
-              <Text variant="subtitle" color="primaryTextSoft">
-                {r.label}
-              </Text>
-              <Text variant="body" color="primaryTextSoft">
-                {r.reason}
-              </Text>
-            </View>
-          ))}
-        </Card>
+        </Row>
       )}
 
-      {!isEditing && <Button title="See my first workout" onPress={onContinue} fullWidth />}
+      {!isEditing && (
+        <View style={{ gap: spacing.sm }}>
+          <Button title="Take the walkthrough" onPress={() => finishFirstRun(false)} disabled={!legalAccepted} fullWidth />
+          <Button title="Start training" variant="quiet" onPress={() => finishFirstRun(true)} disabled={!legalAccepted} fullWidth />
+        </View>
+      )}
+
+      <TermsSheet visible={showTerms} onClose={() => setShowTerms(false)} />
+      <PrivacySheet visible={showPrivacy} onClose={() => setShowPrivacy(false)} />
     </>
   );
 }

@@ -9,6 +9,13 @@ export interface GoalStory {
   headline: string;
   promise: string;
   payoffLabel: string;
+  /** Explore's "Browse exercises → Goal" tab card title — casual browsing
+   * voice, distinct from the promise-oriented `headline` used in goal-setting
+   * UI, but sourced from this single per-modality record so the two can't
+   * drift independently the way two free-standing literal tables would. */
+  browseTitle: string;
+  /** Explore goal-card caption (what's in the collection, not a promise). */
+  browseCaption: string;
 }
 
 export const GOAL_STORIES: Record<Modality, GoalStory> = {
@@ -19,6 +26,8 @@ export const GOAL_STORIES: Record<Modality, GoalStory> = {
     headline: 'Build strength that shows.',
     promise: 'Progressive sessions put measurable strength gains at the center of your plan.',
     payoffLabel: 'volume lifted',
+    browseTitle: 'Build strength',
+    browseCaption: 'Dumbbells, barbells, and bodyweight',
   },
   cardio: {
     key: 'cardio',
@@ -27,6 +36,8 @@ export const GOAL_STORIES: Record<Modality, GoalStory> = {
     headline: 'Go farther. Feel stronger.',
     promise: 'Conditioning time and endurance trends make every bit of stamina visible.',
     payoffLabel: 'cardio minutes',
+    browseTitle: 'Find your pace',
+    browseCaption: 'Steady cardio',
   },
   mobility: {
     key: 'mobility',
@@ -35,6 +46,8 @@ export const GOAL_STORIES: Record<Modality, GoalStory> = {
     headline: 'Move better, every day.',
     promise: 'Purposeful mobility work keeps range, comfort, and consistency in focus.',
     payoffLabel: 'mobility sessions',
+    browseTitle: 'Move with ease',
+    browseCaption: 'Mobility and recovery',
   },
   general: {
     key: 'general',
@@ -43,6 +56,8 @@ export const GOAL_STORIES: Record<Modality, GoalStory> = {
     headline: 'Make every session count.',
     promise: 'Calorie burn and consistent weekly work stay visible as your fitness builds.',
     payoffLabel: 'calories burned',
+    browseTitle: 'Move well today',
+    browseCaption: 'Simple full-body options',
   },
 };
 

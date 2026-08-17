@@ -15,7 +15,6 @@ import {
   Card,
   ChoiceTile,
   Chip,
-  Divider,
   GoalHero,
   HeroScrim,
   Icon,
@@ -25,9 +24,9 @@ import {
   Screen,
   Skeleton,
   SkeletonCard,
+  TabBar,
   Text,
   ToneIconTile,
-  TrendChart,
   toneForWorkoutType,
   useTheme,
 } from '@/design';
@@ -36,7 +35,11 @@ import { RecoverySheet } from '@/features/recovery-sheet';
 import { RoutinePickerSheet } from '@/features/routine-picker-sheet';
 import { RoutineDetailSheet } from '@/features/routine-detail-sheet';
 import { ExerciseHistorySheet } from '@/features/exercise-history-sheet';
+import { DayPlanSheet } from '@/features/day-plan-sheet';
+import { WeeklyPlanSheet } from '@/features/weekly-plan-sheet';
+import { WorkoutDetailSheet } from '@/features/workout-detail-sheet';
 import { WorkoutDetails } from '@/features/workout-details';
+import { workoutTypeArt } from '@/features/exercise-detail';
 import { initStorage } from '@/data/persistence';
 import { generateSession } from '@/services/programming';
 import { getAthleteProfile, hasAthleteProfile, saveAthleteProfile } from '@/services/athlete';
@@ -53,7 +56,7 @@ import {
 import { useWorkoutStore } from '@/state/workout-store';
 import { ensureRollingPlanFresh } from '@/services/rolling-plan';
 import { listRoutines, markRoutineUsed, recommendRoutine } from '@/services/routines';
-import { ageYearsOf, normalizeCardioIntent } from '@/domain/types';
+import { ageYearsOf, defaultAutoAdvance, normalizeCardioIntent } from '@/domain/types';
 import type {
   AthleteProfile,
   AvoidanceFlag,
@@ -68,35 +71,48 @@ import type {
   CardioIntent,
   CardioModality,
   FlowPace,
-  Modality,
   MuscleGroup,
   RollingPlan,
   SessionRecord,
   WorkoutFamily,
 } from '@/domain/types';
-import { CARDIO_MODALITIES, CARDIO_MODALITY_ICONS, CARDIO_MODALITY_LABELS, CARDIO_TARGET_AREA_OPTIONS, CONCERN_OPTIONS, EMPHASIS_OPTIONS, familyOfWorkoutType, FULL_BODY_EMPHASIS_OPTION, MODALITY_LABELS, MUSCLE_GROUP_LABELS, WORKOUT_TYPE_OPTIONS, areaKey } from '@/app-lib/options';
-import { recommendWorkoutType, recoverySummary, weeklyPerformance, workoutSummary } from '@/app-lib/presentation';
-import { primaryGoal } from '@/app-lib/personalization';
+import {
+  CARDIO_INTENT_OPTIONS,
+  CARDIO_MODALITIES,
+  CARDIO_MODALITY_ICONS,
+  CARDIO_MODALITY_LABELS,
+  CARDIO_TARGET_AREA_OPTIONS,
+  CONCERN_OPTIONS,
+  EMPHASIS_OPTIONS,
+  familyOfWorkoutType,
+  FULL_BODY_EMPHASIS_OPTION,
+  INTENT_OPTIONS,
+  modalityIcon,
+  MODALITY_LABELS,
+  MUSCLE_GROUP_LABELS,
+  workoutLabel,
+  workoutTypeIcon,
+  WORKOUT_TYPE_OPTIONS,
+  areaKey,
+  type TrainingIntent,
+} from '@/app-lib/options';
+import {
+  localDay,
+  rationaleHighlights,
+  recoverySummary,
+  recurringRoutineFor,
+  recommendWorkoutType,
+  resolveDayStatus,
+  toWeekPlanRow,
+  type RecoverySummary,
+  type ScheduleWorkoutOptions,
+  type WeekPlanRow,
+} from '@/app-lib/presentation';
 import { needsAppTour } from '@/app-lib/app-tour';
+import { GOAL_PRESETS_BY_ID } from '@/app-lib/goal-presets';
 
 type Severity = 'mild' | 'severe';
-type TrainingIntent = 'recovery' | 'balanced' | 'challenge';
-type PerformanceMetric = 'strength' | 'endurance' | 'calories' | 'workouts';
 type BuilderSection = 'session' | 'focus' | 'shape' | 'feeling' | 'adjustments' | 'routine';
-
-const PRIMARY_METRIC: Record<string, PerformanceMetric> = {
-  strength: 'strength',
-  cardio: 'endurance',
-  general: 'calories',
-  mobility: 'workouts',
-};
-
-const METRIC_LABELS: Record<PerformanceMetric, string> = {
-  strength: 'Strength',
-  endurance: 'Endurance',
-  calories: 'Calories burned',
-  workouts: 'Workouts',
-};
 
 const READY_OPTIONS = {
   sleep: [
@@ -116,22 +132,10 @@ const READY_OPTIONS = {
   ],
 } as const;
 
-const INTENT_OPTIONS: { label: string; value: TrainingIntent; caption: string }[] = [
-  { label: 'Ease in', value: 'recovery', caption: 'Lower volume, gentler effort' },
-  { label: 'Balanced', value: 'balanced', caption: 'Your normal training day' },
-  { label: 'Push', value: 'challenge', caption: 'A little more challenge' },
-];
-
 const BODYBUILDING_ROTATIONS: { label: string; value: BodybuildingRotation; caption: string }[] = [
   { label: 'Straight sets', value: 'straight', caption: 'Finish all working sets before moving on.' },
   { label: 'Supersets', value: 'superset', caption: 'Alternate two compatible exercises before resting.' },
   { label: 'Tri-sets', value: 'triset', caption: 'Move through three compatible exercises, then rest.' },
-];
-
-const CARDIO_INTENTS: { label: string; value: CardioIntent; caption: string }[] = [
-  { label: 'Basic', value: 'basic', caption: 'Conversational, steady work that builds endurance.' },
-  { label: 'Circuit', value: 'circuit', caption: 'A rotating circuit of moves at a steady pace — no machine required.' },
-  { label: 'Interval', value: 'interval', caption: 'Timed work and recovery rounds with clear RPE targets.' },
 ];
 
 /** Cardio types with enough muscle-group variety for "Target area" to mean
@@ -150,29 +154,6 @@ const FLOW_DURATIONS = [10, 20, 30] as const;
 const SESSION_DURATIONS = [10, 20, 30, 40, 50, 60] as const;
 
 const FULL_BODY_KEY = areaKey(FULL_BODY_EMPHASIS_OPTION.area);
-const TODAY_EDITORIAL_ART = require('../../assets/images/editorial/today-strength-v1.png');
-const TODAY_CARDIO_ART = require('../../assets/images/editorial/endurance-run-v1.png');
-const TODAY_RECOVERY_ART = require('../../assets/images/editorial/recovery-stretch-v1.png');
-const TODAY_CONDITIONING_ART = require('../../assets/images/editorial/today-conditioning-v1.png');
-
-const WORKOUT_TYPE_ART = {
-  balanced: require('../../assets/images/heroes/bodyweight-hero.png'),
-  bodybuilding: require('../../assets/images/heroes/bodybuilding-hero.png'),
-  sculpting: require('../../assets/images/heroes/bodybuilding-hero.png'),
-  stretch: require('../../assets/images/heroes/stretch-hero.png'),
-  yoga: require('../../assets/images/heroes/yoga-hero.png'),
-  // No dedicated barre hero art yet — shares yoga's, same spirit as
-  // sculpting sharing bodybuilding's until barre gets its own asset.
-  barre: require('../../assets/images/heroes/yoga-hero.png'),
-  // No dedicated Pilates hero art yet — reuses yoga's, same as Barre above.
-  pilates: require('../../assets/images/heroes/yoga-hero.png'),
-  bodyweight: require('../../assets/images/heroes/bodyweight-hero.png'),
-  cardio: require('../../assets/images/heroes/cardio-hero.png'),
-} as const;
-
-function workoutTypeArt(type: WorkoutType | undefined) {
-  return type ? WORKOUT_TYPE_ART[type] : WORKOUT_TYPE_ART.balanced;
-}
 
 /**
  * The shared visual for both "Kind of session" picker steps (ADR-0407): a
@@ -225,7 +206,7 @@ function SelectableHeroTile({
             </View>
           ) : null}
         </View>
-        <Text variant="subtitle" color="heroText" weight="semibold">{label}</Text>
+        <Text variant="label" color="heroText" weight="semibold" numberOfLines={1} adjustsFontSizeToFit>{label}</Text>
       </ImageBackground>
     </PressScale>
   );
@@ -255,9 +236,9 @@ function WorkoutTypeTile({
 }
 
 const FAMILY_ART: Record<WorkoutFamily, ImageSourcePropType> = {
-  strength: require('../../assets/images/heroes/bodybuilding-hero.png'),
-  cardio: require('../../assets/images/heroes/cardio-hero.png'),
-  mobility: require('../../assets/images/heroes/yoga-hero.png'),
+  strength: require('../../assets/images/heroes/bodybuilding-hero.webp'),
+  cardio: require('../../assets/images/heroes/cardio-hero.webp'),
+  mobility: require('../../assets/images/heroes/yoga-hero.webp'),
 };
 
 const FAMILY_TONE: Record<WorkoutFamily, ContextTone> = {
@@ -319,46 +300,6 @@ function scrollMarkerIntoView(
   }
 }
 
-function localDay(ms: number): number {
-  const d = new Date(ms);
-  d.setHours(12, 0, 0, 0);
-  return d.getTime();
-}
-
-/** 0=Sun..6=Sat, matching `Routine.recurrenceDaysOfWeek` (ADR-0137). */
-function weekdayOf(ms: number): number {
-  return new Date(ms).getDay();
-}
-
-/** The recurring routine (if any) whose days include `day`'s weekday and
- * that isn't already covered by a completed/manually-scheduled entry — a
- * render-time overlay, never materialized ahead of time (ADR-0137). */
-function recurringRoutineFor(day: number, routines: Routine[]): Routine | undefined {
-  const weekday = weekdayOf(day);
-  return routines.find((routine) => routine.recurrenceDaysOfWeek?.includes(weekday));
-}
-
-function workoutLabel(type: WorkoutType | undefined): string {
-  if (!type) return 'Balanced';
-  return type[0].toUpperCase() + type.slice(1);
-}
-
-/** Same mapping WorkoutTypeTile uses for its selector tiles — reused here so
- * the Weekly Plan list reads as the same visual language as the builder. */
-function workoutTypeIcon(type: WorkoutType | undefined): 'goalCardio' | 'goalMobility' | 'goalStrength' {
-  const family = familyOfWorkoutType(type);
-  if (family === 'cardio') return 'goalCardio';
-  if (family === 'mobility') return 'goalMobility';
-  return 'goalStrength';
-}
-
-function modalityIcon(modality: Modality | undefined): 'goalCardio' | 'goalMobility' | 'goalStrength' | 'goalBurn' {
-  if (modality === 'cardio') return 'goalCardio';
-  if (modality === 'mobility') return 'goalMobility';
-  if (modality === 'general') return 'goalBurn';
-  return 'goalStrength';
-}
-
 function workoutOverview(plan: SessionPlan): { focus: string; primaryGroups: string[] } {
   const mainBlock = plan.blocks.find((block) => block.label.toLowerCase().includes('main'))
     ?? plan.blocks.find((block) => !/warm|cool|condition/.test(block.label.toLowerCase()))
@@ -391,6 +332,27 @@ function workoutOverview(plan: SessionPlan): { focus: string; primaryGroups: str
   };
 }
 
+/** The header's recovery chip label/color — same fresh/recovering/fatigued
+ * vocabulary `RecoverySheet` uses, condensed to a single headline. */
+function recoveryHeadlineOf(recovery: RecoverySummary): { label: string; color: ColorToken } {
+  if (recovery.fatigued.length > 0) return { label: `${recovery.fatigued.length} fatigued`, color: 'danger' };
+  if (recovery.recovering.length > 0) return { label: `${recovery.recovering.length} recovering`, color: 'warning' };
+  return { label: 'Recovered', color: 'success' };
+}
+
+/** Icon/color for a single day strip chip — the same status→icon vocabulary
+ * `WeeklyPlanSheet`'s rows use, condensed to just what fits in a compact chip. */
+function dayStripIcon(row: WeekPlanRow): { icon: IconName; color: ColorToken } {
+  switch (row.status) {
+    case 'completed': return { icon: 'checkAll', color: 'primary' };
+    case 'missed': return { icon: 'warning', color: 'warning' };
+    case 'scheduled': return { icon: workoutTypeIcon(row.scheduled.workoutType), color: 'primaryTextSoft' };
+    case 'recurring': return { icon: workoutTypeIcon(row.routine.workoutType), color: 'textMuted' };
+    case 'suggested': return { icon: modalityIcon(row.intent.modality), color: 'textMuted' };
+    default: return { icon: 'sleep', color: 'textFaint' };
+  }
+}
+
 export default function TodayScreen() {
   const { colors, radii, spacing } = useTheme();
   const router = useRouter();
@@ -405,7 +367,6 @@ export default function TodayScreen() {
   // Session generation is awaited; before ADR-0130 the button stayed fully
   // enabled and unchanged while it ran, so a slow build looked like a dead tap.
   const [building, setBuilding] = useState(false);
-  const [showBuilder, setShowBuilder] = useState(false);
   const [athlete, setAthlete] = useState<AthleteProfile | null>(null);
   const [equipment, setEquipment] = useState<EquipmentInventory | null>(null);
 
@@ -415,7 +376,15 @@ export default function TodayScreen() {
   const [showRecovery, setShowRecovery] = useState(false);
   const [trainingIntent, setTrainingIntent] = useState<TrainingIntent>('balanced');
   const [workoutType, setWorkoutType] = useState<WorkoutType | undefined>(undefined);
-  const workoutTone = toneForWorkoutType(workoutType);
+  // "Balanced" (the Strength family's default style) is represented as
+  // `workoutType === undefined` — the same value a fresh/unseeded day uses to
+  // mean "no preference, let the weekly forecast decide." Without this flag
+  // the engine can't tell those two apart, so an explicit tap on Balanced
+  // couldn't outrank today's weeklyPlan default the way every other explicit
+  // style already does (see the mainModality branch in rules-engine.ts).
+  // Set on any real `changeWorkoutType` call; reset whenever the builder is
+  // freshly (re)seeded for a day, alongside the other seeded fields below.
+  const [workoutTypeTouched, setWorkoutTypeTouched] = useState(false);
   // The "Kind of session" picker's step A (ADR-0407) — which family's style
   // tiles step B shows. Not derived inline from `workoutType` on every render
   // because picking a family (before a style within it is chosen) shouldn't
@@ -438,6 +407,10 @@ export default function TodayScreen() {
   // (on for stretch/yoga/barre) rather than forcing a value into every plan.
   const [autoAdvanceOverride, setAutoAdvanceOverride] = useState<boolean | undefined>(undefined);
   const [targetDurationMin, setTargetDurationMin] = useState<number>(30);
+  // Guards the preset-driven pre-fill below from silently overwriting an
+  // explicit duration pick the athlete already made this visit — mirrors
+  // `emphasizeTouched`'s exact same protection a few lines down.
+  const [targetDurationMinTouched, setTargetDurationMinTouched] = useState(false);
   // This screen can be the very first thing to mount after a fresh install
   // or upgrade, before the `useFocusEffect` below has had a chance to run —
   // `initStorage()` must happen before any synchronous storage read here.
@@ -452,6 +425,7 @@ export default function TodayScreen() {
   const [concerns, setConcerns] = useState<Map<string, Severity>>(new Map());
   const [plan, setPlan] = useState<SessionPlan | null>(null);
   const planTone = toneForWorkoutType(plan?.workoutType);
+  const rationaleNotes = plan ? rationaleHighlights(plan.rationale) : [];
   const scrollRef = useRef<ScrollView>(null);
   const pendingScrollToPlan = useRef(false);
   const planMarkerRef = useRef<View>(null);
@@ -479,6 +453,7 @@ export default function TodayScreen() {
   // into a style it was never meant for.
   const changeWorkoutType = useCallback((type: WorkoutType | undefined) => {
     setWorkoutType(type);
+    setWorkoutTypeTouched(true);
     const family = familyOfWorkoutType(type);
     if (type !== 'bodybuilding' && type !== 'sculpting') setBodybuildingRotation('straight');
     if (type !== 'cardio') {
@@ -529,7 +504,6 @@ export default function TodayScreen() {
   useEffect(() => {
     if (params.checkin !== '1') return;
     const frame = requestAnimationFrame(() => {
-      setShowBuilder(true);
       setShowBuilderAdjustments(true);
       openSection('feeling');
     });
@@ -587,56 +561,19 @@ export default function TodayScreen() {
         setRoutines(savedRoutines);
         setAthlete(profile);
         setScheduledWorkouts(scheduled);
-        // ADR-0137 v2: a routine's own style is the source of truth for what
-        // gets built once one is selected — it overrides whatever "Kind of
-        // session" default was just applied above, so e.g. a Yoga routine
-        // actually runs the Yoga flow instead of silently building Balanced.
-        const applyRoutineSelection = (id: string | null) => {
-          setSelectedRoutineId(id);
-          const routine = id ? savedRoutines.find((r) => r.id === id) : undefined;
-          if (routine) setWorkoutType(routine.workoutType);
-        };
-        if (todaysSchedule) {
-          setWorkoutType(todaysSchedule.workoutType);
-          setTrainingIntent(todaysSchedule.trainingIntent ?? 'balanced');
-          setBodybuildingRotation(todaysSchedule.workoutOptions?.bodybuildingRotation ?? 'straight');
-          setCardioIntent(normalizeCardioIntent(todaysSchedule.workoutOptions?.cardioIntent));
-          setCardioModalities(todaysSchedule.workoutOptions?.cardioModalities ?? []);
-          setFlowDurationMin(todaysSchedule.workoutOptions?.flow?.durationMin ?? 20);
-          setFlowPace(todaysSchedule.workoutOptions?.flow?.pace ?? 'standard');
-          const workoutDefaults = getExercisePreferences();
-          setIncludeWarmup(todaysSchedule.workoutOptions?.includeWarmup ?? workoutDefaults.defaultIncludeWarmup);
-          setIncludeConditioning(todaysSchedule.workoutOptions?.includeConditioning ?? workoutDefaults.defaultIncludeConditioning);
-          setIncludeCooldown(todaysSchedule.workoutOptions?.includeCooldown ?? workoutDefaults.defaultIncludeCooldown);
-          // ADR-0137: an explicit "Use today" from Explore wins outright;
-          // otherwise a routine explicitly scheduled for today does.
-          applyRoutineSelection(explicitRoutineId ?? todaysSchedule.routineId ?? null);
-        } else if (profile) {
-          // No explicit plan for today — the athlete's standing style
-          // preference wins if set; otherwise preselect from goal weights.
-          // The chips below still let them pick something else either way.
-          setWorkoutType(profile.preferredWorkoutType ?? recommendWorkoutType(profile.goals));
-          // ADR-0137: an explicit "Use today" wins; otherwise nothing
-          // explicit today — fall back to a recurring routine whose days
-          // include today's weekday, if any (a render-time overlay, not a
-          // materialized schedule entry).
-          applyRoutineSelection(explicitRoutineId ?? recurringRoutineFor(Date.now(), savedRoutines)?.id ?? null);
-        }
-        if (explicitRoutineId) {
-          pendingRoutineIdRef.current = undefined;
-          setShowBuilder(true);
-          setShowBuilderAdjustments(true);
-          openSection('routine');
-          router.setParams({ useRoutineId: undefined });
-        }
+        // Computed up front (rather than piped straight into setRollingPlan
+        // further down) so the cardioIntent seed below can read the SAME
+        // freshly-computed plan, not last render's possibly-stale state —
+        // ensureRollingPlanFresh only actually recomputes on two trigger
+        // days (a workout just completed, or a new day opened with a missed
+        // session), and reading state instead of this value would seed from
+        // yesterday's rotation on exactly those two days.
+        // Fresh seed for (re)opening the builder on a day — any workoutType
+        // set below is a suggestion, not yet the athlete's own tap.
+        setWorkoutTypeTouched(false);
         const equipmentInventory = getEquipmentInventory() ?? null;
-        setEquipment(equipmentInventory);
-        // Recomputed only inside ensureRollingPlanFresh's two trigger checks
-        // (a workout completed, or a new day opened with a missed workout) —
-        // this call is cheap (a profile read + a date comparison) otherwise.
-        if (profile && equipmentInventory) {
-          setRollingPlan(
-            ensureRollingPlanFresh(
+        const freshPlan = profile && equipmentInventory
+          ? ensureRollingPlanFresh(
               {
                 athlete: profile,
                 equipment: equipmentInventory,
@@ -657,9 +594,90 @@ export default function TodayScreen() {
               // with a routine already fixed for it (explicit or recurring).
               savedRoutines,
               scheduled,
-            ),
+            )
+          : undefined;
+        // ADR-0137 v2: a routine's own style is the source of truth for what
+        // gets built once one is selected — it overrides whatever "Kind of
+        // session" default was just applied above, so e.g. a Yoga routine
+        // actually runs the Yoga flow instead of silently building Balanced.
+        const applyRoutineSelection = (id: string | null) => {
+          setSelectedRoutineId(id);
+          const routine = id ? savedRoutines.find((r) => r.id === id) : undefined;
+          if (routine) setWorkoutType(routine.workoutType);
+        };
+        if (todaysSchedule) {
+          setWorkoutType(todaysSchedule.workoutType);
+          setTrainingIntent(todaysSchedule.trainingIntent ?? 'balanced');
+          setBodybuildingRotation(todaysSchedule.workoutOptions?.bodybuildingRotation ?? 'straight');
+          // A day scheduled ahead via the Weekly/Day Plan popup never carries
+          // an explicit cardioIntent through (a separate, pre-existing gap —
+          // see rules-engine ADR-0143 precedence notes) — fall back to the
+          // athlete's standing preference before normalizeCardioIntent's own
+          // 'basic' default, so at least the standing lean survives even
+          // though that specific day's rotated value doesn't.
+          setCardioIntent(normalizeCardioIntent(
+            todaysSchedule.workoutOptions?.cardioIntent
+              ?? (todaysSchedule.workoutType === 'cardio' ? profile?.preferredCardioIntent : undefined),
+          ));
+          setCardioModalities(todaysSchedule.workoutOptions?.cardioModalities ?? []);
+          setFlowDurationMin(todaysSchedule.workoutOptions?.flow?.durationMin ?? 20);
+          setFlowPace(todaysSchedule.workoutOptions?.flow?.pace ?? 'standard');
+          const workoutDefaults = getExercisePreferences();
+          setIncludeWarmup(todaysSchedule.workoutOptions?.includeWarmup ?? workoutDefaults.defaultIncludeWarmup);
+          setIncludeConditioning(todaysSchedule.workoutOptions?.includeConditioning ?? workoutDefaults.defaultIncludeConditioning);
+          setIncludeCooldown(todaysSchedule.workoutOptions?.includeCooldown ?? workoutDefaults.defaultIncludeCooldown);
+          // ADR-0137: an explicit "Use today" from Explore wins outright;
+          // otherwise a routine explicitly scheduled for today does.
+          applyRoutineSelection(explicitRoutineId ?? todaysSchedule.routineId ?? null);
+          // A day customized from the Weekly Plan popup carries its own
+          // target areas — seed the picker from them (and mark it touched
+          // so the recovery-based auto-seed below doesn't overwrite it).
+          if (todaysSchedule.targeting?.emphasize.length) {
+            setEmphasize(new Set(todaysSchedule.targeting.emphasize.map(areaKey)));
+            setEmphasizeTouched(true);
+          }
+        } else if (profile) {
+          // No explicit plan for today — the athlete's standing style
+          // preference wins if set; otherwise preselect from goal weights.
+          // The chips below still let them pick something else either way.
+          setWorkoutType(profile.preferredWorkoutType ?? recommendWorkoutType(profile.goals));
+          // Pre-fill the duration picker from the athlete's onboarding goal
+          // preset — a suggestion only, never read by the engine itself, and
+          // never applied once the athlete has explicitly touched this
+          // picker (this visit's own choice always wins).
+          if (!targetDurationMinTouched) {
+            const preset = profile.goals.presetId ? GOAL_PRESETS_BY_ID[profile.goals.presetId] : undefined;
+            if (preset?.resolve.suggestedDurationMin) setTargetDurationMin(preset.resolve.suggestedDurationMin);
+          }
+          // Seed the Structure chip from today's real default — the rolling
+          // plan's rotation (already preference-aware, see rolling-plan.ts's
+          // cardioIntentFor) if a forecast exists for today, else the
+          // athlete's standing preference, else 'basic'. Previously this
+          // stayed hardcoded to 'basic' regardless of the forecast, which
+          // silently discarded the rotation's real value once sent through
+          // as an explicit choice in runBuild() below.
+          const todaysForecastDay = freshPlan?.days.find((day) => day.date === localDay(Date.now()));
+          setCardioIntent(
+            (todaysForecastDay?.kind === 'workout' ? todaysForecastDay.cardioIntent : undefined)
+              ?? profile.preferredCardioIntent
+              ?? 'basic',
           );
+          // ADR-0137: an explicit "Use today" wins; otherwise nothing
+          // explicit today — fall back to a recurring routine whose days
+          // include today's weekday, if any (a render-time overlay, not a
+          // materialized schedule entry).
+          applyRoutineSelection(explicitRoutineId ?? recurringRoutineFor(Date.now(), savedRoutines)?.id ?? null);
         }
+        if (explicitRoutineId) {
+          pendingRoutineIdRef.current = undefined;
+          setShowBuilderAdjustments(true);
+          openSection('routine');
+          router.setParams({ useRoutineId: undefined });
+        }
+        setEquipment(equipmentInventory);
+        // freshPlan was already computed up front (see above) so the
+        // cardioIntent seed could read it synchronously in the same pass.
+        if (freshPlan) setRollingPlan(freshPlan);
         setReady(true);
       }, 0);
       return () => clearTimeout(timer);
@@ -693,16 +711,15 @@ export default function TodayScreen() {
   const inProgress = activeRecord != null && activeRecord.completedAt == null;
 
   const history = useMemo(() => (ready ? listHistory(20) : []), [ready]);
-  const focusGoal = primaryGoal(athlete?.goals);
-  const [selectedMetric, setSelectedMetric] = useState<PerformanceMetric | null>(null);
-  // Only one hero dropdown can be open at a time — opening one closes the other.
-  const [openHeroSection, setOpenHeroSection] = useState<'progress' | 'plan' | null>(null);
-  const showProgressDetails = openHeroSection === 'progress';
-  const showWeekAhead = openHeroSection === 'plan';
-  // The forecast horizon defaults to 14 days (ADR-0142), but the card only
+  // The forecast horizon defaults to 14 days (ADR-0142), but the popup only
   // shows the first 7 until asked — keeps the common case scannable while
   // still letting an upcoming lighter/heavier week be checked on demand.
   const [showSecondWeek, setShowSecondWeek] = useState(false);
+  const [showWeeklyPlanSheet, setShowWeeklyPlanSheet] = useState(false);
+  // A tapped day chip opens exactly one of these: a completed day's real
+  // workout, or a forecast day's plan/swap popup — never both.
+  const [openDayRow, setOpenDayRow] = useState<Exclude<WeekPlanRow, { status: 'completed' }> | null>(null);
+  const [openDayRecordId, setOpenDayRecordId] = useState<string | undefined>(undefined);
 
   const fatigue = useMemo(
     () => (ready ? currentFatigue(ageYearsOf(athlete ?? {})) : { byGroup: {}, updatedAt: 0 }),
@@ -750,38 +767,35 @@ export default function TodayScreen() {
       : EMPHASIS_AND_TARGET_AREA_OPTIONS.filter((o) => emphasize.has(areaKey(o.area))).map((o) => o.area),
     [emphasize],
   );
-  // Lays the persisted rolling forecast (rollingPlan.days, from
-  // ensureRollingPlanFresh — only recomputed after a workout completes or on
-  // a new day with a missed expected workout, never on every render) over
-  // real calendar state: completed days come from history, scheduled days
-  // from scheduledWorkouts, and any remaining forecasted day falls back to
-  // the plan's own workout/rest suggestion — rolling forward from today
-  // rather than resetting at a Monday boundary.
-  const weekPlan = useMemo(() => {
-    const todayLocal = weekStart;
+  // Shared per-day status lookup context — built once and fed to
+  // `resolveDayStatus` for both the forward-looking popup list and the
+  // header's centered day strip, so the two never disagree about what a
+  // given day is.
+  const dayStatusContext = useMemo(() => {
     const completedByDay = new Map<number, SessionRecord>();
     for (const record of history) {
       if (record.completedAt == null) continue;
       completedByDay.set(localDay(record.completedAt), record);
     }
-    const days = rollingPlan?.days ?? [];
-    const rows = days.map((day) => {
-      const record = completedByDay.get(day.date);
-      if (record) return { day: day.date, status: 'completed' as const, record };
-      const scheduled = scheduledWorkouts.find((item) => localDay(item.plannedFor) === day.date);
-      if (scheduled) return { day: day.date, status: 'scheduled' as const, scheduled };
-      // ADR-0137: a recurring routine overlays today/future days only — it
-      // never rewrites what already happened (or didn't) on a past day.
-      const recurring = day.date >= todayLocal ? recurringRoutineFor(day.date, routines) : undefined;
-      if (recurring) return { day: day.date, status: 'recurring' as const, routine: recurring };
-      if (day.date < todayLocal) {
-        return day.kind === 'workout'
-          ? { day: day.date, status: 'missed' as const }
-          : { day: day.date, status: 'rest' as const };
-      }
-      if (day.kind === 'rest') return { day: day.date, status: 'rest' as const };
-      return { day: day.date, status: 'suggested' as const, intent: { modality: day.modality, priorityMuscles: day.priorityMuscles ?? [] } };
-    });
+    const rollingDayByDate = new Map((rollingPlan?.days ?? []).map((day) => [day.date, day]));
+    return { completedByDay, rollingDayByDate, todayLocal: weekStart };
+  }, [history, rollingPlan, weekStart]);
+  // Lays the persisted rolling forecast (rollingPlan.days, from
+  // ensureRollingPlanFresh — only recomputed after a workout completes or on
+  // a new day with a missed expected workout, never on every render) over
+  // real calendar state — rolling forward from today rather than resetting
+  // at a Monday boundary. Forward-only (today..horizon), shown in the
+  // Weekly Plan popup.
+  const weekPlan = useMemo(() => {
+    const rows = (rollingPlan?.days ?? []).map((day) =>
+      toWeekPlanRow(resolveDayStatus(day.date, {
+        completedByDay: dayStatusContext.completedByDay,
+        scheduledWorkouts,
+        routines,
+        todayLocal: dayStatusContext.todayLocal,
+        rollingDay: day,
+      })),
+    );
     // Counted off the actual rows shown (completed + scheduled + suggested),
     // not just the plan's own workout-day count — a manually scheduled day
     // that lands on what the forecast called a rest day still counts as a
@@ -789,29 +803,28 @@ export default function TodayScreen() {
     const completedCount = rows.filter((row) => row.status === 'completed').length;
     const plannedCount = rows.filter((row) => row.status === 'scheduled' || row.status === 'suggested').length;
     return { rows, completedCount, plannedCount };
-  }, [history, scheduledWorkouts, rollingPlan, weekStart, routines]);
-  const performance = useMemo(
-    () => weeklyPerformance(history, weekStart, athlete?.weightUnit ?? 'kg', athlete?.bodyweightKg),
-    [athlete?.bodyweightKg, athlete?.weightUnit, history, weekStart],
-  );
-  const highlightedMetric = selectedMetric ?? PRIMARY_METRIC[focusGoal];
-  const orderedMetrics = useMemo(() => {
-    const primary = PRIMARY_METRIC[focusGoal];
-    return [primary, ...(['strength', 'endurance', 'calories', 'workouts'] as PerformanceMetric[]).filter((metric) => metric !== primary)];
-  }, [focusGoal]);
-  const metricValue = useCallback((metric: PerformanceMetric) => {
-    const total = performance.values[metric].reduce((sum, value) => sum + value, 0);
-    switch (metric) {
-      case 'strength': {
-        const rounded = Math.round(total);
-        const value = rounded >= 1000 ? `${(rounded / 1000).toFixed(1)}k` : String(rounded);
-        return `${value} ${athlete?.weightUnit ?? 'kg'}`;
-      }
-      case 'endurance': return `${Math.round(total)} min`;
-      case 'calories': return `${Math.round(total).toLocaleString()} kcal`;
-      case 'workouts': return String(Math.round(total));
-    }
-  }, [athlete?.weightUnit, performance.values]);
+  }, [dayStatusContext, scheduledWorkouts, rollingPlan, routines]);
+  // The header's day strip: real past days (from history) through a few
+  // days ahead (from the forecast) — unlike `weekPlan` above, this looks
+  // backward too, so it can answer "how's this week actually gone."
+  const weekStrip = useMemo(() => {
+    const days = Array.from({ length: 7 }, (_, i) => weekStart + (i - 3) * 86_400_000);
+    const rows = days.map((date) =>
+      toWeekPlanRow(resolveDayStatus(date, {
+        completedByDay: dayStatusContext.completedByDay,
+        scheduledWorkouts,
+        routines,
+        todayLocal: dayStatusContext.todayLocal,
+        rollingDay: dayStatusContext.rollingDayByDate.get(date),
+      })),
+    );
+    const completedCount = rows.filter((row) => row.status === 'completed').length;
+    // "Workout days" this week — completed plus every other non-rest status
+    // (scheduled/recurring/suggested/missed) — so the fraction reflects real
+    // training days, not every day in the window.
+    const totalCount = rows.filter((row) => row.status !== 'rest').length;
+    return { rows, completedCount, totalCount };
+  }, [dayStatusContext, scheduledWorkouts, routines, weekStart]);
 
   // Full Body is mutually exclusive with the individual muscle-group chips
   // (ADR-0124): picking it clears any selected groups, and picking a group
@@ -901,6 +914,7 @@ export default function TodayScreen() {
       trainingIntent,
       targetDurationMin,
       workoutType,
+      workoutTypeExplicit: workoutTypeTouched,
       weeklyPlan,
       workoutOptions: {
         ...(workoutType === 'bodybuilding' || workoutType === 'sculpting' ? { bodybuildingRotation } : {}),
@@ -961,21 +975,20 @@ export default function TodayScreen() {
     if (ended) router.push('/debrief');
   }
 
-  function scheduleWorkout(day: number, routineId?: string) {
+  /**
+   * Schedules (or replaces) a future day's plan. `options` lets the Weekly
+   * Plan popup set that day's own workout type/target areas explicitly
+   * (Recommend/Customize) — deliberately NOT falling back to today's live
+   * builder state, which would silently schedule whatever Today happens to
+   * be configured as onto an unrelated day.
+   */
+  function scheduleWorkout(day: number, options?: ScheduleWorkoutOptions) {
     if (!athlete) return;
     const entry: ScheduledWorkout = {
       plannedFor: day,
-      workoutType,
-      workoutOptions: {
-        ...(workoutType === 'bodybuilding' || workoutType === 'sculpting' ? { bodybuildingRotation } : {}),
-        ...(workoutType === 'cardio' ? { cardioIntent, ...(cardioModalities.length ? { cardioModalities } : {}) } : {}),
-        ...(familyOfWorkoutType(workoutType) === 'mobility'
-          ? { flow: { durationMin: flowDurationMin, pace: flowPace } }
-          : { includeWarmup, includeConditioning, includeCooldown }),
-        ...(autoAdvanceOverride !== undefined ? { autoAdvance: autoAdvanceOverride } : {}),
-      },
-      trainingIntent,
-      routineId,
+      ...(options?.workoutType !== undefined ? { workoutType: options.workoutType } : {}),
+      ...(options?.routineId ? { routineId: options.routineId } : {}),
+      ...(options?.emphasize ? { targeting: { emphasize: options.emphasize } } : {}),
     };
     const next = [...scheduledWorkouts.filter((item) => localDay(item.plannedFor) !== day), entry];
     setScheduledWorkouts(next);
@@ -1007,262 +1020,43 @@ export default function TodayScreen() {
 
   return (
     <Screen ref={scrollRef}>
-      <GoalHero
-        goal={focusGoal}
-        compact
-        imageOverride={focusGoal === 'cardio' ? TODAY_CARDIO_ART : focusGoal === 'mobility' ? TODAY_RECOVERY_ART : focusGoal === 'general' ? TODAY_CONDITIONING_ART : TODAY_EDITORIAL_ART}
-        style={{ minHeight: 270 }}
-      >
-        <View style={{ gap: spacing.md }}>
-          <View>
-            <Text variant="caption" color="heroMuted" weight="bold">{todayLabel()}</Text>
-            <Text variant="title" color="heroText" italic style={{ marginTop: 2 }}>Today&apos;s training</Text>
-          </View>
-
+      <View style={{ gap: 4 }}>
+        <Row style={{ justifyContent: 'space-between', alignItems: 'center' }}>
+          <Text variant="display" italic>Today</Text>
           <PressScale
             accessibilityRole="button"
             accessibilityLabel="View muscle recovery details"
             onPress={() => setShowRecovery(true)}
             haptic="selection"
             style={{
-              padding: spacing.sm,
-              borderRadius: radii.md,
-              backgroundColor: colors.heroPill,
+              paddingVertical: spacing.xs,
+              paddingHorizontal: spacing.sm,
+              borderRadius: radii.pill,
+              backgroundColor: colors.surfaceAlt,
             }}
           >
-            <Row style={{ justifyContent: 'space-between', alignItems: 'center' }}>
-              <Text variant="caption" color="heroMuted" weight="bold">MUSCLE RECOVERY</Text>
-              <Text variant="caption" color="heroText">Details ›</Text>
+            <Row gap="xs" style={{ alignItems: 'center' }}>
+              <Icon name="checkAll" size={13} color={recoveryHeadlineOf(recovery).color} />
+              <Text variant="caption" color={recoveryHeadlineOf(recovery).color} weight="bold">
+                {recoveryHeadlineOf(recovery).label}
+              </Text>
             </Row>
-            <Text variant="label" color="heroText" style={{ marginTop: 2 }}>
-              {recovery.fresh.length} fresh · {recovery.recovering.length} recovering · {recovery.fatigued.length} fatigued
+          </PressScale>
+        </Row>
+        <Row style={{ justifyContent: 'space-between', alignItems: 'baseline' }}>
+          <Text variant="caption" color="textMuted">{todayLabel()}</Text>
+          <PressScale
+            accessibilityRole="button"
+            accessibilityLabel="View this week's workouts"
+            onPress={() => setShowWeeklyPlanSheet(true)}
+            haptic="selection"
+          >
+            <Text variant="caption" color="primary" weight="semibold">
+              {weekStrip.completedCount} of {weekStrip.totalCount} workouts this week ›
             </Text>
           </PressScale>
-
-          <View>
-            <Text variant="caption" color="heroMuted" weight="bold">KEY PERFORMANCE · LAST 7 DAYS</Text>
-            <Row gap="sm" style={{ marginTop: spacing.sm }}>
-              {orderedMetrics.slice(0, 2).map((metric) => (
-                <PressScale
-                  key={metric}
-                  haptic="selection"
-                  accessibilityRole="button"
-                  accessibilityLabel={`View ${METRIC_LABELS[metric]} progress`}
-                  onPress={() => {
-                    setSelectedMetric(metric);
-                    setOpenHeroSection('progress');
-                  }}
-                  style={{
-                    flex: 1,
-                    minHeight: 56,
-                    padding: spacing.sm,
-                    borderRadius: radii.md,
-                    backgroundColor: colors.heroPill,
-                  }}
-                >
-                  <Text variant="caption" color="heroMuted" weight="bold">{METRIC_LABELS[metric].toUpperCase()}</Text>
-                  <Text variant="subtitle" color="heroText" style={{ marginTop: 2 }}>{metricValue(metric)}</Text>
-                </PressScale>
-              ))}
-            </Row>
-            <Row gap="lg" style={{ marginTop: spacing.sm }}>
-              <PressScale
-                onPress={() => setOpenHeroSection((section) => section === 'progress' ? null : 'progress')}
-                haptic="selection"
-                accessibilityRole="button"
-                accessibilityState={{ expanded: showProgressDetails }}
-                accessibilityLabel={showProgressDetails ? 'Hide weekly progress' : 'View weekly progress'}
-                style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.xs, alignSelf: 'flex-start' }}
-              >
-                <Text variant="caption" color="heroText" weight="bold">
-                  {showProgressDetails ? 'HIDE WEEKLY PROGRESS' : 'VIEW WEEKLY PROGRESS'}
-                </Text>
-                <Icon name={showProgressDetails ? 'chevronUp' : 'chevronDown'} size={15} color="heroText" />
-              </PressScale>
-              <PressScale
-                onPress={() => setOpenHeroSection((section) => section === 'plan' ? null : 'plan')}
-                haptic="selection"
-                accessibilityRole="button"
-                accessibilityState={{ expanded: showWeekAhead }}
-                accessibilityLabel={showWeekAhead ? 'Hide weekly plan' : 'View weekly plan'}
-                style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.xs, alignSelf: 'flex-start' }}
-              >
-                <Text variant="caption" color="heroText" weight="bold">
-                  {showWeekAhead ? 'HIDE WEEKLY PLAN' : 'VIEW WEEKLY PLAN'}
-                </Text>
-                <Icon name={showWeekAhead ? 'chevronUp' : 'chevronDown'} size={15} color="heroText" />
-              </PressScale>
-            </Row>
-          </View>
-        </View>
-      </GoalHero>
-
-      {showProgressDetails && (
-        <Card>
-          <Row style={{ justifyContent: 'space-between', alignItems: 'flex-end' }}>
-            <View>
-              <Text variant="caption" color="textFaint" weight="bold">LAST 7 DAYS</Text>
-              <Text variant="heading" style={{ marginTop: 2 }}>{METRIC_LABELS[highlightedMetric]}</Text>
-            </View>
-            <Text variant="label" color="primaryTextSoft">{metricValue(highlightedMetric)}</Text>
-          </Row>
-          <Row gap="sm" wrap style={{ marginTop: spacing.md }}>
-            {orderedMetrics.map((metric) => (
-              <Chip key={metric} label={METRIC_LABELS[metric]} selected={highlightedMetric === metric} onPress={() => setSelectedMetric(metric)} />
-            ))}
-          </Row>
-          <View style={{ marginTop: spacing.md }}>
-            <TrendChart
-              points={performance.days.map((day, index) => ({ label: day.label, value: performance.values[highlightedMetric][index] }))}
-              type={highlightedMetric === 'workouts' ? 'bar' : 'line'}
-              valueFormatter={(value) => highlightedMetric === 'endurance' ? `${Math.round(value)}m` : Math.round(value).toLocaleString()}
-            />
-          </View>
-        </Card>
-      )}
-
-      {showWeekAhead && !inProgress && (
-        <Card>
-          <View>
-            <Text variant="heading">Weekly Plan</Text>
-            <Text variant="caption" color="textMuted" style={{ marginTop: spacing.xs }}>
-              {weekPlan.completedCount} done · {weekPlan.plannedCount} planned over the next {rollingPlan?.horizonDays ?? 7} days
-            </Text>
-            {rollingPlan?.deloadRecommended && (
-              <Row gap="xs" style={{ alignItems: 'center', marginTop: spacing.xs }}>
-                <Icon name="warning" size={14} color="warning" />
-                <Text variant="caption" color="warning" weight="semibold">Easing off this week</Text>
-              </Row>
-            )}
-          </View>
-          <View style={{ marginTop: spacing.md }}>
-            {(showSecondWeek ? weekPlan.rows : weekPlan.rows.slice(0, 7)).map(({ day, ...row }, index) => {
-              const isToday = day === weekStart;
-              const dateObj = new Date(day);
-
-              let icon: IconName = 'sleep';
-              let iconColor: ColorToken = 'textFaint';
-              let title = 'Rest day';
-              let subtitle: string | undefined = 'No session planned';
-              let action: ReactNode = null;
-
-              if (row.status === 'completed') {
-                const summary = workoutSummary(row.record);
-                const groups = summary.groups.slice(0, 2).map((g) => MUSCLE_GROUP_LABELS[g]).join(' · ');
-                icon = 'checkAll';
-                iconColor = 'primary';
-                title = workoutLabel(row.record.workoutType);
-                subtitle = groups || 'Completed';
-              } else if (row.status === 'scheduled') {
-                const intentLabel = INTENT_OPTIONS.find((option) => option.value === row.scheduled.trainingIntent)?.label;
-                const scheduledRoutine = row.scheduled.routineId ? routines.find((r) => r.id === row.scheduled.routineId) : undefined;
-                icon = workoutTypeIcon(row.scheduled.workoutType);
-                iconColor = 'primaryTextSoft';
-                title = scheduledRoutine ? scheduledRoutine.name : workoutLabel(row.scheduled.workoutType);
-                subtitle = intentLabel && intentLabel !== 'Balanced' ? intentLabel : 'Planned';
-                action = (
-                  <PressScale
-                    accessibilityRole="button"
-                    accessibilityLabel={`Remove the planned workout on ${dateObj.toLocaleDateString(undefined, { weekday: 'long' })}`}
-                    onPress={() => clearScheduledWorkout(day)}
-                    haptic="selection"
-                    style={{ width: 32, height: 32, alignItems: 'center', justifyContent: 'center' }}
-                  >
-                    <Icon name="close" size={16} color="textFaint" />
-                  </PressScale>
-                );
-              } else if (row.status === 'suggested') {
-                icon = modalityIcon(row.intent.modality);
-                iconColor = 'textMuted';
-                title = MODALITY_LABELS[row.intent.modality ?? 'strength'];
-                subtitle = row.intent.priorityMuscles.length
-                  ? row.intent.priorityMuscles.slice(0, 2).map((g) => MUSCLE_GROUP_LABELS[g]).join(' · ')
-                  : 'Suggested focus';
-                action = (
-                  <PressScale
-                    accessibilityRole="button"
-                    accessibilityLabel={`Add this suggested workout to ${dateObj.toLocaleDateString(undefined, { weekday: 'long' })}`}
-                    onPress={() => scheduleWorkout(day)}
-                    haptic="selection"
-                    style={{ width: 32, height: 32, alignItems: 'center', justifyContent: 'center' }}
-                  >
-                    <Icon name="add" size={20} color="primaryTextSoft" />
-                  </PressScale>
-                );
-              } else if (row.status === 'recurring') {
-                icon = workoutTypeIcon(row.routine.workoutType);
-                iconColor = 'textMuted';
-                title = row.routine.name;
-                subtitle = 'Recurring';
-                action = (
-                  <PressScale
-                    accessibilityRole="button"
-                    accessibilityLabel={`Add ${row.routine.name} to ${dateObj.toLocaleDateString(undefined, { weekday: 'long' })}`}
-                    onPress={() => scheduleWorkout(day, row.routine.id)}
-                    haptic="selection"
-                    style={{ width: 32, height: 32, alignItems: 'center', justifyContent: 'center' }}
-                  >
-                    <Icon name="add" size={20} color="primaryTextSoft" />
-                  </PressScale>
-                );
-              } else if (row.status === 'missed') {
-                icon = 'warning';
-                iconColor = 'warning';
-                title = 'Missed workout';
-                subtitle = 'No session logged that day';
-              }
-
-              return (
-                <View key={day}>
-                  {index > 0 && <Divider style={{ marginVertical: spacing.sm }} />}
-                  <Row gap="md" style={{ alignItems: 'center' }}>
-                    <View style={{ width: 34, alignItems: 'center' }}>
-                      <Text variant="caption" color={isToday ? 'primary' : 'textFaint'} weight="bold">
-                        {isToday ? 'TODAY' : dateObj.toLocaleDateString(undefined, { weekday: 'short' }).toUpperCase()}
-                      </Text>
-                      <Text variant="label" color={isToday ? 'primary' : 'text'} weight={isToday ? 'bold' : 'regular'} style={{ marginTop: 1 }}>
-                        {dateObj.getDate()}
-                      </Text>
-                    </View>
-                    <View
-                      style={{
-                        width: 30,
-                        height: 30,
-                        borderRadius: radii.md,
-                        backgroundColor: colors.surfaceAlt,
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                      }}
-                    >
-                      <Icon name={icon} size={15} color={iconColor} />
-                    </View>
-                    <View style={{ flex: 1 }}>
-                      <Text variant="label" weight="semibold">{title}</Text>
-                      {subtitle ? <Text variant="caption" color="textMuted">{subtitle}</Text> : null}
-                    </View>
-                    {action}
-                  </Row>
-                </View>
-              );
-            })}
-          </View>
-          {weekPlan.rows.length > 7 && (
-            <PressScale
-              onPress={() => setShowSecondWeek((v) => !v)}
-              haptic="selection"
-              accessibilityRole="button"
-              accessibilityState={{ expanded: showSecondWeek }}
-              accessibilityLabel={showSecondWeek ? 'Hide next week' : 'Show next week'}
-              style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.xs, alignSelf: 'flex-start', marginTop: spacing.md }}
-            >
-              <Text variant="caption" color="primary" weight="bold">
-                {showSecondWeek ? 'HIDE NEXT WEEK' : 'SHOW NEXT WEEK'}
-              </Text>
-              <Icon name={showSecondWeek ? 'chevronUp' : 'chevronDown'} size={15} color="primary" />
-            </PressScale>
-          )}
-        </Card>
-      )}
+        </Row>
+      </View>
 
       {inProgress ? (
         <Card elevated>
@@ -1300,74 +1094,104 @@ export default function TodayScreen() {
 
       {!inProgress && (
         <>
-          {!showBuilder ? (
-            <Card elevated contextTone={workoutTone}>
-              <Text variant="caption" color="primaryTextSoft" weight="bold">YOUR NEXT SESSION</Text>
-              <Text variant="body" color="primaryTextSoft" style={{ marginTop: spacing.sm }}>
-                We&apos;ll use your goals, recent training, recovery, and available equipment to shape a session that fits today.
-              </Text>
-              <Button title="Build today’s workout" onPress={() => setShowBuilder(true)} fullWidth style={{ marginTop: spacing.lg }} />
-              <PressScale
-                onPress={() => {
-                  setShowBuilder(true);
-                  setShowBuilderAdjustments(true);
-                  openSection('feeling');
-                }}
-                accessibilityRole="button"
-                accessibilityLabel="Adjust today's readiness before building your workout"
-                haptic="selection"
-                style={{ minHeight: 44, alignItems: 'center', justifyContent: 'center', marginTop: spacing.sm }}
-              >
-                <Text variant="label" color="primaryTextSoft" weight="semibold">Adjust today&apos;s readiness</Text>
-              </PressScale>
-            </Card>
-          ) : (
           <View
             ref={buildMarkerRef}
             onLayout={(e) => {
               buildAreaY.current = e.nativeEvent.layout.y;
             }}
           >
-          <Card elevated>
-            <View style={{ gap: spacing.md }}>
-              <Row
-                gap="md"
-                style={{
-                  alignItems: 'center',
-                  padding: spacing.md,
-                  borderRadius: radii.lg,
-                  backgroundColor: colors.tones[workoutTone].surface,
-                  borderWidth: 1,
-                  borderColor: colors.tones[workoutTone].border,
-                }}
-              >
-                <View style={{ flex: 1 }}>
-                  <Text variant="caption" tint={colors.tones[workoutTone].text} weight="bold">
-                    {selectedRoutine ? 'TODAY’S ROUTINE' : 'RECOMMENDED WORKOUT'}
-                  </Text>
-                  <Text variant="subtitle" tint={colors.tones[workoutTone].text} style={{ marginTop: 2 }}>
-                    {selectedRoutine
-                      ? selectedRoutine.name
-                      : `${workoutLabel(workoutType)} · ${familyOfWorkoutType(workoutType) === 'mobility' ? `${flowDurationMin} min` : `${targetDurationMin} min`}`}
-                  </Text>
-                  <Text variant="caption" tint={colors.tones[workoutTone].text} style={{ marginTop: 2 }}>
-                    {selectedRoutine
-                      ? `${selectedRoutine.exerciseIds.length} exercise${selectedRoutine.exerciseIds.length === 1 ? '' : 's'}`
-                      : selectedEmphasisLabels.length > 0 ? selectedEmphasisLabels.join(' · ') : 'Personalized to today'}
-                  </Text>
-                </View>
+          <View style={{ position: 'relative' }}>
+          <GoalHero
+            goal={familyOfWorkoutType(workoutType)}
+            imageOverride={workoutTypeArt(workoutType)}
+            compact
+            style={{ minHeight: 250 }}
+          >
+            <View style={{ gap: spacing.sm }}>
+              <Text variant="caption" color="heroMuted" weight="bold">
+                {selectedRoutine ? 'TODAY’S ROUTINE' : 'RECOMMENDED FOR YOU'}
+              </Text>
+              <View>
+                <Text variant="subtitle" color="heroText" italic>
+                  {selectedRoutine ? selectedRoutine.name : workoutLabel(workoutType)}
+                </Text>
+                <Text variant="caption" color="heroMuted" style={{ marginTop: 2 }}>
+                  {selectedRoutine
+                    ? `${selectedRoutine.exerciseIds.length} exercise${selectedRoutine.exerciseIds.length === 1 ? '' : 's'}`
+                    : `${familyOfWorkoutType(workoutType) === 'mobility' ? flowDurationMin : targetDurationMin} min${selectedEmphasisLabels.length > 0 ? ` · ${selectedEmphasisLabels.join(' · ')}` : ''}`}
+                </Text>
+              </View>
+              <Row gap="sm" style={{ marginTop: spacing.sm }}>
+                <Button title={building ? 'Building…' : 'Start'} onPress={build} loading={building} style={{ flex: 1 }} />
                 <Button
-                  title={showBuilderAdjustments ? 'Done' : 'Adjust'}
-                  size="sm"
-                  variant={showBuilderAdjustments ? 'secondary' : 'primary'}
+                  title={showBuilderAdjustments ? 'Done' : 'Customize'}
+                  variant="secondary"
                   onPress={() => {
                     if (showBuilderAdjustments) setOpenBuilderSection(null);
                     setShowBuilderAdjustments((shown) => !shown);
                   }}
+                  style={{ flex: 1 }}
                 />
               </Row>
+            </View>
+          </GoalHero>
 
-              {showBuilderAdjustments && (
+          <Row gap="xs" style={{ position: 'absolute', top: spacing.lg, left: spacing.lg, right: spacing.lg }}>
+            {weekStrip.rows.map((row) => {
+              const isToday = row.day === weekStart;
+              const dateObj = new Date(row.day);
+              const { icon, color } = dayStripIcon(row);
+              const chipStyle = {
+                flex: 1,
+                paddingVertical: spacing.sm,
+                borderRadius: radii.md,
+                alignItems: 'center' as const,
+                backgroundColor: colors.heroPill,
+                borderWidth: isToday ? 1.5 : 0,
+                borderColor: colors.heroText,
+              };
+              const chipContent = (
+                <>
+                  <Text variant="caption" color={isToday ? 'heroText' : 'heroMuted'} weight={isToday ? 'bold' : 'regular'}>
+                    {dateObj.toLocaleDateString(undefined, { weekday: 'short' })}
+                  </Text>
+                  <View style={{ marginTop: 4 }}>
+                    <Icon name={icon} size={16} color={color} />
+                  </View>
+                </>
+              );
+              // Today's own detail already IS the session card below — its chip
+              // is a status indicator only, not another entry point to it.
+              if (isToday) {
+                return <View key={row.day} style={chipStyle}>{chipContent}</View>;
+              }
+              return (
+                <PressScale
+                  key={row.day}
+                  accessibilityRole="button"
+                  accessibilityLabel={`View ${dateObj.toLocaleDateString(undefined, { weekday: 'long' })}'s plan`}
+                  onPress={() => (row.status === 'completed' ? setOpenDayRecordId(row.record.id) : setOpenDayRow(row))}
+                  haptic="selection"
+                  style={chipStyle}
+                >
+                  {chipContent}
+                </PressScale>
+              );
+            })}
+          </Row>
+          </View>
+
+          <ActionRow
+            icon={<Icon name="workout" size={17} color="primaryTextSoft" />}
+            label="Your routines"
+            description={selectedRoutine ? selectedRoutine.name : routines.length ? `${routines.length} saved` : 'Build for me'}
+            onPress={() => setRoutinePickerVisible(true)}
+            trailing={<Icon name="chevronRight" color="primaryTextSoft" />}
+            style={{ marginTop: spacing.md }}
+          />
+
+          {showBuilderAdjustments && (
+            <Card elevated style={{ marginTop: spacing.md }}>
                 <View style={{ gap: spacing.sm }}>
                   {routines.length > 0 && (
                     <View
@@ -1451,11 +1275,18 @@ export default function TodayScreen() {
                               selected={selectedFamily === option.value}
                               onPress={() => {
                                 setSelectedFamily(option.value);
-                                // Cardio has exactly one WorkoutType member — picking
-                                // the family IS picking the style, so it sets
-                                // `workoutType` immediately rather than waiting for a
-                                // step-B tile that would just repeat the same choice.
-                                if (option.value === 'cardio') changeWorkoutType('cardio');
+                                // Switching family must immediately move `workoutType`
+                                // into that family too — otherwise Build Workout would
+                                // silently use the previous family's (e.g. suggested)
+                                // type even though the user picked a different one.
+                                if (option.value === 'cardio') {
+                                  changeWorkoutType('cardio');
+                                } else if (familyOfWorkoutType(workoutType) !== option.value) {
+                                  const defaultStyle = WORKOUT_TYPE_OPTIONS.find(
+                                    (o) => familyOfWorkoutType(o.value) === option.value,
+                                  )?.value;
+                                  if (defaultStyle) changeWorkoutType(defaultStyle);
+                                }
                               }}
                             />
                           ))}
@@ -1607,7 +1438,7 @@ export default function TodayScreen() {
                   <ActionRow
                     icon={<Icon name="time" size={17} color="primaryTextSoft" />}
                     label="Shape"
-                    description={`${familyOfWorkoutType(workoutType) === 'mobility' ? flowDurationMin : targetDurationMin} min · ${workoutType === 'cardio' ? CARDIO_INTENTS.find((option) => option.value === cardioIntent)?.label : selectedComponentsLabel}`}
+                    description={`${familyOfWorkoutType(workoutType) === 'mobility' ? flowDurationMin : targetDurationMin} min · ${workoutType === 'cardio' ? CARDIO_INTENT_OPTIONS.find((option) => option.value === cardioIntent)?.label : selectedComponentsLabel}`}
                     onPress={() => toggleSection('shape')}
                     trailing={<Icon name={openBuilderSection === 'shape' ? 'chevronUp' : 'chevronDown'} color="primaryTextSoft" />}
                   />
@@ -1617,13 +1448,13 @@ export default function TodayScreen() {
                         <>
                           <Text variant="caption" color="textFaint" weight="bold">SESSION LENGTH</Text>
                           <Row gap="sm" wrap style={{ marginTop: spacing.sm }}>
-                            {SESSION_DURATIONS.map((minutes) => <Chip key={minutes} label={`${minutes} min`} selected={targetDurationMin === minutes} onPress={() => setTargetDurationMin(minutes)} />)}
+                            {SESSION_DURATIONS.map((minutes) => <Chip key={minutes} label={`${minutes} min`} selected={targetDurationMin === minutes} onPress={() => { setTargetDurationMin(minutes); setTargetDurationMinTouched(true); }} />)}
                           </Row>
                           {workoutType === 'cardio' && (
                             <View style={{ borderTopWidth: 1, borderTopColor: colors.border, marginTop: spacing.md, paddingTop: spacing.md }}>
                               <Text variant="caption" color="textFaint" weight="bold">STRUCTURE</Text>
                               <Row gap="sm" wrap style={{ marginTop: spacing.sm }}>
-                                {CARDIO_INTENTS.map((option) => <Chip key={option.value} label={option.label} selected={cardioIntent === option.value} onPress={() => setCardioIntent(option.value)} />)}
+                                {CARDIO_INTENT_OPTIONS.map((option) => <Chip key={option.value} label={option.label} selected={cardioIntent === option.value} onPress={() => setCardioIntent(option.value)} />)}
                               </Row>
                             </View>
                           )}
@@ -1647,11 +1478,6 @@ export default function TodayScreen() {
                             <Chip label="Gentle" selected={flowPace === 'gentle'} onPress={() => setFlowPace('gentle')} />
                             <Chip label="Standard" selected={flowPace === 'standard'} onPress={() => setFlowPace('standard')} />
                           </Row>
-                          <Text variant="caption" color="textFaint" weight="bold" style={{ marginTop: spacing.md }}>GUIDED FLOW</Text>
-                          <Row gap="sm" style={{ marginTop: spacing.sm }}>
-                            <Chip label="Touchless" selected={autoAdvanceOverride !== false} onPress={() => setAutoAdvanceOverride(undefined)} />
-                            <Chip label="Manual" selected={autoAdvanceOverride === false} onPress={() => setAutoAdvanceOverride(false)} />
-                          </Row>
                         </>
                       )}
                       {(workoutType === 'bodybuilding' || workoutType === 'sculpting') && athlete?.experience !== 'beginner' && (
@@ -1659,19 +1485,6 @@ export default function TodayScreen() {
                           <Text variant="caption" color="textFaint" weight="bold">SET FLOW</Text>
                           <Row gap="sm" wrap style={{ marginTop: spacing.sm }}>
                             {BODYBUILDING_ROTATIONS.map((option) => <Chip key={option.value} label={option.label} selected={bodybuildingRotation === option.value} onPress={() => setBodybuildingRotation(option.value)} />)}
-                          </Row>
-                        </View>
-                      )}
-                      {workoutType === 'cardio' && (
-                        // Cardio format itself lives in "Kind of session" now
-                        // (ADR-0407) — picking the format is picking the style,
-                        // not shaping the session, so it moved rather than
-                        // being asked twice. Guided flow is still a Shape concern.
-                        <View style={{ borderTopWidth: 1, borderTopColor: colors.border, marginTop: spacing.md, paddingTop: spacing.md }}>
-                          <Text variant="caption" color="textFaint" weight="bold">GUIDED FLOW</Text>
-                          <Row gap="sm" style={{ marginTop: spacing.sm }}>
-                            <Chip label="Touchless" selected={autoAdvanceOverride !== false} onPress={() => setAutoAdvanceOverride(undefined)} />
-                            <Chip label="Manual" selected={autoAdvanceOverride === false} onPress={() => setAutoAdvanceOverride(false)} />
                           </Row>
                         </View>
                       )}
@@ -1769,15 +1582,12 @@ export default function TodayScreen() {
                     </Card>
                   )}
                   </View>
+
+                <Button title={building ? 'Building…' : 'Build Workout'} onPress={build} loading={building} fullWidth />
                 </View>
-              )}
-
-              <Button title={building ? 'Building…' : 'Build Workout'} onPress={build} loading={building} fullWidth />
-            </View>
-
-          </Card>
-          </View>
+            </Card>
           )}
+          </View>
 
           {plan && (
             <View
@@ -1813,10 +1623,19 @@ export default function TodayScreen() {
                   </Text>
                 </Row>
               </Row>
-              <View style={{ marginTop: spacing.lg, padding: spacing.md, borderRadius: radii.lg, backgroundColor: colors.surfaceAlt, borderWidth: 1, borderColor: colors.border }}>
-                <Text variant="caption" color="textMuted" weight="bold">WHY THIS TODAY</Text>
-                <Text variant="body" style={{ marginTop: 4 }}>{plan.rationale}</Text>
-              </View>
+              {rationaleNotes.length > 0 && (
+                <View style={{ marginTop: spacing.lg, padding: spacing.md, borderRadius: radii.lg, backgroundColor: colors.surfaceAlt, borderWidth: 1, borderColor: colors.border }}>
+                  <Text variant="caption" color="textMuted" weight="bold">WHY THIS TODAY</Text>
+                  <View style={{ marginTop: 6, gap: 6 }}>
+                    {rationaleNotes.map((note, index) => (
+                      <Row key={index} gap="xs" style={{ alignItems: 'flex-start' }}>
+                        <Text variant="body" color="textMuted">·</Text>
+                        <Text variant="body" style={{ flex: 1 }}>{note}</Text>
+                      </Row>
+                    ))}
+                  </View>
+                </View>
+              )}
               <View style={{ marginTop: spacing.lg, gap: spacing.sm }}>
                 <Text variant="caption" color="textFaint" weight="bold">YOUR SESSION FLOW</Text>
                 <Row gap="sm" wrap>
@@ -1846,11 +1665,35 @@ export default function TodayScreen() {
                 />
               </View>
 
+              {(familyOfWorkoutType(plan.workoutType) === 'mobility' || plan.workoutType === 'cardio') && (
+                <View style={{ marginTop: spacing.xl, padding: spacing.md, borderRadius: radii.lg, backgroundColor: colors.surfaceAlt, borderWidth: 1, borderColor: colors.border }}>
+                  <Text variant="label" weight="bold">Guided flow</Text>
+                  <Text variant="caption" color="textMuted" style={{ marginTop: 2 }}>
+                    {(plan.workoutOptions?.autoAdvance ?? defaultAutoAdvance(plan.workoutType, plan.workoutOptions?.cardioIntent))
+                      ? 'Steps advance on their own — no need to touch your phone.'
+                      : 'You tap to move to each next step.'}
+                  </Text>
+                  <TabBar
+                    style={{ marginTop: spacing.sm }}
+                    tabs={[{ value: 'touchless', label: 'Touchless' }, { value: 'manual', label: 'Manual' }]}
+                    value={(plan.workoutOptions?.autoAdvance ?? defaultAutoAdvance(plan.workoutType, plan.workoutOptions?.cardioIntent)) ? 'touchless' : 'manual'}
+                    onChange={(next) => {
+                      const autoAdvance = next === 'touchless';
+                      setAutoAdvanceOverride(autoAdvance);
+                      const updated = { ...plan, workoutOptions: { ...plan.workoutOptions, autoAdvance } };
+                      savePlan(updated);
+                      setPlan(updated);
+                      setBuiltPlan(updated);
+                    }}
+                  />
+                </View>
+              )}
+
               <Button
                 title="Start workout"
                 onPress={onStartWorkout}
                 fullWidth
-                style={{ marginTop: spacing.xl }}
+                style={{ marginTop: spacing.lg }}
               />
             </Card>
             </View>
@@ -1863,6 +1706,30 @@ export default function TodayScreen() {
       </Text>
 
       <RecoverySheet visible={showRecovery} onClose={() => setShowRecovery(false)} />
+      <WeeklyPlanSheet
+        visible={showWeeklyPlanSheet}
+        onClose={() => setShowWeeklyPlanSheet(false)}
+        rows={weekPlan.rows}
+        routines={routines}
+        weekStart={weekStart}
+        completedCount={weekPlan.completedCount}
+        plannedCount={weekPlan.plannedCount}
+        horizonDays={rollingPlan?.horizonDays ?? 7}
+        deloadRecommended={rollingPlan?.deloadRecommended ?? false}
+        showSecondWeek={showSecondWeek}
+        onToggleSecondWeek={() => setShowSecondWeek((v) => !v)}
+        onScheduleWorkout={scheduleWorkout}
+        onClearScheduledWorkout={clearScheduledWorkout}
+      />
+      <DayPlanSheet
+        row={openDayRow}
+        routines={routines}
+        recommendedWorkoutType={athlete ? recommendWorkoutType(athlete.goals) : undefined}
+        onClose={() => setOpenDayRow(null)}
+        onScheduleWorkout={scheduleWorkout}
+        onClearScheduledWorkout={clearScheduledWorkout}
+      />
+      <WorkoutDetailSheet recordId={openDayRecordId} onClose={() => setOpenDayRecordId(undefined)} />
       <RoutinePickerSheet
         visible={routinePickerVisible}
         routines={routines}

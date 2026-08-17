@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { Tabs } from 'expo-router';
+import { router, Tabs } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { AppState, Animated, Image, Pressable, View, type ColorValue } from 'react-native';
 import Reanimated, { useAnimatedStyle, useSharedValue, withSpring } from 'react-native-reanimated';
@@ -22,12 +22,12 @@ SplashScreen.setOptions({ duration: 450, fade: true });
 type TabName = 'home' | 'explore' | 'progress' | 'settings';
 
 const LAUNCH_SCENES = [
-  require('../../assets/images/launch/yoga-strength.png'),
-  require('../../assets/images/launch/mobility-lunge.png'),
-  require('../../assets/images/launch/front-squat.png'),
-  require('../../assets/images/launch/conditioning-step.png'),
-  require('../../assets/images/launch/dumbbell-press.png'),
-  require('../../assets/images/launch/recovery-stretch.png'),
+  require('../../assets/images/launch/yoga-strength.webp'),
+  require('../../assets/images/launch/mobility-lunge.webp'),
+  require('../../assets/images/launch/front-squat.webp'),
+  require('../../assets/images/launch/conditioning-step.webp'),
+  require('../../assets/images/launch/dumbbell-press.webp'),
+  require('../../assets/images/launch/recovery-stretch.webp'),
 ] as const;
 
 const LAUNCH_HOLD_MS = 3000;
@@ -205,6 +205,15 @@ function ThemedStack() {
           title: 'Today',
             tabBarIcon: ({ color, focused }) => <TabGlyph name="home" color={color} focused={focused} />,
           }}
+          listeners={{
+            tabPress: (e) => {
+              const record = useWorkoutStore.getState().record;
+              if (record != null && record.completedAt == null) {
+                e.preventDefault();
+                router.push('/workout');
+              }
+            },
+          }}
         />
         <Tabs.Screen
           name="explore"
@@ -228,7 +237,7 @@ function ThemedStack() {
           }}
         />
         <Tabs.Screen name="workout" options={{ href: null }} />
-        {['onboarding', 'equipment', 'debrief', 'tour', 'tour-choice', 'exercise', 'workout-flow', 'dev-seed'].map((name) => (
+        {['onboarding', 'equipment', 'debrief', 'tour', 'exercise', 'workout-flow', 'dev-seed'].map((name) => (
           <Tabs.Screen key={name} name={name} options={{ href: null, tabBarStyle: { display: 'none' } }} />
         ))}
       </Tabs>

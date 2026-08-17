@@ -43,6 +43,30 @@ describe('exercise catalog invariants', () => {
     expect(misplaced.map((exercise) => exercise.id)).toEqual([]);
   });
 
+  it('gives the "general" modality a real, resistance-shaped exercise pool', () => {
+    // Regression guard: 'general' only ever pulls into a session's Main
+    // block via the compound resistance patterns (rules-engine.ts's
+    // resistanceModality path) — a mobility/cardio exercise accidentally
+    // retagged into 'general' would silently break Warmup/Cool
+    // down/Conditioning pools that filter by modality, not movementPattern.
+    const RESISTANCE_PATTERNS = new Set(['squat', 'hinge', 'lunge', 'push', 'pull', 'carry', 'core']);
+    const general = SEED_EXERCISES.filter((exercise) => exercise.modality === 'general');
+    expect(general.length).toBeGreaterThanOrEqual(15);
+    const wrongShape = general.filter((exercise) => !RESISTANCE_PATTERNS.has(exercise.movementPattern));
+    expect(wrongShape.map((exercise) => exercise.id)).toEqual([]);
+  });
+
+  it('shares a variantFamily between burpees and its own named variant (ADR-0134 regression)', () => {
+    // Auto-derivation split these apart because "jump" in the variant's name
+    // routed it to a different movementSlot than plain "Burpees" — which let
+    // FAMILY_SATURATION miss the one pair of cardio exercises most obviously
+    // the same movement, and both could land in one session together.
+    const burpees = EXERCISES.find((exercise) => exercise.id === 'ca-burpees');
+    const comboVariant = EXERCISES.find((exercise) => exercise.id === 'ca-burpee-broad-jump-combo');
+    expect(burpees?.variantFamily).toBeTruthy();
+    expect(burpees?.variantFamily).toBe(comboVariant?.variantFamily);
+  });
+
   it('gives every selectable exercise complete programming and substitution metadata', () => {
     const invalid = EXERCISES.filter((exercise) =>
       !exercise.difficulty ||

@@ -116,7 +116,7 @@ export function MuscleFatigueMap({ fatigue, selectedGroup, onSelect }: MuscleFat
               strokeOpacity={0.22}
               strokeWidth={1.2}
               strokeLinecap="round"
-              pointerEvents="none"
+              style={{ pointerEvents: 'none' }}
             />
           ) : null,
         )}

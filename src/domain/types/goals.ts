@@ -36,6 +36,15 @@ export type ResistanceFocus =
   | 'muscular_endurance'
   | 'power';
 
+/**
+ * Standing lean on how tightly rest is packed between sets and circuit
+ * stations (ADR-0145). 'dense' trades some recovery for a busier, faster-paced
+ * session — never applied to a genuinely heavy or calibration/test set,
+ * regardless of this setting (see `densePacingFactor` in timing.ts). Unset
+ * ('standard') reproduces today's rest model exactly.
+ */
+export type RestPacing = 'standard' | 'dense';
+
 /** 0..1 weights across modalities; need not sum to 1 (engine normalizes). */
 export type ModalityWeights = Record<Modality, number>;
 
@@ -53,4 +62,23 @@ export interface TrainingGoals {
    * default) preserves prior weight-only behavior exactly.
    */
   weeklyTargets?: Partial<Record<Modality, number>>;
+  /**
+   * Total desired sessions/week across all modalities — the single number
+   * the onboarding/settings UI exposes in place of manual per-modality
+   * entry. 0/unset lets the engine pick a default from experience + weights,
+   * exactly like an unset `weeklyTargets` sum does today; when set, it wins
+   * over `weeklyTargets` as the source of `explicitTotal` in
+   * `rolling-plan.ts`, and the resulting count is still apportioned across
+   * modalities proportionally to `weights` (never as an even split).
+   */
+  weeklyTotalTarget?: number;
+  /**
+   * Which onboarding preset (primary goal + subtype) produced this — UI
+   * bookkeeping only, never read by the engine. Lets "Edit training profile"
+   * pre-select the athlete's last choice instead of reverse-inferring it
+   * from raw weights.
+   */
+  presetId?: string;
+  /** Standing rest/pacing lean (ADR-0145); see `RestPacing`. */
+  restPacing?: RestPacing;
 }

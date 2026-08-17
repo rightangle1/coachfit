@@ -129,9 +129,46 @@ describe('buildRollingPlan — default weekly frequency by experience x dominant
     expect(workoutDayCount(a)).toBe(4);
   });
 
+  it('advanced, general-dominant weighting defaults to 4/week, distinct from strength\'s 5', () => {
+    // Confirms dominantModalityOf's argmax genuinely resolves 'general' (not
+    // folding it into strength) — advanced is the one tier where the two
+    // columns differ (5 vs 4), so this is the tier that actually exercises
+    // the fix rather than passing coincidentally either way.
+    const a = freshAthlete({ experience: 'advanced', goals: { weights: { strength: 0.1, cardio: 0.1, mobility: 0.1, general: 0.7 } } });
+    expect(workoutDayCount(a)).toBe(4);
+  });
+
+  it('advanced, tied strength/general weighting resolves the tie to general\'s column (4/week)', () => {
+    const a = freshAthlete({ experience: 'advanced', goals: { weights: { strength: 0.35, cardio: 0.1, mobility: 0.2, general: 0.35 } } });
+    expect(workoutDayCount(a)).toBe(4);
+  });
+
   it('a nonzero explicit weeklyTargets total still wins outright over the table', () => {
     const a = athlete({ experience: 'beginner', goals: { weights: WEIGHTS, weeklyTargets: { strength: 6 } } });
     expect(workoutDayCount(a)).toBe(6); // beginner's table default would be 3
+  });
+
+  it('a nonzero weeklyTotalTarget wins outright over the table, with no weeklyTargets set', () => {
+    const a = freshAthlete({ experience: 'beginner', goals: { weights: WEIGHTS, weeklyTotalTarget: 6 } });
+    expect(workoutDayCount(a)).toBe(6); // beginner's table default would be 3
+  });
+
+  it('weeklyTotalTarget wins over a weeklyTargets sum when both are set', () => {
+    const a = athlete({ goals: { weights: WEIGHTS, weeklyTargets: { strength: 2 }, weeklyTotalTarget: 5 } });
+    expect(workoutDayCount(a)).toBe(5);
+  });
+
+  it('a weeklyTotalTarget-only goal apportions modalities proportionally to weights, not evenly', () => {
+    const a = freshAthlete({ goals: { weights: WEIGHTS, weeklyTotalTarget: 5 } }); // WEIGHTS: strength 0.7
+    const plan = buildRollingPlan(context({ athlete: a, goals: a.goals, history: [] }), 7);
+    const modalities = plan.days.filter((d) => d.kind === 'workout').map((d) => d.modality);
+    expect(modalities).toHaveLength(5);
+    expect(modalities.filter((m) => m === 'strength').length).toBeGreaterThanOrEqual(3);
+  });
+
+  it('a zero weeklyTotalTarget falls back to the default-frequency table, same as unset', () => {
+    const a = freshAthlete({ experience: 'beginner', goals: { weights: WEIGHTS, weeklyTotalTarget: 0 } });
+    expect(workoutDayCount(a)).toBe(3);
   });
 });
 
@@ -294,6 +331,76 @@ describe('buildRollingPlan — ADR-0143 cardio format variety', () => {
     for (const day of plan.days.filter((d) => d.kind === 'workout' && d.modality !== 'cardio')) {
       expect(day.cardioIntent).toBeUndefined();
     }
+  });
+});
+
+describe('buildRollingPlan — preference-aware cardio format (Phase 1)', () => {
+  const cardioOnlySchedule = { weights: WEIGHTS, weeklyTargets: { cardio: 6 } };
+
+  it('with no preferredCardioIntent, behaves byte-identically to the unset-preference rotation', () => {
+    const noPref = athlete({ goals: cardioOnlySchedule });
+    const withPref = athlete({ goals: cardioOnlySchedule, preferredCardioIntent: undefined });
+    const planA = buildRollingPlan(context({ athlete: noPref, goals: noPref.goals }), 14);
+    const planB = buildRollingPlan(context({ athlete: withPref, goals: withPref.goals }), 14);
+    expect(planA).toEqual(planB);
+  });
+
+  it("leans 'interval' roughly every other cardio day and still never stacks two interval days", () => {
+    const leaning = athlete({ goals: cardioOnlySchedule, preferredCardioIntent: 'interval' });
+    const plan = buildRollingPlan(context({ athlete: leaning, goals: leaning.goals }), 14);
+    const cardioIntents = plan.days
+      .filter((d) => d.kind === 'workout' && d.modality === 'cardio')
+      .map((d) => d.cardioIntent);
+    expect(cardioIntents.length).toBeGreaterThan(3);
+    expect(cardioIntents.filter((v) => v === 'interval').length).toBeGreaterThan(cardioIntents.length / 3);
+    for (let i = 1; i < cardioIntents.length; i += 1) {
+      if (cardioIntents[i - 1] === 'interval') expect(cardioIntents[i]).not.toBe('interval');
+    }
+  });
+
+  it("leans 'basic' and never proposes interval at all", () => {
+    const leaning = athlete({ goals: cardioOnlySchedule, preferredCardioIntent: 'basic' });
+    const plan = buildRollingPlan(context({ athlete: leaning, goals: leaning.goals }), 14);
+    const cardioIntents = plan.days
+      .filter((d) => d.kind === 'workout' && d.modality === 'cardio')
+      .map((d) => d.cardioIntent);
+    expect(cardioIntents.length).toBeGreaterThan(3);
+    expect(cardioIntents).not.toContain('interval');
+    expect(cardioIntents.filter((v) => v === 'basic').length).toBeGreaterThan(cardioIntents.length / 3);
+  });
+
+  it("leans 'circuit' and never proposes basic at all", () => {
+    const leaning = athlete({ goals: cardioOnlySchedule, preferredCardioIntent: 'circuit' });
+    const plan = buildRollingPlan(context({ athlete: leaning, goals: leaning.goals }), 14);
+    const cardioIntents = plan.days
+      .filter((d) => d.kind === 'workout' && d.modality === 'cardio')
+      .map((d) => d.cardioIntent);
+    expect(cardioIntents.length).toBeGreaterThan(3);
+    expect(cardioIntents).not.toContain('basic');
+    expect(cardioIntents.filter((v) => v === 'circuit').length).toBeGreaterThan(cardioIntents.length / 3);
+  });
+
+  it('an interval-preferring athlete gets more interval days than a no-preference athlete over the same window', () => {
+    const noPref = athlete({ goals: cardioOnlySchedule });
+    const leaning = athlete({ goals: cardioOnlySchedule, preferredCardioIntent: 'interval' });
+    const planA = buildRollingPlan(context({ athlete: noPref, goals: noPref.goals }), 28);
+    const planB = buildRollingPlan(context({ athlete: leaning, goals: leaning.goals }), 28);
+    const countInterval = (p: typeof planA) =>
+      p.days.filter((d) => d.kind === 'workout' && d.modality === 'cardio' && d.cardioIntent === 'interval').length;
+    expect(countInterval(planB)).toBeGreaterThan(countInterval(planA));
+  });
+
+  it('documented edge case: a preference re-proposes itself immediately after a fixed cardio day resets the rotation, unlike the no-preference case which always restarts from basic', () => {
+    const leaning = athlete({ goals: cardioOnlySchedule, preferredCardioIntent: 'interval' });
+    const fixedDate = localDayOf(NOW);
+    const fixedDays: FixedForecastDay[] = [{ date: fixedDate, modality: 'cardio' }];
+    const plan = buildRollingPlan(context({ athlete: leaning, goals: leaning.goals }), 7, fixedDays);
+    const fixedIndex = plan.days.findIndex((d) => d.date === fixedDate);
+    const nextCardioDay = plan.days.slice(fixedIndex + 1).find((d) => d.kind === 'workout' && d.modality === 'cardio');
+    // Accepted, documented behavior change (see cardioIntentFor's doc comment)
+    // — not a bug: the no-preference case (tested above, ADR-0142) always
+    // restarts from 'basic' here instead.
+    expect(nextCardioDay?.cardioIntent).toBe('interval');
   });
 });
 

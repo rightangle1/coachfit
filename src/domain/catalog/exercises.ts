@@ -2817,7 +2817,7 @@ export const EXERCISES: Exercise[] = [
   {
     id: 'sq-bw',
     name: 'Bodyweight squat',
-    modality: 'strength',
+    modality: 'general',
     movementPattern: 'squat',
     primaryAreas: ['quads', 'glutes'],
     secondaryAreas: ['hamstrings'],
@@ -2870,7 +2870,7 @@ export const EXERCISES: Exercise[] = [
   {
     id: 'sq-wall-sit',
     name: 'Wall sit',
-    modality: 'strength',
+    modality: 'general',
     movementPattern: 'squat',
     primaryAreas: ['quads'],
     secondaryAreas: ['glutes'],
@@ -2890,7 +2890,7 @@ export const EXERCISES: Exercise[] = [
   {
     id: 'sq-sumo-bw',
     name: 'Bodyweight sumo squat',
-    modality: 'strength',
+    modality: 'general',
     movementPattern: 'squat',
     primaryAreas: ['glutes', 'quads'],
     secondaryAreas: ['hamstrings'],
@@ -3531,7 +3531,7 @@ export const EXERCISES: Exercise[] = [
   {
     id: 'hi-hip-bridge',
     name: 'Glute bridge',
-    modality: 'strength',
+    modality: 'general',
     movementPattern: 'hinge',
     primaryAreas: ['glutes'],
     secondaryAreas: ['hamstrings'],
@@ -3548,7 +3548,7 @@ export const EXERCISES: Exercise[] = [
   {
     id: 'hi-single-leg-bridge',
     name: 'Single-leg glute bridge',
-    modality: 'strength',
+    modality: 'general',
     movementPattern: 'hinge',
     primaryAreas: ['glutes'],
     secondaryAreas: ['hamstrings'],
@@ -3838,7 +3838,7 @@ export const EXERCISES: Exercise[] = [
   {
     id: 'hi-bw-good-morning',
     name: 'Bodyweight good morning',
-    modality: 'strength',
+    modality: 'general',
     movementPattern: 'hinge',
     primaryAreas: ['hamstrings', 'lower_back'],
     secondaryAreas: ['glutes'],
@@ -4285,7 +4285,7 @@ export const EXERCISES: Exercise[] = [
   {
     id: 'lu-forward-bw',
     name: 'Forward lunge',
-    modality: 'strength',
+    modality: 'general',
     movementPattern: 'lunge',
     primaryAreas: ['quads', 'glutes'],
     secondaryAreas: ['hamstrings'],
@@ -4304,7 +4304,7 @@ export const EXERCISES: Exercise[] = [
   {
     id: 'lu-reverse-bw',
     name: 'Reverse lunge',
-    modality: 'strength',
+    modality: 'general',
     movementPattern: 'lunge',
     primaryAreas: ['quads', 'glutes'],
     secondaryAreas: ['hamstrings'],
@@ -4361,7 +4361,7 @@ export const EXERCISES: Exercise[] = [
   {
     id: 'lu-walking-bw',
     name: 'Walking lunge',
-    modality: 'strength',
+    modality: 'general',
     movementPattern: 'lunge',
     primaryAreas: ['quads', 'glutes'],
     secondaryAreas: ['hamstrings'],
@@ -4380,7 +4380,7 @@ export const EXERCISES: Exercise[] = [
   {
     id: 'lu-lateral-bw',
     name: 'Lateral lunge',
-    modality: 'strength',
+    modality: 'general',
     movementPattern: 'lunge',
     primaryAreas: ['glutes', 'quads'],
     secondaryAreas: ['hamstrings'],
@@ -4795,7 +4795,7 @@ export const EXERCISES: Exercise[] = [
   {
     id: 'pu-diamond-pushup',
     name: 'Diamond push-up',
-    modality: 'strength',
+    modality: 'general',
     movementPattern: 'push',
     primaryAreas: ['triceps', 'chest'],
     secondaryAreas: ['shoulders'],
@@ -4813,7 +4813,7 @@ export const EXERCISES: Exercise[] = [
   {
     id: 'pu-wide-pushup',
     name: 'Wide push-up',
-    modality: 'strength',
+    modality: 'general',
     movementPattern: 'push',
     primaryAreas: ['chest'],
     secondaryAreas: ['shoulders', 'triceps'],
@@ -5950,7 +5950,7 @@ export const EXERCISES: Exercise[] = [
   {
     id: 'pl-table-row',
     name: 'Table inverted row',
-    modality: 'strength',
+    modality: 'general',
     movementPattern: 'pull',
     primaryAreas: ['back', 'biceps'],
     secondaryAreas: ['abs'],
@@ -5968,7 +5968,7 @@ export const EXERCISES: Exercise[] = [
   {
     id: 'pl-doorframe-row',
     name: 'Doorframe row',
-    modality: 'strength',
+    modality: 'general',
     movementPattern: 'pull',
     primaryAreas: ['back', 'biceps'],
     jointLoad: ['shoulder'],
@@ -7265,7 +7265,7 @@ export const EXERCISES: Exercise[] = [
   {
     id: 'co-plank',
     name: 'Plank',
-    modality: 'strength',
+    modality: 'general',
     movementPattern: 'core',
     primaryAreas: ['abs'],
     secondaryAreas: ['obliques', 'lower_back'],
@@ -7435,7 +7435,7 @@ export const EXERCISES: Exercise[] = [
   {
     id: 'co-side-plank',
     name: 'Side plank',
-    modality: 'strength',
+    modality: 'general',
     movementPattern: 'core',
     primaryAreas: ['obliques'],
     secondaryAreas: ['abs'],
@@ -7455,7 +7455,7 @@ export const EXERCISES: Exercise[] = [
   {
     id: 'co-plank-shoulder-tap',
     name: 'Plank shoulder tap',
-    modality: 'strength',
+    modality: 'general',
     movementPattern: 'core',
     primaryAreas: ['abs'],
     secondaryAreas: ['obliques', 'shoulders'],
@@ -7493,7 +7493,7 @@ export const EXERCISES: Exercise[] = [
   {
     id: 'co-bear-plank',
     name: 'Bear plank',
-    modality: 'strength',
+    modality: 'general',
     movementPattern: 'core',
     primaryAreas: ['abs'],
     secondaryAreas: ['obliques', 'shoulders', 'quads'],
@@ -7847,7 +7847,7 @@ export const EXERCISES: Exercise[] = [
   {
     id: 'co-mountain-climber',
     name: 'Mountain climber',
-    modality: 'strength',
+    modality: 'general',
     movementPattern: 'core',
     primaryAreas: ['abs'],
     secondaryAreas: ['quads', 'shoulders'],
@@ -8863,6 +8863,12 @@ export const EXERCISES: Exercise[] = [
     jointLoad: ['knee', 'shoulder'],
     equipment: ['bodyweight'],
     progression: 'reps',
+    // ADR-0134's family-saturation penalty is the mechanism meant to stop this
+    // exact exercise and its own broad-jump variant from both landing in one
+    // session — but the auto-derived variantFamily (catalog/index.ts) splits
+    // them apart because the "jump" text in the variant's name routes it to a
+    // different movementSlot. Explicit override so the two share a family.
+    variantFamily: 'cardio:burpee',
     // ADR-0123: Compendium code 02214, "High intensity interval exercise,
     // burpees, mountain climbers, squat jumps, Tabata, vigorous effort".
     metValue: 11.0,
@@ -9264,6 +9270,9 @@ export const EXERCISES: Exercise[] = [
     jointLoad: ['knee', 'shoulder'],
     equipment: ['bodyweight'],
     progression: 'reps',
+    // See ca-burpees above — shares its family so FAMILY_SATURATION (ADR-0134)
+    // actually discourages picking both in one session.
+    variantFamily: 'cardio:burpee',
     // ADR-0123 Batch A: Compendium code 02214 HIIT (burpees + jump family, exact match).
     metValue: 11,
     description: 'A burpee immediately followed by a broad jump, combining power and conditioning.',
@@ -9367,6 +9376,7 @@ export const EXERCISES: Exercise[] = [
     jointLoad: ['hip'],
     equipment: ['kettlebell'],
     progression: 'time',
+    loadsWeight: true,
     unilateral: true,
     metValue: 10.0,
     description: 'A single-arm kettlebell swing interval that adds an anti-rotation core demand to the usual hamstring-driven conditioning.',

@@ -6,7 +6,28 @@
 
 import { groupsFor } from '@/domain/engine/fatigue';
 import { estimateSessionCalories, weeklyVolumeByGroup, MEV } from '@/domain/metrics';
-import type { FatigueState, Modality, MuscleGroup, SessionRecord, TrainingGoals, WeightUnit, WorkoutType } from '@/domain/types';
+import type {
+  BodyArea,
+  FatigueState,
+  Modality,
+  MuscleGroup,
+  RollingPlanDay,
+  Routine,
+  ScheduledWorkout,
+  SessionRecord,
+  TrainingGoals,
+  WeightUnit,
+  WorkoutType,
+} from '@/domain/types';
+
+/** What the Weekly Plan popup's Recommend/Customize actions pass back to
+ * schedule (or replace) a future day — a specific type/routine/focus for
+ * that day, never a fallback to Today's own live builder state. */
+export interface ScheduleWorkoutOptions {
+  routineId?: string;
+  workoutType?: WorkoutType;
+  emphasize?: BodyArea[];
+}
 
 export type RecoveryBucket = 'fresh' | 'recovering' | 'fatigued';
 
@@ -162,10 +183,88 @@ export interface WeeklyPerformance {
 
 /** Noon-normalized local-day timestamp — two moments on the same calendar day
  * always compare equal regardless of time-of-day. */
-function localDay(ms: number): number {
+export function localDay(ms: number): number {
   const d = new Date(ms);
   d.setHours(12, 0, 0, 0);
   return d.getTime();
+}
+
+/** 0=Sun..6=Sat, matching `Routine.recurrenceDaysOfWeek` (ADR-0137). */
+export function weekdayOf(ms: number): number {
+  return new Date(ms).getDay();
+}
+
+/** The recurring routine (if any) whose days include `day`'s weekday and
+ * that isn't already covered by a completed/manually-scheduled entry — a
+ * render-time overlay, never materialized ahead of time (ADR-0137). */
+export function recurringRoutineFor(day: number, routines: Routine[]): Routine | undefined {
+  const weekday = weekdayOf(day);
+  return routines.find((routine) => routine.recurrenceDaysOfWeek?.includes(weekday));
+}
+
+/** Same shape as `DayStatus`, keyed `day` instead of `date` — matches what
+ * the Weekly Plan popup and the Today header's day strip actually render. */
+export type WeekPlanRow =
+  | { day: number; status: 'completed'; record: SessionRecord }
+  | { day: number; status: 'scheduled'; scheduled: ScheduledWorkout }
+  | { day: number; status: 'recurring'; routine: Routine }
+  | { day: number; status: 'missed' }
+  | { day: number; status: 'rest' }
+  | { day: number; status: 'suggested'; intent: { modality?: Modality; priorityMuscles: MuscleGroup[] } };
+
+export function toWeekPlanRow(resolved: DayStatus): WeekPlanRow {
+  const { date, ...rest } = resolved;
+  return { day: date, ...rest } as WeekPlanRow;
+}
+
+export type DayStatus =
+  | { date: number; status: 'completed'; record: SessionRecord }
+  | { date: number; status: 'scheduled'; scheduled: ScheduledWorkout }
+  | { date: number; status: 'recurring'; routine: Routine }
+  | { date: number; status: 'missed' }
+  | { date: number; status: 'rest' }
+  | { date: number; status: 'suggested'; intent: { modality?: Modality; priorityMuscles: MuscleGroup[] } };
+
+/**
+ * The one place that decides what a given calendar day "is" — completed,
+ * scheduled, a recurring routine, missed, resting, or a forecasted
+ * suggestion. Works for any date, not just days the rolling forecast covers
+ * (which only ever runs today→forward): pass a matching `rollingDay` when
+ * one exists, and omit it for days the forecast has no opinion on (e.g. a
+ * day further in the past than the current forecast's horizon). A past day
+ * with no completed record and no forecast opinion reads as `rest` — there's
+ * no other ground truth for what an old day was supposed to be.
+ */
+export function resolveDayStatus(
+  date: number,
+  ctx: {
+    completedByDay: Map<number, SessionRecord>;
+    scheduledWorkouts: ScheduledWorkout[];
+    routines: Routine[];
+    todayLocal: number;
+    rollingDay?: RollingPlanDay;
+  },
+): DayStatus {
+  const record = ctx.completedByDay.get(date);
+  if (record) return { date, status: 'completed', record };
+
+  const scheduled = ctx.scheduledWorkouts.find((item) => localDay(item.plannedFor) === date);
+  if (scheduled) return { date, status: 'scheduled', scheduled };
+
+  // A recurring routine only overlays today/future days — it never rewrites
+  // what already happened (or didn't) on a past day.
+  const recurring = date >= ctx.todayLocal ? recurringRoutineFor(date, ctx.routines) : undefined;
+  if (recurring) return { date, status: 'recurring', routine: recurring };
+
+  if (date < ctx.todayLocal) {
+    return ctx.rollingDay?.kind === 'workout' ? { date, status: 'missed' } : { date, status: 'rest' };
+  }
+  if (!ctx.rollingDay || ctx.rollingDay.kind === 'rest') return { date, status: 'rest' };
+  return {
+    date,
+    status: 'suggested',
+    intent: { modality: ctx.rollingDay.modality, priorityMuscles: ctx.rollingDay.priorityMuscles ?? [] },
+  };
 }
 
 /**
@@ -209,4 +308,27 @@ export function weeklyPerformance(
   }
   if (weightUnit === 'lb') values.strength = values.strength.map((value) => value * 2.2046226218);
   return { days, values };
+}
+
+/** Leading sentences that just restate the modality the plan header already
+ * shows (`buildRationale`/`buildFlowRationale`'s opener, optionally preceded
+ * by the routine-name lead-in). Whitelisted rather than pattern-matched on
+ * "Today's focus: ...." generically, because that phrasing is also reused
+ * for the "nothing in the catalog matched" warning (session.ts), whose whole
+ * message is one sentence ending in a period — a generic prefix strip would
+ * eat the warning along with the boilerplate. */
+const RATIONALE_BOILERPLATE = [/^Following your ".*" routine\.$/, /^Today's focus: (strength|cardio|mobility|general|a stretch flow|a yoga flow|a barre flow|a pilates flow)\.$/];
+
+/**
+ * Splits a plan's templated `rationale` into individual sentences and drops
+ * the leading ones that only restate what the plan header already says,
+ * leaving just the notes worth a trainer actually calling out. Empty when
+ * the whole rationale was boilerplate — callers should hide the "why this
+ * today" card in that case rather than show it empty.
+ */
+export function rationaleHighlights(rationale: string): string[] {
+  const sentences = rationale.split(/(?<=\.)\s+/).map((s) => s.trim()).filter(Boolean);
+  let start = 0;
+  while (start < sentences.length && RATIONALE_BOILERPLATE.some((re) => re.test(sentences[start]))) start++;
+  return sentences.slice(start);
 }
