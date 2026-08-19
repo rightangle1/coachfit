@@ -15,6 +15,13 @@ export interface Routine {
   workoutType?: WorkoutType;
   /** Optional recurring days (0=Sun..6=Sat) — overlaid onto the weekly plan, never materialized ahead of time. */
   recurrenceDaysOfWeek?: number[];
+  /**
+   * When true, Warmup/Conditioning/Cool down draw only from this routine's
+   * own exercises (or are skipped) instead of being backfilled from the
+   * catalog — the routine's list becomes the entire session, not just Main
+   * (which is already exclusive to the routine regardless of this flag).
+   */
+  onlyRoutineExercises?: boolean;
   /** Set when this routine was created from a completed workout. */
   createdFromSessionId?: string;
   lastUsedAt?: number;

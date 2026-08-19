@@ -46,6 +46,7 @@ const ICONS = {
   trash: { ios: 'trash.fill', android: 'delete', web: 'delete' },
   checkAll: { ios: 'checkmark.circle.fill', android: 'check_circle', web: 'check_circle' },
   privacy: { ios: 'lock.shield.fill', android: 'privacy_tip', web: 'privacy_tip' },
+  lock: { ios: 'lock.fill', android: 'lock', web: 'lock' },
   warning: { ios: 'exclamationmark.triangle.fill', android: 'warning', web: 'warning' },
   add: { ios: 'plus.circle', android: 'add_circle_outline', web: 'add_circle_outline' },
   // Cardio modality tiles (ADR-0141) — Android/web Material equivalents are

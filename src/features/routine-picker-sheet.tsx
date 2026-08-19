@@ -1,4 +1,4 @@
-/** Pick a saved routine for today's session, or hand off to auto-pick (ADR-0137). */
+/** Pick a saved routine for today's session (ADR-0137). */
 
 import { View } from 'react-native';
 
@@ -16,38 +16,40 @@ export function RoutinePickerSheet({
   selectedRoutineId,
   onClose,
   onSelect,
-  onAutoPick,
   onView,
+  onCreateRoutine,
+  onEditRoutine,
 }: {
   visible: boolean;
   routines: Routine[];
   selectedRoutineId: string | null;
   onClose: () => void;
   onSelect: (routineId: string) => void;
-  onAutoPick: () => void;
   onView: (routineId: string) => void;
+  onCreateRoutine: () => void;
+  onEditRoutine: (routineId: string) => void;
 }) {
   const { spacing } = useTheme();
 
   return (
     <SheetModal visible={visible} onClose={onClose} eyebrow="TODAY’S SESSION" title="Pick a routine" closeLabel="Close routine picker">
-      <Button
-        title="Auto-pick for me"
-        variant="secondary"
-        leadingIcon={<Icon name="target" size={16} color="primaryTextSoft" />}
-        onPress={() => {
-          onAutoPick();
-          onClose();
-        }}
-        fullWidth
-      />
-      <View style={{ gap: spacing.sm }}>
-        <Text variant="caption" color="textFaint" weight="bold">YOUR ROUTINES</Text>
-        {routines.length === 0 ? (
+      {routines.length === 0 ? (
+        <View style={{ gap: spacing.md }}>
           <Text variant="body" color="textMuted">
-            Save a routine from Explore to pick it here.
+            You haven’t saved any of your routines yet. Routines let you specify a specific set of exercises for a single workout.
           </Text>
-        ) : (
+          <Button
+            title="Create New Routine"
+            onPress={() => {
+              onCreateRoutine();
+              onClose();
+            }}
+            fullWidth
+          />
+        </View>
+      ) : (
+        <View style={{ gap: spacing.sm }}>
+          <Text variant="caption" color="textFaint" weight="bold">YOUR ROUTINES</Text>
           <View style={{ gap: spacing.sm }}>
             {routines.map((routine) => (
               <Card key={routine.id} tone={selectedRoutineId === routine.id ? 'primarySoft' : 'surfaceAlt'}>
@@ -62,18 +64,42 @@ export function RoutinePickerSheet({
                     accessibilityLabel={`Use ${routine.name} today`}
                     style={{ flex: 1, paddingVertical: spacing.xs }}
                   >
-                    <Text variant="subtitle">{routine.name}</Text>
+                    <Row gap="xs" style={{ alignItems: 'center' }}>
+                      <Text variant="subtitle">{routine.name}</Text>
+                      {routine.onlyRoutineExercises ? <Icon name="lock" size={12} color="textFaint" /> : null}
+                    </Row>
                     <Text variant="caption" color="textMuted" style={{ marginTop: 2 }}>
                       {routine.exerciseIds.length} exercise{routine.exerciseIds.length === 1 ? '' : 's'} · {lastUsedLabel(routine)}
+                      {routine.onlyRoutineExercises ? ' · Only these exercises' : ''}
                     </Text>
                   </PressScale>
-                  <Button title="View" size="sm" variant="secondary" onPress={() => onView(routine.id)} style={{ marginLeft: spacing.md }} />
+                  <Row style={{ marginLeft: spacing.md, gap: spacing.sm }}>
+                    <Button title="View" size="sm" variant="secondary" onPress={() => onView(routine.id)} />
+                    <Button
+                      title="Edit"
+                      size="sm"
+                      variant="secondary"
+                      onPress={() => {
+                        onEditRoutine(routine.id);
+                        onClose();
+                      }}
+                    />
+                  </Row>
                 </Row>
               </Card>
             ))}
           </View>
-        )}
-      </View>
+          <Button
+            title="Create New Routine"
+            variant="secondary"
+            onPress={() => {
+              onCreateRoutine();
+              onClose();
+            }}
+            fullWidth
+          />
+        </View>
+      )}
     </SheetModal>
   );
 }

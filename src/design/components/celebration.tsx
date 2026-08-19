@@ -11,10 +11,11 @@ import { Text } from './text';
 
 const PARTICLES = Array.from({ length: 12 }, (_, i) => ({ angle: (i / 12) * Math.PI * 2, size: i % 3 === 0 ? 9 : 6, square: i % 2 === 0 }));
 
-// `importantForAccessibility` is RN-only — react-native-web forwards unknown
-// props straight to the DOM `<svg>`, which warns on it. `accessible={false}`
-// alone covers web (translated to aria-hidden).
-const HIDDEN_DECORATIVE_SVG_PROPS = Platform.OS === 'web' ? {} : { importantForAccessibility: 'no-hide-descendants' as const };
+// react-native-web forwards unknown/non-DOM-typed props straight to the DOM
+// `<svg>`, and even `accessible={false}` leaks through as a non-boolean
+// attribute there — so web needs `aria-hidden` instead, native needs its own props.
+const HIDDEN_DECORATIVE_SVG_PROPS =
+  Platform.OS === 'web' ? { 'aria-hidden': true } : { accessible: false, importantForAccessibility: 'no-hide-descendants' as const };
 
 export interface CelebrationBurstProps {
   visible: boolean;
@@ -37,9 +38,9 @@ function Particle({ angle, size, square, progress, color }: { angle: number; siz
 
 function CelebrationArt({ kind, accent, icing, plate }: { kind: 'achievement' | 'pr'; accent: string; icing: string; plate: string }) {
   if (kind === 'pr') {
-    return <Svg width={62} height={62} viewBox="0 0 62 62" accessible={false} {...HIDDEN_DECORATIVE_SVG_PROPS}><Path d="M17 14h28v11c0 10-6 17-14 17S17 35 17 25z" fill={accent} /><Path d="M17 18H9c0 10 3 15 11 16M45 18h8c0 10-3 15-11 16M31 42v8m-11 0h22" stroke={plate} strokeWidth={4} strokeLinecap="round" fill="none" /><Path d="m31 20 3 6 7 1-5 5 1 7-6-3-6 3 1-7-5-5 7-1z" fill={icing} /></Svg>;
+    return <Svg width={62} height={62} viewBox="0 0 62 62" {...HIDDEN_DECORATIVE_SVG_PROPS}><Path d="M17 14h28v11c0 10-6 17-14 17S17 35 17 25z" fill={accent} /><Path d="M17 18H9c0 10 3 15 11 16M45 18h8c0 10-3 15-11 16M31 42v8m-11 0h22" stroke={plate} strokeWidth={4} strokeLinecap="round" fill="none" /><Path d="m31 20 3 6 7 1-5 5 1 7-6-3-6 3 1-7-5-5 7-1z" fill={icing} /></Svg>;
   }
-  return <Svg width={62} height={62} viewBox="0 0 62 62" accessible={false} {...HIDDEN_DECORATIVE_SVG_PROPS}><Path d="M14 8h16l3 21-13 8L11 29z" fill={accent} opacity={0.7} /><Path d="M32 8h16l3 21-13 8-13-8z" fill={accent} opacity={0.42} /><Circle cx="31" cy="37" r="19" fill={accent} /><Circle cx="31" cy="37" r="14" fill={plate} opacity={0.15} /><Path d="m31 25 3 7 8 1-6 5 2 8-7-4-7 4 2-8-6-5 8-1z" fill={icing} /></Svg>;
+  return <Svg width={62} height={62} viewBox="0 0 62 62" {...HIDDEN_DECORATIVE_SVG_PROPS}><Path d="M14 8h16l3 21-13 8L11 29z" fill={accent} opacity={0.7} /><Path d="M32 8h16l3 21-13 8-13-8z" fill={accent} opacity={0.42} /><Circle cx="31" cy="37" r="19" fill={accent} /><Circle cx="31" cy="37" r="14" fill={plate} opacity={0.15} /><Path d="m31 25 3 7 8 1-6 5 2 8-7-4-7 4 2-8-6-5 8-1z" fill={icing} /></Svg>;
 }
 
 export function CelebrationBurst({ visible, label, sublabel, tone = 'primary', kind = 'achievement', durationMs = 2200, onDismiss, style }: CelebrationBurstProps) {

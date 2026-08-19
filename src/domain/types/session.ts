@@ -101,7 +101,7 @@ export interface SessionContext {
    * goal-weighted catalog pool. Every other rule — progression, load,
    * safety caps, warmup/cooldown — still applies unchanged.
    */
-  routine?: { id: string; name: string; exerciseIds: string[] };
+  routine?: { id: string; name: string; exerciseIds: string[]; onlyRoutineExercises?: boolean };
   /**
    * Today's baseline from the weekly rolling plan (ADR-0142), threaded in by
    * the caller from `AthleteProfile.rollingPlan` / `services/rolling-plan.ts`.

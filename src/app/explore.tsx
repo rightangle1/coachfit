@@ -1,6 +1,6 @@
 /** Visual exercise discovery — the everyday home for CoachFit's catalog. */
 
-import { useCallback, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useFocusEffect, useLocalSearchParams, useRouter } from 'expo-router';
 import { ImageBackground, Pressable, View, type ImageSourcePropType } from 'react-native';
 
@@ -171,7 +171,7 @@ function EditorialCollectionCard({
 export default function ExploreScreen() {
   const { spacing } = useTheme();
   const router = useRouter();
-  const params = useLocalSearchParams<{ tab?: string }>();
+  const params = useLocalSearchParams<{ tab?: string; newRoutine?: string; editRoutineId?: string; returnTo?: string }>();
   const [infoExerciseId, setInfoExerciseId] = useState<string | null>(null);
   const weightUnit = getAthleteProfile()?.weightUnit ?? 'kg';
   // Deep-linked from elsewhere (e.g. "Edit" on a routine from Today) — read
@@ -194,6 +194,26 @@ export default function ExploreScreen() {
   const [routines, setRoutines] = useState<Routine[]>([]);
   const [builderVisible, setBuilderVisible] = useState(false);
   const [editingRoutine, setEditingRoutine] = useState<Routine | null>(null);
+  // Whether the builder was opened from the Today routine picker — if so,
+  // closing or saving should send the athlete back there instead of leaving
+  // them stranded on Explore.
+  const [returnToPicker, setReturnToPicker] = useState(false);
+
+  // Deep-linked from the Today routine picker — either "Create New Routine"
+  // (empty state) or "Edit" on a routine row. This tab stays mounted across
+  // visits (it's a persistent Tabs screen, not a fresh page load each time),
+  // so the trigger must be an effect keyed on the params rather than
+  // read-once-on-mount state, or a second deep link back into an
+  // already-mounted Explore would silently no-op.
+  useEffect(() => {
+    if (params.newRoutine !== '1' && !params.editRoutineId) return;
+    setTab('routines');
+    setEditingRoutine(params.editRoutineId ? listRoutines().find((r) => r.id === params.editRoutineId) ?? null : null);
+    setBuilderVisible(true);
+    setReturnToPicker(params.returnTo === 'picker');
+    router.setParams({ newRoutine: undefined, editRoutineId: undefined, returnTo: undefined });
+  }, [params.newRoutine, params.editRoutineId, params.returnTo, router]);
+
   const [detailRoutineId, setDetailRoutineId] = useState<string | null>(null);
   const [routineExerciseHistoryId, setRoutineExerciseHistoryId] = useState<string | null>(null);
   const detailRoutine = routines.find((r) => r.id === detailRoutineId) ?? null;
@@ -466,11 +486,18 @@ export default function ExploreScreen() {
       <RoutineBuilderSheet
         visible={builderVisible}
         routine={editingRoutine}
-        onClose={() => setBuilderVisible(false)}
+        onClose={() => {
+          setBuilderVisible(false);
+          if (returnToPicker) router.replace({ pathname: '/', params: { openRoutinePicker: '1' } });
+        }}
         onSaved={(saved) => {
           refreshRoutines();
           setBuilderVisible(false);
-          setDetailRoutineId(saved.id);
+          if (returnToPicker) {
+            router.replace({ pathname: '/', params: { openRoutinePicker: '1' } });
+          } else {
+            setDetailRoutineId(saved.id);
+          }
         }}
       />
       <RoutineDetailSheet

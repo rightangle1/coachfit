@@ -1072,6 +1072,10 @@ export class RulesEngine implements ProgrammingEngine {
     const routineMobilityIds = input.routine
       ? input.routine.exerciseIds.filter((id) => resolveExercise(id)?.modality === 'mobility')
       : [];
+    // ADR-0137 v3: the routine opted out of Warmup/Conditioning/Cool down
+    // backfill — those blocks may only draw from the routine's own picks
+    // (or be skipped), never the wider catalog.
+    const lockToRoutine = input.routine?.onlyRoutineExercises === true;
 
     // 1) Warmup — low stakes, but optional (session settings). Time/count are a
     // standing profile preference (ADR-0111); focus blends that preference with
@@ -1096,8 +1100,16 @@ export class RulesEngine implements ProgrammingEngine {
         experience,
         sessionChosenIds,
         routineMobilityIds,
+        lockToRoutine,
       );
       warmup.forEach((e) => sessionChosenIds.add(e.id));
+      if (lockToRoutine && warmup.length < warmupPlan.exerciseCount) {
+        swaps.push(
+          warmup.length
+            ? `Routine "${input.routine!.name}": warmup kept to routine exercises only`
+            : `Routine "${input.routine!.name}": warmup skipped — no routine warmup exercise available`,
+        );
+      }
       if (warmup.length) {
         const actualPlan = repeatMobilityForSelection(warmupTotalSeconds, warmup.length, warmupPlan, MOBILITY_HOLD.warmup);
         blocks.unshift({
@@ -1144,7 +1156,12 @@ export class RulesEngine implements ProgrammingEngine {
       const conditioningPool = available.filter((e) => e.modality === 'cardio' && e.movementPattern === 'steady_cardio');
       const cond = routineConditioningPick
         ? [routineConditioningPick]
-        : pick(conditioningPool.length > 0 ? conditioningPool : available, 'cardio', 1, emphasize, avoid, swaps, { history: input.history, now: input.plannedFor, favorites, experience, seedChosenIds: sessionChosenIds });
+        : lockToRoutine
+          ? []
+          : pick(conditioningPool.length > 0 ? conditioningPool : available, 'cardio', 1, emphasize, avoid, swaps, { history: input.history, now: input.plannedFor, favorites, experience, seedChosenIds: sessionChosenIds });
+      if (lockToRoutine && !routineConditioningPick) {
+        swaps.push(`Routine "${input.routine!.name}": conditioning skipped — no routine cardio exercise available`);
+      }
       if (cond.length) {
         blocks.push({
           modality: 'cardio',
@@ -1202,7 +1219,15 @@ export class RulesEngine implements ProgrammingEngine {
         experience,
         sessionChosenIds,
         routineMobilityIds,
+        lockToRoutine,
       );
+      if (lockToRoutine && cooldown.length < cooldownPlan.exerciseCount) {
+        swaps.push(
+          cooldown.length
+            ? `Routine "${input.routine!.name}": cool down kept to routine exercises only`
+            : `Routine "${input.routine!.name}": cool down skipped — no routine cool-down exercise available`,
+        );
+      }
       if (cooldown.length) {
         const actualPlan = repeatMobilityForSelection(cooldownTotalSeconds, cooldown.length, cooldownPlan, MOBILITY_HOLD.cooldown);
         blocks.push({
@@ -1915,6 +1940,13 @@ function pickFocusedMobility(
    * same hard-safety/fatigue floor as every other pick.
    */
   priorityIds: string[] = [],
+  /**
+   * ADR-0137 v3: when the routine has opted out of augmentation
+   * (`onlyRoutineExercises`), `priorityIds` is the whole legal pool —
+   * skip the dominant/full-catalog backfill below entirely, even if that
+   * leaves fewer than `count` (or zero) exercises.
+   */
+  strict = false,
 ): Exercise[] {
   const chosenIds = new Set<string>(excludeIds);
   const usedPatterns = new Set<string>();
@@ -1929,7 +1961,7 @@ function pickFocusedMobility(
     chosenIds.add(exercise.id);
     usedPatterns.add(exercise.movementPattern);
   }
-  if (priority.length >= count) return priority;
+  if (strict || priority.length >= count) return priority;
   const dominant = pick(pool, 'mobility', count - priority.length, combineFocusAreas(profileFocus, dominantAreas), avoid, swaps, {
     requireDistinctPattern: false,
     favorites,

@@ -12,10 +12,11 @@ import { Text } from './text';
 import { Meter } from './controls';
 import type { ColorToken } from '../tokens';
 
-// `importantForAccessibility` is RN-only — react-native-web forwards unknown
-// props straight to the DOM `<svg>`, which warns on it. `accessible={false}`
-// alone covers web (translated to aria-hidden).
-const HIDDEN_DECORATIVE_SVG_PROPS = Platform.OS === 'web' ? {} : { importantForAccessibility: 'no-hide-descendants' as const };
+// react-native-web forwards unknown/non-DOM-typed props straight to the DOM
+// `<svg>`, and even `accessible={false}` leaks through as a non-boolean
+// attribute there — so web needs `aria-hidden` instead, native needs its own props.
+const HIDDEN_DECORATIVE_SVG_PROPS =
+  Platform.OS === 'web' ? { 'aria-hidden': true } : { accessible: false, importantForAccessibility: 'no-hide-descendants' as const };
 
 export interface AchievementBadgeProps {
   id?: string;
@@ -77,7 +78,7 @@ function BadgeShine() {
 function MedalIllustration({ mark, accent, muted }: { mark: MedalMark; accent: string; muted: string }) {
   const dark = muted;
   return (
-    <Svg width={68} height={62} viewBox="0 0 68 62" accessible={false} {...HIDDEN_DECORATIVE_SVG_PROPS}>
+    <Svg width={68} height={62} viewBox="0 0 68 62" {...HIDDEN_DECORATIVE_SVG_PROPS}>
       <Path d="M18 2h14l4 18-11 8L14 20z" fill={accent} opacity={0.72} />
       <Path d="M36 2h14l4 18-11 8-11-8z" fill={accent} opacity={0.42} />
       <Circle cx="34" cy="36" r="22" fill={accent} />

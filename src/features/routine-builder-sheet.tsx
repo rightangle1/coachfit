@@ -12,7 +12,7 @@ import { workoutTypeArt } from '@/features/exercise-detail';
 import { EXERCISES } from '@/domain/catalog';
 import { getEquipmentInventory } from '@/services/equipment';
 import { equipmentSatisfied, exercisesAllowedForWorkoutType } from '@/domain/engine';
-import { createRoutine, updateRoutineExercises, updateRoutineRecurrence, renameRoutine } from '@/services/routines';
+import { createRoutine, updateRoutineExercises, updateRoutineRecurrence, updateRoutineOnlyExercises, renameRoutine } from '@/services/routines';
 import type { Routine, WorkoutType } from '@/domain/types';
 import { ExercisePickerSheet } from './exercise-picker-sheet';
 
@@ -45,6 +45,7 @@ export function RoutineBuilderSheet({
   const [workoutType, setWorkoutType] = useState<WorkoutType | undefined>(undefined);
   const [styleNotice, setStyleNotice] = useState<string | undefined>(undefined);
   const [pickerOpen, setPickerOpen] = useState(false);
+  const [onlyRoutineExercises, setOnlyRoutineExercises] = useState(false);
 
   useEffect(() => {
     if (!visible) return;
@@ -54,6 +55,7 @@ export function RoutineBuilderSheet({
     setRecurrence(new Set(routine?.recurrenceDaysOfWeek ?? []));
     setWorkoutType(routine?.workoutType);
     setStyleNotice(undefined);
+    setOnlyRoutineExercises(routine?.onlyRoutineExercises ?? false);
   }, [visible, routine]);
 
   const equipment = useMemo(() => getEquipmentInventory() ?? { items: [] }, []);
@@ -114,10 +116,11 @@ export function RoutineBuilderSheet({
     if (routine) {
       renameRoutine(routine.id, trimmed);
       updateRoutineExercises(routine.id, exerciseIds);
-      const updated = updateRoutineRecurrence(routine.id, recurrenceDaysOfWeek);
+      updateRoutineRecurrence(routine.id, recurrenceDaysOfWeek);
+      const updated = updateRoutineOnlyExercises(routine.id, onlyRoutineExercises);
       if (updated) onSaved({ ...updated, workoutType });
     } else {
-      const created = createRoutine({ name: trimmed, exerciseIds, workoutType, recurrenceDaysOfWeek });
+      const created = createRoutine({ name: trimmed, exerciseIds, workoutType, recurrenceDaysOfWeek, onlyRoutineExercises });
       onSaved(created);
     }
   }
@@ -133,7 +136,16 @@ export function RoutineBuilderSheet({
         title={routine ? 'Edit routine' : 'New routine'}
         closeLabel="Close routine editor"
       >
-        <Text variant="caption" color="textFaint" weight="bold">STYLE</Text>
+        <Text variant="caption" color="textFaint" weight="bold">NAME</Text>
+        <TextField
+          value={name}
+          onChangeText={setName}
+          placeholder="e.g. Push day"
+          multiline={false}
+          style={{ marginTop: spacing.sm, minHeight: 0, height: 44, paddingVertical: 0, textAlignVertical: 'center' }}
+        />
+
+        <Text variant="caption" color="textFaint" weight="bold" style={{ marginTop: spacing.xl }}>STYLE</Text>
         <Text variant="caption" color="textMuted" style={{ marginTop: 2 }}>
           Determines which exercises you can add below.
         </Text>
@@ -157,7 +169,32 @@ export function RoutineBuilderSheet({
             >
               <ImageBackground source={workoutTypeArt(option.value)} contentFit="cover" style={{ flex: 1, justifyContent: 'flex-end', padding: spacing.sm }}>
                 <HeroScrim />
+                {workoutType === option.value ? (
+                  <View
+                    pointerEvents="none"
+                    style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: colors.primary, opacity: 0.35 }}
+                  />
+                ) : null}
                 <Text variant="caption" color="heroText" weight="bold" numberOfLines={1}>{option.label}</Text>
+                {workoutType === option.value ? (
+                  <View
+                    style={{
+                      position: 'absolute',
+                      top: spacing.xs,
+                      right: spacing.xs,
+                      width: 20,
+                      height: 20,
+                      borderRadius: radii.pill,
+                      backgroundColor: colors.primary,
+                      borderWidth: 1,
+                      borderColor: colors.heroBorder,
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                    }}
+                  >
+                    <Icon name="selected" size={12} color="heroText" />
+                  </View>
+                ) : null}
               </ImageBackground>
             </PressScale>
           ))}
@@ -167,9 +204,6 @@ export function RoutineBuilderSheet({
             {styleNotice}
           </Text>
         ) : null}
-
-        <Text variant="caption" color="textFaint" weight="bold" style={{ marginTop: spacing.xl }}>NAME</Text>
-        <TextField value={name} onChangeText={setName} placeholder="e.g. Push day" style={{ marginTop: spacing.sm }} />
 
         <Row style={{ justifyContent: 'space-between', alignItems: 'center', marginTop: spacing.xl }}>
           <Text variant="caption" color="textFaint" weight="bold">EXERCISES</Text>
@@ -227,9 +261,23 @@ export function RoutineBuilderSheet({
           ))}
         </Row>
 
+        <Text variant="caption" color="textFaint" weight="bold" style={{ marginTop: spacing.xl }}>ONLY THESE EXERCISES</Text>
+        <Text variant="caption" color="textMuted" style={{ marginTop: 2 }}>
+          Stop the coach from adding its own warmup, cool down, or conditioning exercises — only what's listed above will be used.
+        </Text>
+        <Row style={{ marginTop: spacing.sm }}>
+          <Chip
+            label="Only these exercises"
+            selected={onlyRoutineExercises}
+            onPress={() => setOnlyRoutineExercises((v) => !v)}
+          />
+        </Row>
+
         <Card tone="surfaceAlt" style={{ marginTop: spacing.xl }}>
           <Text variant="caption" color="textMuted">
-            Sets, reps, and load are still adapted each time you run this routine — your routine fixes the exercises, not the prescription.
+            {onlyRoutineExercises
+              ? "Sets, reps, and load are still adapted each time you run this routine — but warmup, cool down, and conditioning will only draw from this list (and may be skipped if it doesn't cover them), never filled in from elsewhere."
+              : 'Sets, reps, and load are still adapted each time you run this routine — your routine fixes the exercises, not the prescription.'}
           </Text>
         </Card>
 

@@ -2209,6 +2209,58 @@ describe('RulesEngine.generateSession — ADR-0137 routines', () => {
     expect(plan.rationale).not.toMatch(/missing equipment/i);
   });
 
+  describe('ADR-0137 v3 — onlyRoutineExercises', () => {
+    const MIXED_WEIGHTS: ModalityWeights = { strength: 0.6, cardio: 0.2, mobility: 0.1, general: 0.1 };
+    const blockOf = (plan: SessionPlan, label: string) => plan.blocks.find((b) => b.label === label);
+
+    it('omits Warmup and Cool down instead of backfilling from the catalog when locked', async () => {
+      const plan = await new RulesEngine().generateSession(
+        context({ routine: { ...ROUTINE, onlyRoutineExercises: true } }),
+      );
+      expect(blockOf(plan, 'Warmup')).toBeUndefined();
+      expect(blockOf(plan, 'Cool down')).toBeUndefined();
+      // Main is untouched by the flag.
+      expect(new Set(mainOf(plan).map((e) => e.exerciseId))).toEqual(new Set(ROUTINE.exerciseIds));
+      expect(plan.adjustments?.some((note) => note.includes('warmup skipped'))).toBe(true);
+      expect(plan.adjustments?.some((note) => note.includes('cool down skipped'))).toBe(true);
+    });
+
+    it('still backfills Warmup/Cool down from the catalog when not locked (regression)', async () => {
+      const plan = await new RulesEngine().generateSession(context({ routine: ROUTINE }));
+      expect(blockOf(plan, 'Warmup')).toBeDefined();
+      expect(blockOf(plan, 'Cool down')).toBeDefined();
+    });
+
+    it('omits Conditioning instead of backfilling when locked and the routine has no cardio pick', async () => {
+      const plan = await new RulesEngine().generateSession(
+        context({ routine: { ...ROUTINE, onlyRoutineExercises: true }, goals: { weights: MIXED_WEIGHTS } }),
+      );
+      expect(blockOf(plan, 'Conditioning')).toBeUndefined();
+      expect(plan.adjustments?.some((note) => note.includes('conditioning skipped'))).toBe(true);
+    });
+
+    it('still backfills Conditioning from the catalog when not locked (regression)', async () => {
+      const plan = await new RulesEngine().generateSession(
+        context({ routine: ROUTINE, goals: { weights: MIXED_WEIGHTS } }),
+      );
+      expect(blockOf(plan, 'Conditioning')).toBeDefined();
+    });
+
+    it('still uses the routine\'s own cardio pick for Conditioning when locked', async () => {
+      const mixedRoutine = {
+        id: 'routine-cardio-mix',
+        name: 'Lift + Cardio',
+        exerciseIds: ['sq-db-front', 'pu-db-bench', 'ca-machine-steady'],
+        onlyRoutineExercises: true,
+      };
+      const plan = await new RulesEngine().generateSession(
+        context({ routine: mixedRoutine, goals: { weights: MIXED_WEIGHTS } }),
+      );
+      const conditioning = blockOf(plan, 'Conditioning');
+      expect(conditioning?.exercises.map((e) => e.exerciseId)).toContain('ca-machine-steady');
+    });
+  });
+
   describe('ADR-0137 v2 — Yoga/Stretch honor input.routine', () => {
     // Spans three distinct YOGA_STAGE_ORDER stages (center/balance/cooldown)
     // so the routine-restricted sequence's ordering can be checked too.

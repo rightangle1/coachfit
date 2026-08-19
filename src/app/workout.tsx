@@ -250,7 +250,7 @@ export default function WorkoutScreen() {
             <Row gap="sm" style={{ alignItems: 'flex-start' }}>
               <ToneIconTile name="workout" size={36} iconSize={19} tone={focusTone} />
               <View style={{ flex: 1 }}>
-                <Text variant="title" tint={colors.tones[focusTone].text} italic>Workout Focus: {overview.focus}</Text>
+                <Text variant="title" tint={colors.tones[focusTone].text} italic>Your Workout - Focus: {overview.focus}</Text>
                 {overview.primaryGroups.length > 0 && (
                   <Text variant="body" tint={colors.tones[focusTone].text} style={{ marginTop: spacing.xs }}>
                     {overview.primaryGroups.join(' · ')}
@@ -527,7 +527,7 @@ export default function WorkoutScreen() {
           <Row gap="sm" style={{ alignItems: 'flex-start' }}>
             <ToneIconTile name="workout" size={36} iconSize={19} tone={focusTone} />
             <View style={{ flex: 1 }}>
-              <Text variant="title" tint={colors.tones[focusTone].text} italic>Workout Focus: {workoutOverview(plan).focus}</Text>
+              <Text variant="title" tint={colors.tones[focusTone].text} italic>Your Workout - Focus: {workoutOverview(plan).focus}</Text>
               {workoutOverview(plan).primaryGroups.length > 0 && (
                 <Text variant="body" tint={colors.tones[focusTone].text} style={{ marginTop: spacing.xs }}>
                   {workoutOverview(plan).primaryGroups.join(' · ')}

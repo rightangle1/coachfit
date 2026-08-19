@@ -309,26 +309,3 @@ export function weeklyPerformance(
   if (weightUnit === 'lb') values.strength = values.strength.map((value) => value * 2.2046226218);
   return { days, values };
 }
-
-/** Leading sentences that just restate the modality the plan header already
- * shows (`buildRationale`/`buildFlowRationale`'s opener, optionally preceded
- * by the routine-name lead-in). Whitelisted rather than pattern-matched on
- * "Today's focus: ...." generically, because that phrasing is also reused
- * for the "nothing in the catalog matched" warning (session.ts), whose whole
- * message is one sentence ending in a period — a generic prefix strip would
- * eat the warning along with the boilerplate. */
-const RATIONALE_BOILERPLATE = [/^Following your ".*" routine\.$/, /^Today's focus: (strength|cardio|mobility|general|a stretch flow|a yoga flow|a barre flow|a pilates flow)\.$/];
-
-/**
- * Splits a plan's templated `rationale` into individual sentences and drops
- * the leading ones that only restate what the plan header already says,
- * leaving just the notes worth a trainer actually calling out. Empty when
- * the whole rationale was boilerplate — callers should hide the "why this
- * today" card in that case rather than show it empty.
- */
-export function rationaleHighlights(rationale: string): string[] {
-  const sentences = rationale.split(/(?<=\.)\s+/).map((s) => s.trim()).filter(Boolean);
-  let start = 0;
-  while (start < sentences.length && RATIONALE_BOILERPLATE.some((re) => re.test(sentences[start]))) start++;
-  return sentences.slice(start);
-}

@@ -45,6 +45,8 @@ export async function generateSession(input: SessionContext): Promise<SessionPla
         input.trainingIntent ? `training_intent:${input.trainingIntent}` : 'training_intent:balanced',
         // ADR-0137: which structured input drove Main selection today.
         ...(input.routine ? [`routine:${input.routine.id}`] : []),
+        // ADR-0137 v3: routine opted out of Warmup/Conditioning/Cool down backfill.
+        ...(input.routine?.onlyRoutineExercises ? [`routine_locked:${input.routine.id}`] : []),
         // ADR-0140: which cardio modality preference (if any) narrowed Main.
         ...(input.workoutOptions?.cardioModalities?.length ? [`cardio_modality:${input.workoutOptions.cardioModalities.join(',')}`] : []),
       ],

@@ -7,7 +7,7 @@ import { PressScale } from './pressable';
 import { Text } from './text';
 import type { ColorToken } from '../tokens';
 
-export type ButtonVariant = 'primary' | 'secondary' | 'quiet' | 'danger';
+export type ButtonVariant = 'primary' | 'secondary' | 'quiet' | 'danger' | 'hero';
 type Size = 'sm' | 'md' | 'lg';
 
 const HEIGHT: Record<Size, number> = { sm: 44, md: 52, lg: 60 };
@@ -49,18 +49,21 @@ export function Button({
     secondary: colors.surfaceAlt,
     quiet: 'transparent',
     danger: colors.danger,
+    hero: colors.heroPill,
   };
   const fg: Record<ButtonVariant, ColorToken> = {
     primary: 'primaryText',
     secondary: 'text',
     quiet: 'primary',
     danger: 'primaryText',
+    hero: 'heroText',
   };
   const border: Record<ButtonVariant, string> = {
     primary: colors.primary,
     secondary: colors.border,
     quiet: 'transparent',
     danger: colors.danger,
+    hero: colors.heroBorder,
   };
 
   const blocked = Boolean(disabled || loading);
@@ -91,7 +94,7 @@ export function Button({
       ]}
     >
       {loading ? <ActivityIndicator size="small" color={colors[fg[variant]]} /> : leadingIcon ? <View pointerEvents="none">{leadingIcon}</View> : null}
-      <Text variant={size === 'sm' ? 'label' : 'subtitle'} color={fg[variant]} weight="semibold">
+      <Text variant={size === 'sm' ? 'label' : 'subtitle'} color={fg[variant]} weight="semibold" center>
         {title}
       </Text>
       {trailingIcon ? <View pointerEvents="none">{trailingIcon}</View> : null}

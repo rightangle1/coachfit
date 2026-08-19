@@ -55,7 +55,7 @@ import {
 } from '@/services/sessions';
 import { useWorkoutStore } from '@/state/workout-store';
 import { ensureRollingPlanFresh } from '@/services/rolling-plan';
-import { listRoutines, markRoutineUsed, recommendRoutine } from '@/services/routines';
+import { listRoutines, markRoutineUsed } from '@/services/routines';
 import { ageYearsOf, defaultAutoAdvance, normalizeCardioIntent } from '@/domain/types';
 import type {
   AthleteProfile,
@@ -98,7 +98,6 @@ import {
 } from '@/app-lib/options';
 import {
   localDay,
-  rationaleHighlights,
   recoverySummary,
   recurringRoutineFor,
   recommendWorkoutType,
@@ -112,7 +111,7 @@ import { needsAppTour } from '@/app-lib/app-tour';
 import { GOAL_PRESETS_BY_ID } from '@/app-lib/goal-presets';
 
 type Severity = 'mild' | 'severe';
-type BuilderSection = 'session' | 'focus' | 'shape' | 'feeling' | 'adjustments' | 'routine';
+type BuilderSection = 'session' | 'focus' | 'shape' | 'feeling' | 'adjustments';
 
 const READY_OPTIONS = {
   sleep: [
@@ -356,11 +355,10 @@ function dayStripIcon(row: WeekPlanRow): { icon: IconName; color: ColorToken } {
 export default function TodayScreen() {
   const { colors, radii, spacing } = useTheme();
   const router = useRouter();
-  const params = useLocalSearchParams<{ scrollTo?: string; recovery?: string; checkin?: string; useRoutineId?: string }>();
+  const params = useLocalSearchParams<{ scrollTo?: string; recovery?: string; checkin?: string; useRoutineId?: string; openRoutinePicker?: string }>();
 
   const activeRecord = useWorkoutStore((s) => s.record);
   const startWorkout = useWorkoutStore((s) => s.start);
-  const endEarly = useWorkoutStore((s) => s.endEarly);
   const setBuiltPlan = useWorkoutStore((s) => s.setBuiltPlan);
 
   const [ready, setReady] = useState(false);
@@ -425,7 +423,6 @@ export default function TodayScreen() {
   const [concerns, setConcerns] = useState<Map<string, Severity>>(new Map());
   const [plan, setPlan] = useState<SessionPlan | null>(null);
   const planTone = toneForWorkoutType(plan?.workoutType);
-  const rationaleNotes = plan ? rationaleHighlights(plan.rationale) : [];
   const scrollRef = useRef<ScrollView>(null);
   const pendingScrollToPlan = useRef(false);
   const planMarkerRef = useRef<View>(null);
@@ -436,7 +433,6 @@ export default function TodayScreen() {
   const pendingScrollToCheckin = useRef(false);
   const [scheduledWorkouts, setScheduledWorkouts] = useState<ScheduledWorkout[]>([]);
   const [rollingPlan, setRollingPlan] = useState<RollingPlan | null>(null);
-  const [showEndConfirm, setShowEndConfirm] = useState(false);
   const [weekStart] = useState(() => localDay(Date.now()));
   const [routines, setRoutines] = useState<Routine[]>([]);
   const [selectedRoutineId, setSelectedRoutineId] = useState<string | null>(null);
@@ -510,6 +506,15 @@ export default function TodayScreen() {
     return () => cancelAnimationFrame(frame);
   }, [params.checkin, openSection]);
 
+  // Bounced back from the routine editor (Explore) after creating/editing a
+  // routine from this sheet — reopen it so the athlete lands back where they
+  // were instead of on a bare Today screen.
+  useEffect(() => {
+    if (params.openRoutinePicker !== '1') return;
+    setRoutinePickerVisible(true);
+    router.setParams({ openRoutinePicker: undefined });
+  }, [params.openRoutinePicker, router]);
+
   // "Use today" from a routine's detail view (Explore) — ADR-0137. A plain
   // (non-focus) effect purely to remember the param in a ref — the focus
   // effect below reads the ref instead of `params.useRoutineId` directly, so
@@ -547,6 +552,16 @@ export default function TodayScreen() {
         const active = getActiveSessionRecord();
         const activePlan = active ? getPlan(active.planId) : undefined;
         if (active && activePlan) useWorkoutStore.getState().hydrate(activePlan, active);
+      }
+
+      // Today never shows an intermediate "resume/end" card — an in-progress
+      // session sends the athlete straight into the tracker instead. `replace`
+      // (not `push`) so backing out of the workout returns to Today rather
+      // than bouncing back into this redirect.
+      const liveRecord = useWorkoutStore.getState().record;
+      if (liveRecord && liveRecord.completedAt == null) {
+        router.replace('/workout');
+        return;
       }
 
       const timer = setTimeout(() => {
@@ -671,7 +686,6 @@ export default function TodayScreen() {
         if (explicitRoutineId) {
           pendingRoutineIdRef.current = undefined;
           setShowBuilderAdjustments(true);
-          openSection('routine');
           router.setParams({ useRoutineId: undefined });
         }
         setEquipment(equipmentInventory);
@@ -930,7 +944,14 @@ export default function TodayScreen() {
       excludedExerciseIds: getExercisePreferences().excludedExerciseIds,
       favoriteExerciseIds: getExercisePreferences().favoriteExerciseIds,
       ...(selectedRoutine
-        ? { routine: { id: selectedRoutine.id, name: selectedRoutine.name, exerciseIds: selectedRoutine.exerciseIds } }
+        ? {
+            routine: {
+              id: selectedRoutine.id,
+              name: selectedRoutine.name,
+              exerciseIds: selectedRoutine.exerciseIds,
+              onlyRoutineExercises: selectedRoutine.onlyRoutineExercises,
+            },
+          }
         : {}),
     });
     savePlan(p);
@@ -954,25 +975,6 @@ export default function TodayScreen() {
     setSelectedRoutineId(id);
     const routine = id ? routines.find((r) => r.id === id) : undefined;
     if (routine) setWorkoutType(routine.workoutType);
-  }
-
-  /** "Have the system pick from my custom routines" (ADR-0137). */
-  function autoPickRoutine() {
-    if (!equipment) return;
-    const flags: AvoidanceFlag[] = CONCERN_OPTIONS.filter((c) => concerns.has(areaKey(c.area))).map(
-      (c) => ({ area: c.area, severity: concerns.get(areaKey(c.area)) as Severity }),
-    );
-    const best = recommendRoutine({ equipment, avoidToday: { flags } });
-    chooseRoutine(best?.id ?? null);
-  }
-
-  function onResumeWorkout() {
-    router.push('/workout');
-  }
-
-  function onEndEarly() {
-    const ended = endEarly();
-    if (ended) router.push('/debrief');
   }
 
   /**
@@ -1058,40 +1060,6 @@ export default function TodayScreen() {
         </Row>
       </View>
 
-      {inProgress ? (
-        <Card elevated>
-          <Button
-            title="Resume workout"
-            onPress={onResumeWorkout}
-            fullWidth
-          />
-          {showEndConfirm ? (
-            <View style={{ gap: spacing.sm, marginTop: spacing.md }}>
-              <Text variant="caption" color="textMuted">
-                Sets you haven&apos;t logged yet will be marked skipped. Your workout will be saved as done.
-              </Text>
-              <Row gap="md">
-                <Button
-                  title="Cancel"
-                  variant="secondary"
-                  onPress={() => setShowEndConfirm(false)}
-                  style={{ flex: 1 }}
-                />
-                <Button title="End workout" onPress={onEndEarly} style={{ flex: 1 }} />
-              </Row>
-            </View>
-          ) : (
-            <Button
-              title="End workout early"
-              variant="quiet"
-              size="sm"
-              onPress={() => setShowEndConfirm(true)}
-              style={{ marginTop: spacing.sm }}
-            />
-          )}
-        </Card>
-      ) : null}
-
       {!inProgress && (
         <>
           <View
@@ -1105,38 +1073,48 @@ export default function TodayScreen() {
             goal={familyOfWorkoutType(workoutType)}
             imageOverride={workoutTypeArt(workoutType)}
             compact
-            style={{ minHeight: 250 }}
+            style={{ minHeight: 222 }}
           >
-            <View style={{ gap: spacing.sm }}>
-              <Text variant="caption" color="heroMuted" weight="bold">
-                {selectedRoutine ? 'TODAY’S ROUTINE' : 'RECOMMENDED FOR YOU'}
-              </Text>
-              <View>
-                <Text variant="subtitle" color="heroText" italic>
-                  {selectedRoutine ? selectedRoutine.name : workoutLabel(workoutType)}
+            <Row style={{ justifyContent: 'space-between', alignItems: 'center' }} gap="md">
+              <View style={{ flex: 1, gap: spacing.sm }}>
+                <Text variant="caption" color="heroMuted" weight="bold">
+                  {selectedRoutine ? 'YOUR ROUTINE' : 'Recommended Today:'}
                 </Text>
-                <Text variant="caption" color="heroMuted" style={{ marginTop: 2 }}>
-                  {selectedRoutine
-                    ? `${selectedRoutine.exerciseIds.length} exercise${selectedRoutine.exerciseIds.length === 1 ? '' : 's'}`
-                    : `${familyOfWorkoutType(workoutType) === 'mobility' ? flowDurationMin : targetDurationMin} min${selectedEmphasisLabels.length > 0 ? ` · ${selectedEmphasisLabels.join(' · ')}` : ''}`}
-                </Text>
+                <View>
+                  <Text variant="subtitle" color="heroText" italic>
+                    {selectedRoutine ? selectedRoutine.name : workoutLabel(workoutType)}
+                  </Text>
+                  <Row gap="xs" style={{ alignItems: 'center', marginTop: 2 }}>
+                    <Text variant="caption" color="heroMuted">
+                      {selectedRoutine
+                        ? `${selectedRoutine.exerciseIds.length} exercise${selectedRoutine.exerciseIds.length === 1 ? '' : 's'}`
+                        : `${familyOfWorkoutType(workoutType) === 'mobility' ? flowDurationMin : targetDurationMin} min${selectedEmphasisLabels.length > 0 ? ` · ${selectedEmphasisLabels.join(' · ')}` : ''}`}
+                    </Text>
+                    {selectedRoutine?.onlyRoutineExercises ? (
+                      <>
+                        <Icon name="lock" size={12} color="heroMuted" />
+                        <Text variant="caption" color="heroMuted">Only these exercises</Text>
+                      </>
+                    ) : null}
+                  </Row>
+                </View>
               </View>
-              <Row gap="sm" style={{ marginTop: spacing.sm }}>
-                <Button title={building ? 'Building…' : 'Start'} onPress={build} loading={building} style={{ flex: 1 }} />
-                <Button
-                  title={showBuilderAdjustments ? 'Done' : 'Customize'}
-                  variant="secondary"
-                  onPress={() => {
-                    if (showBuilderAdjustments) setOpenBuilderSection(null);
-                    setShowBuilderAdjustments((shown) => !shown);
-                  }}
-                  style={{ flex: 1 }}
-                />
-              </Row>
-            </View>
+              <View style={{ gap: spacing.xs, width: 176 }}>
+                {selectedRoutine ? (
+                  <>
+                    <Button title="Switch Routine" variant="hero" size="sm" onPress={() => setRoutinePickerVisible(true)} fullWidth style={{ backgroundColor: 'rgba(24,26,36,0.4)' }} />
+                    <Button title={'Switch to\nCoach Generated'} variant="hero" size="sm" onPress={() => chooseRoutine(null)} fullWidth style={{ backgroundColor: 'rgba(24,26,36,0.4)', height: 52 }} />
+                  </>
+                ) : (
+                  <Button title="Switch to Your Routine" variant="hero" size="sm" onPress={() => setRoutinePickerVisible(true)} fullWidth style={{ backgroundColor: 'rgba(24,26,36,0.4)' }} />
+                )}
+              </View>
+            </Row>
           </GoalHero>
 
-          <Row gap="xs" style={{ position: 'absolute', top: spacing.lg, left: spacing.lg, right: spacing.lg }}>
+          <View style={{ position: 'absolute', top: spacing.lg, left: spacing.lg, right: spacing.lg, gap: spacing.xs }}>
+          <Text variant="caption" color="heroMuted" weight="bold">Weekly Calendar</Text>
+          <Row gap="xs">
             {weekStrip.rows.map((row) => {
               const isToday = row.day === weekStart;
               const dateObj = new Date(row.day);
@@ -1180,77 +1158,23 @@ export default function TodayScreen() {
             })}
           </Row>
           </View>
+          </View>
 
-          <ActionRow
-            icon={<Icon name="workout" size={17} color="primaryTextSoft" />}
-            label="Your routines"
-            description={selectedRoutine ? selectedRoutine.name : routines.length ? `${routines.length} saved` : 'Build for me'}
-            onPress={() => setRoutinePickerVisible(true)}
-            trailing={<Icon name="chevronRight" color="primaryTextSoft" />}
-            style={{ marginTop: spacing.md }}
-          />
-
-          {showBuilderAdjustments && (
-            <Card elevated style={{ marginTop: spacing.md }}>
+          <View style={{ marginTop: spacing.md }}>
+              <Card elevated tone="primarySoft" style={{ borderColor: colors.border }}>
                 <View style={{ gap: spacing.sm }}>
-                  {routines.length > 0 && (
-                    <View
-                      ref={(node) => { sectionMarkerRefs.current.routine = node; }}
-                      onLayout={handleSectionLayout('routine')}
-                    >
-                      <ActionRow
-                        icon={<Icon name="workout" size={17} color="primaryTextSoft" />}
-                        label="Routine"
-                        description={selectedRoutine ? selectedRoutine.name : 'Build for me'}
-                        onPress={() => toggleSection('routine')}
-                        trailing={<Icon name={openBuilderSection === 'routine' ? 'chevronUp' : 'chevronDown'} color="primaryTextSoft" />}
-                      />
-                      {openBuilderSection === 'routine' && (
-                        <Card tone="surfaceAlt">
-                          <Row gap="sm" wrap>
-                            <Chip label="Build for me" selected={!selectedRoutineId} onPress={() => chooseRoutine(null)} />
-                            <Chip
-                              label="Auto-pick for me"
-                              icon={<Icon name="target" size={16} color="primaryTextSoft" />}
-                              selected={false}
-                              onPress={autoPickRoutine}
-                            />
-                            <Chip
-                              label="Pick a routine"
-                              icon={<Icon name="chevronRight" size={16} color="primaryTextSoft" />}
-                              selected={false}
-                              onPress={() => setRoutinePickerVisible(true)}
-                            />
-                          </Row>
-                          {selectedRoutine && (
-                            <View
-                              style={{
-                                marginTop: spacing.sm,
-                                padding: spacing.md,
-                                borderRadius: radii.md,
-                                backgroundColor: colors.surface,
-                                borderWidth: 1,
-                                borderColor: colors.border,
-                              }}
-                            >
-                              <Row style={{ justifyContent: 'space-between', alignItems: 'center' }}>
-                                <View style={{ flex: 1 }}>
-                                  <Text variant="subtitle">{selectedRoutine.name}</Text>
-                                  <Text variant="caption" color="textMuted" style={{ marginTop: 2 }}>
-                                    {selectedRoutine.exerciseIds.length} exercise{selectedRoutine.exerciseIds.length === 1 ? '' : 's'}
-                                  </Text>
-                                </View>
-                                <Button title="View" size="sm" variant="secondary" onPress={() => setViewRoutineId(selectedRoutine.id)} />
-                              </Row>
-                              <Text variant="caption" color="textFaint" style={{ marginTop: spacing.sm }}>
-                                Today&apos;s readiness and avoidance still adjust the prescription.
-                              </Text>
-                            </View>
-                          )}
-                        </Card>
-                      )}
-                    </View>
-                  )}
+                  <ActionRow
+                    icon={<Icon name="filter" size={17} color="primaryTextSoft" />}
+                    label="Customize Workout"
+                    description={workoutLabel(workoutType)}
+                    onPress={() => {
+                      if (showBuilderAdjustments) setOpenBuilderSection(null);
+                      setShowBuilderAdjustments((shown) => !shown);
+                    }}
+                    trailing={<Icon name={showBuilderAdjustments ? 'chevronUp' : 'chevronDown'} color="primaryTextSoft" />}
+                  />
+                  {showBuilderAdjustments && (
+                    <>
                   <View
                     ref={(node) => { sectionMarkerRefs.current.session = node; }}
                     onLayout={handleSectionLayout('session')}
@@ -1582,11 +1506,13 @@ export default function TodayScreen() {
                     </Card>
                   )}
                   </View>
+                    </>
+                  )}
 
                 <Button title={building ? 'Building…' : 'Build Workout'} onPress={build} loading={building} fullWidth />
                 </View>
             </Card>
-          )}
+          </View>
           </View>
 
           {plan && (
@@ -1608,7 +1534,7 @@ export default function TodayScreen() {
                 <Row gap="sm">
                   <ToneIconTile name="workout" size={32} iconSize={17} tone={planTone} />
                   <View>
-                    <Text variant="heading" tint={colors.tones[planTone].text} italic>Workout Focus: {workoutOverview(plan).focus}</Text>
+                    <Text variant="heading" tint={colors.tones[planTone].text} italic>Your Workout - Focus: {workoutOverview(plan).focus}</Text>
                     {workoutOverview(plan).primaryGroups.length > 0 && (
                       <Text variant="body" color="textMuted">
                         {workoutOverview(plan).primaryGroups.join(' · ')}
@@ -1623,19 +1549,6 @@ export default function TodayScreen() {
                   </Text>
                 </Row>
               </Row>
-              {rationaleNotes.length > 0 && (
-                <View style={{ marginTop: spacing.lg, padding: spacing.md, borderRadius: radii.lg, backgroundColor: colors.surfaceAlt, borderWidth: 1, borderColor: colors.border }}>
-                  <Text variant="caption" color="textMuted" weight="bold">WHY THIS TODAY</Text>
-                  <View style={{ marginTop: 6, gap: 6 }}>
-                    {rationaleNotes.map((note, index) => (
-                      <Row key={index} gap="xs" style={{ alignItems: 'flex-start' }}>
-                        <Text variant="body" color="textMuted">·</Text>
-                        <Text variant="body" style={{ flex: 1 }}>{note}</Text>
-                      </Row>
-                    ))}
-                  </View>
-                </View>
-              )}
               <View style={{ marginTop: spacing.lg, gap: spacing.sm }}>
                 <Text variant="caption" color="textFaint" weight="bold">YOUR SESSION FLOW</Text>
                 <Row gap="sm" wrap>
@@ -1736,8 +1649,15 @@ export default function TodayScreen() {
         selectedRoutineId={selectedRoutineId}
         onClose={() => setRoutinePickerVisible(false)}
         onSelect={(id) => chooseRoutine(id)}
-        onAutoPick={autoPickRoutine}
         onView={(id) => setViewRoutineId(id)}
+        onCreateRoutine={() => {
+          setRoutinePickerVisible(false);
+          router.push({ pathname: '/explore', params: { tab: 'routines', newRoutine: '1', returnTo: 'picker' } });
+        }}
+        onEditRoutine={(id) => {
+          setRoutinePickerVisible(false);
+          router.push({ pathname: '/explore', params: { tab: 'routines', editRoutineId: id, returnTo: 'picker' } });
+        }}
       />
       <RoutineDetailSheet
         routine={viewRoutine}

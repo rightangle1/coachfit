@@ -46,6 +46,7 @@ export interface CreateRoutineInput {
   workoutType?: Routine['workoutType'];
   recurrenceDaysOfWeek?: number[];
   createdFromSessionId?: string;
+  onlyRoutineExercises?: boolean;
 }
 
 export function createRoutine(input: CreateRoutineInput): Routine {
@@ -57,6 +58,7 @@ export function createRoutine(input: CreateRoutineInput): Routine {
     workoutType: input.workoutType,
     recurrenceDaysOfWeek: input.recurrenceDaysOfWeek,
     createdFromSessionId: input.createdFromSessionId,
+    onlyRoutineExercises: input.onlyRoutineExercises,
     createdAt: now,
     updatedAt: now,
   };
@@ -84,6 +86,14 @@ export function updateRoutineRecurrence(id: string, recurrenceDaysOfWeek: number
   const routine = getRoutine(id);
   if (!routine) return undefined;
   const next: Routine = { ...routine, recurrenceDaysOfWeek, updatedAt: Date.now() };
+  saveRow(routineToRow(next));
+  return next;
+}
+
+export function updateRoutineOnlyExercises(id: string, onlyRoutineExercises: boolean): Routine | undefined {
+  const routine = getRoutine(id);
+  if (!routine) return undefined;
+  const next: Routine = { ...routine, onlyRoutineExercises, updatedAt: Date.now() };
   saveRow(routineToRow(next));
   return next;
 }
